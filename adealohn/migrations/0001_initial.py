@@ -14,7 +14,7 @@ def create_default_wage_types(apps, schema_editor):
         ("FAMILIENZULAGE", "Familienzulage", "FAMILIENZULAGE"),
         ("SPESEN_EFFEKTIV", "Spesen effektiv", "SPESEN"),
         ("PRIVATANTEIL_AUTO", "Privatanteil Auto", "SACHLEISTUNG"),
-        ("PRIVATANTEIL_TELEFON", "Privatanteil Telefon", "SACHLEISTUNG"),
+        ("PRIVATANTEIL_TEL", "Privatanteil Telefon", "SACHLEISTUNG"),
     ]
     for code, name, category in defaults:
         WageType.objects.get_or_create(
@@ -37,7 +37,7 @@ def remove_default_wage_types(apps, schema_editor):
             "FAMILIENZULAGE",
             "SPESEN_EFFEKTIV",
             "PRIVATANTEIL_AUTO",
-            "PRIVATANTEIL_TELEFON",
+            "PRIVATANTEIL_TEL",
         ]
     ).delete()
 

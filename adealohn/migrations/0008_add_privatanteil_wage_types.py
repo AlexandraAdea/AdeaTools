@@ -25,7 +25,7 @@ def create_privatanteil_wage_types(apps, schema_editor):
             'description': 'Privatanteil Geschäftswagen (voll AHV-/Steuer-/QST-pflichtig).',
         },
         {
-            'code': 'PRIVATANTEIL_TELEFON',
+            'code': 'PRIVATANTEIL_TEL',
             'name': 'Privatanteil Telefon',
             'category': 'SACHLEISTUNG',
             'is_lohnwirksam': True,
@@ -50,7 +50,7 @@ def remove_privatanteil_wage_types(apps, schema_editor):
     WageType = apps.get_model('adealohn', 'WageType')
     WageType.objects.filter(code__in=[
         'PRIVATANTEIL_AUTO',
-        'PRIVATANTEIL_TELEFON'
+        'PRIVATANTEIL_TEL'
     ]).delete()
 
 
