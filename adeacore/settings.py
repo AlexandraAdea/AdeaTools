@@ -59,6 +59,14 @@ DEBUG = get_env_variable('DJANGO_DEBUG', 'True').lower() in ('true', '1', 'yes')
 ALLOWED_HOSTS_STR = get_env_variable('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1')
 ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_STR.split(',') if host.strip()]
 
+# Render.com Support: Füge automatisch *.onrender.com hinzu wenn auf Render gehostet
+# Render setzt immer RENDER=true oder DATABASE_URL enthält postgresql://
+if os.environ.get('RENDER') or (os.environ.get('DATABASE_URL') and 'postgresql://' in os.environ.get('DATABASE_URL', '')):
+    ALLOWED_HOSTS.extend([
+        '.onrender.com',  # Erlaubt alle *.onrender.com Subdomains
+        'adeacore-web.onrender.com',  # Spezifische Domain
+    ])
+
 
 # Application definition
 
