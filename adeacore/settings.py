@@ -180,6 +180,11 @@ else:
     }
 
 
+# Authentication URLs
+# https://docs.djangoproject.com/en/5.1/ref/settings/#login-url
+LOGIN_URL = '/admin/login/'  # Standard Login-URL für alle Views
+LOGIN_REDIRECT_URL = '/'  # Nach erfolgreichem Login zur Startseite
+
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
@@ -221,7 +226,8 @@ STATICFILES_DIRS = [
 
 # Static files für Production (Render)
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Verwende einfache WhiteNoise Storage (ohne Manifest) für bessere Kompatibilität
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 # Media files (Uploads)
 # https://docs.djangoproject.com/en/5.1/topics/files/

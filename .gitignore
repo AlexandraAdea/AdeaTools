@@ -33,7 +33,8 @@ db.sqlite3
 db.sqlite3-journal
 /media
 /staticfiles
-/static
+# /static - NICHT ignorieren, damit CSS/JS für Render verfügbar sind
+# Nur staticfiles/ wird ignoriert (wird von collectstatic generiert)
 
 # Environment Variables - KRITISCH!
 .env

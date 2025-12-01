@@ -23,6 +23,11 @@ from . import views
 
 
 def home(request):
+    """Homepage - leitet Admin-Benutzer automatisch zum Admin-Dashboard weiter."""
+    # Wenn Benutzer eingeloggt ist und Superuser, weiterleiten zum Admin-Dashboard
+    if request.user.is_authenticated and request.user.is_superuser:
+        from django.shortcuts import redirect
+        return redirect('admin-dashboard')
     return render(request, 'home.html')
 
 
