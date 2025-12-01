@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Mandant wechseln – AdeaLohn{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <h1 style="margin-bottom: 24px;">Mandant auswählen</h1>
+    
+    {% if current_client %}
+    <div style="margin-bottom: 24px; padding: 16px; background: #e8f5e9; border-left: 4px solid #4caf50; border-radius: 4px;">
+        <strong>Aktueller Mandant:</strong> {{ current_client.name }}
+    </div>
+    {% endif %}
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="feature-grid">
+            <div class="feature-item" style="box-shadow:none; background:transparent; border:none; padding:0;">
+                <label for="client_id" style="display:block; font-weight:600; margin-bottom:8px;">Mandant auswählen</label>
+                <select id="client_id" name="client_id" class="adea-select" required>
+                    <option value="">-- Bitte wählen --</option>
+                    {% for client in clients %}
+                    <option value="{{ client.pk }}" {% if client.pk == current_client.pk %}selected{% endif %}>
+                        {{ client.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div style="margin-top: 28px; display: flex; gap: 12px; flex-wrap: wrap;">
+            <button type="submit" class="adea-button-primary">
+                Mandant auswählen
+            </button>
+            <a href="{% url 'adealohn:payroll-list' %}" class="adea-button-secondary">
+                Abbrechen
+            </a>
+        </div>
+    </form>
+</section>
+{% endblock %}
+
+

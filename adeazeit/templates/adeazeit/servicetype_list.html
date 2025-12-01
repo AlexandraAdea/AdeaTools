@@ -1,0 +1,70 @@
+{% extends 'adeazeit_base.html' %}
+
+{% block breadcrumbs %}
+<a href="{% url 'admin-dashboard' %}">Dashboard</a>
+<a href="{% url 'adeazeit:servicetype-list' %}">Service-Typen</a>
+{% endblock %}
+
+{% block title %}Service-Typen – AdeaZeit{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <div class="adea-d-flex-between">
+        <div>
+            <h1 style="margin-bottom: 8px;">Service-Typen</h1>
+            <p class="lead">Verwalte Service-Kategorien für Zeiterfassung.</p>
+        </div>
+        {% if adeazeit_can_manage_service_types %}
+        <a class="adea-button-primary" href="{% url 'adeazeit:servicetype-create' %}">Neuer Service-Typ</a>
+        {% endif %}
+    </div>
+
+    <form method="get" class="adea-search-form" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 20px;">
+        <input type="text" name="q" value="{{ query }}" placeholder="Suchen…" class="adea-input" style="flex: 1; min-width: 200px;">
+        <button type="submit" class="adea-button-primary">Suchen</button>
+    </form>
+
+    <div class="adea-table-wrapper" style="margin-top: 20px;">
+        <table class="adea-table">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Standard-Stundensatz</th>
+                    <th>Verrechenbar</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for service_type in service_types %}
+                <tr>
+                    <td><strong>{{ service_type.code }}</strong></td>
+                    <td>{{ service_type.name }}</td>
+                    <td>{{ service_type.standard_rate|floatformat:2 }} CHF</td>
+                    <td>
+                        {% if service_type.billable %}
+                        <span style="color: #34c759;">Ja</span>
+                        {% else %}
+                        <span style="color: #8e8e93;">Nein</span>
+                        {% endif %}
+                    </td>
+                    <td class="adea-table-actions">
+                        {% if adeazeit_can_manage_service_types %}
+                        <a href="{% url 'adeazeit:servicetype-update' service_type.pk %}">Bearbeiten</a>
+                        {% endif %}
+                        {% if adeazeit_can_delete %}
+                        <a href="{% url 'adeazeit:servicetype-delete' service_type.pk %}" style="color: #ff3b30;">Löschen</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5">Keine Service-Typen gefunden.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
+

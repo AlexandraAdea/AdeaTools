@@ -1,0 +1,16 @@
+# Django Core
+Django>=5.1.2
+
+# Environment & Config
+python-dotenv>=1.0.0
+dj-database-url>=2.1.0
+
+# Production & Static Files
+gunicorn>=21.2.0
+whitenoise>=6.6.0
+
+# Database
+psycopg2-binary>=2.9.9
+
+# Optional Security Features
+cryptography>=41.0.0

@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if object %}Payroll bearbeiten{% else %}Payroll erfassen{% endif %} – AdeaLohn
+{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <h1 style="margin-bottom: 24px;">{% if object %}Payroll bearbeiten{% else %}Neuer Payroll-Eintrag{% endif %}</h1>
+    
+    {% if object and object.is_locked %}
+    <div style="margin-bottom: 24px; padding: 16px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+        <strong>⚠️ Gesperrt:</strong> Dieser Lohnlauf ist gesperrt ({{ object.get_status_display }}) und kann nicht mehr bearbeitet werden.
+    </div>
+    {% endif %}
+    
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+        <div style="color:#ff5f57; margin-bottom:16px;">{{ form.non_field_errors|striptags }}</div>
+        {% endif %}
+        <div class="feature-grid">
+            {% for field in form %}
+                {% if field.is_hidden %}
+                    {{ field }}
+                {% else %}
+                <div class="feature-item" style="box-shadow:none; background:transparent; border:none; padding:0;">
+                    <label for="{{ field.id_for_label }}" style="display:block; font-weight:600; margin-bottom:8px;">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                    <small style="color:#6e6e73;">{{ field.help_text }}</small>
+                    {% endif %}
+                    {% if field.errors %}
+                    <div style="color:#ff5f57; margin-top:6px; font-size:13px;">
+                        {{ field.errors|striptags }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        {% if not form.show_gross_salary_field %}
+        <div class="feature-item" style="margin-top:16px;">
+            <strong>Hinweis:</strong> Bruttolohn wird automatisch berechnet (Stunden × Stundensatz).
+        </div>
+        {% endif %}
+
+        {% if hours_total %}
+        <div class="feature-item" style="margin-top:16px;">
+            <strong>Berechnete Stunden:</strong> {{ hours_total|floatformat:2 }} h
+        </div>
+        {% endif %}
+
+        <div style="margin-top:28px; display:flex; gap:12px; flex-wrap:wrap;">
+            <button type="submit" class="adea-button-primary">
+                {% if object %}Speichern{% else %}Anlegen{% endif %}
+            </button>
+            <a href="{% if object %}{% url 'adealohn:payroll-detail' object.pk %}{% else %}{% url 'adealohn:payroll-list' %}{% endif %}" class="adea-button-secondary">
+                Abbrechen
+            </a>
+        </div>
+    </form>
+</section>
+{% endblock %}
+
+
+
+

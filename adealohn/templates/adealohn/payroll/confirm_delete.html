@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}Payroll löschen – AdeaLohn{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <h1>Payroll löschen</h1>
+    <p class="lead">Soll der Payroll-Eintrag von {{ record.employee.first_name }} {{ record.employee.last_name }} für {{ record.month }}/{{ record.year }} endgültig entfernt werden?</p>
+
+    <form method="post" style="margin-top:28px;">
+        {% csrf_token %}
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+            <button type="submit" class="adea-button-primary" style="background:#ff5f57;">Ja, löschen</button>
+            <a href="{% url 'adealohn:payroll-detail' record.pk %}" class="adea-button-secondary">
+                Abbrechen
+            </a>
+        </div>
+    </form>
+</section>
+{% endblock %}
+
+
+
+
+

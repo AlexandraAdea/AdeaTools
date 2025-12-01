@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}Zeiteintrag {{ record.date|date:"d.m.Y" }} – AdeaZeit{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <div class="adea-d-flex-between">
+        <div>
+            <h1>Eintrag vom {{ record.date|date:"d.m.Y" }}</h1>
+            <p class="lead">Zeitlog für {{ record.client.name }}{% if record.project %} – Projekt {{ record.project.name }}{% endif %}.</p>
+        </div>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+            <a class="adea-button-primary" href="{% url 'adeazeit:timerecord-update' record.pk %}">Bearbeiten</a>
+            <a class="adea-button-primary" style="background:#ff5f57;" href="{% url 'adeazeit:timerecord-delete' record.pk %}">Löschen</a>
+        </div>
+    </div>
+
+    <div class="feature-grid" style="margin-top:24px;">
+        <div class="feature-item">
+            <h2>Allgemein</h2>
+            <ul>
+                <li><strong>Client:</strong> {{ record.client.name }}</li>
+                <li><strong>Mitarbeiter:</strong> {{ record.employee|default:"–" }}</li>
+                <li><strong>Projekt:</strong> {{ record.project.name if record.project else "Allgemein" }}</li>
+            </ul>
+        </div>
+        <div class="feature-item">
+            <h2>Details</h2>
+            <ul>
+                <li><strong>Datum:</strong> {{ record.date|date:"d.m.Y" }}</li>
+                <li><strong>Stunden:</strong> {{ record.hours|floatformat:2 }}</li>
+                <li><strong>Erfasst:</strong> {{ record.created_at|date:"d.m.Y H:i" }}</li>
+            </ul>
+        </div>
+    </div>
+
+    {% if record.description %}
+    <div class="feature-item" style="margin-top:24px;">
+        <h2>Beschreibung</h2>
+        <p>{{ record.description }}</p>
+    </div>
+    {% endif %}
+
+    <div style="margin-top:24px;">
+        <a href="{% url 'adeazeit:timerecord-list' %}">&larr; Zurück zur Übersicht</a>
+    </div>
+</section>
+{% endblock %}
+
+
+
+
+

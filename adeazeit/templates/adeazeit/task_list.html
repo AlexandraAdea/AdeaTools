@@ -1,0 +1,206 @@
+{% extends 'adeazeit_base.html' %}
+
+{% block title %}Aufgaben – AdeaZeit{% endblock %}
+
+{% block breadcrumbs %}
+<a href="{% url 'admin-dashboard' %}">Dashboard</a>
+<a href="{% url 'adeazeit:task-list' %}">Aufgaben</a>
+{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <div class="adea-d-flex-between">
+        <div>
+            <h1 style="margin-bottom: var(--spacing-sm);">Meine Aufgaben</h1>
+            <p class="lead">Verwalte deine Aufgaben und To-Dos.</p>
+        </div>
+        <a class="adea-button-primary" href="{% url 'adeazeit:task-create' %}">+ Neue Aufgabe</a>
+    </div>
+
+    <!-- Statistiken -->
+    <div class="adea-stats-grid">
+        <div class="adea-stat-card adea-stat-card-default">
+            <div class="adea-stat-value">{{ stats.total }}</div>
+            <div class="adea-stat-label">Gesamt</div>
+        </div>
+        <div class="adea-stat-card adea-stat-card-warning">
+            <div class="adea-stat-value">{{ stats.offen }}</div>
+            <div class="adea-stat-label">Offen</div>
+        </div>
+        <div class="adea-stat-card adea-stat-card-info">
+            <div class="adea-stat-value">{{ stats.in_arbeit }}</div>
+            <div class="adea-stat-label">In Arbeit</div>
+        </div>
+        <div class="adea-stat-card adea-stat-card-success">
+            <div class="adea-stat-value">{{ stats.erledigt }}</div>
+            <div class="adea-stat-label">Erledigt</div>
+        </div>
+        {% if stats.ueberfaellig > 0 %}
+        <div class="adea-stat-card adea-stat-card-danger">
+            <div class="adea-stat-value">{{ stats.ueberfaellig }}</div>
+            <div class="adea-stat-label">⚠️ Überfällig</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Filterleiste -->
+    <form method="get" class="adea-filter-form">
+        <div>
+            <label for="q">Suche</label>
+            <input type="text" name="q" id="q" value="{{ search_query }}" placeholder="Titel, Beschreibung..." class="adea-input">
+        </div>
+        <div>
+            <label for="status">Status</label>
+            <select name="status" id="status" class="adea-select">
+                <option value="">Alle</option>
+                <option value="OFFEN" {% if status_filter == 'OFFEN' %}selected{% endif %}>Offen</option>
+                <option value="IN_ARBEIT" {% if status_filter == 'IN_ARBEIT' %}selected{% endif %}>In Arbeit</option>
+                <option value="ERLEDIGT" {% if status_filter == 'ERLEDIGT' %}selected{% endif %}>Erledigt</option>
+            </select>
+        </div>
+        <div>
+            <label for="client">Mandant</label>
+            <select name="client" id="client" class="adea-select">
+                <option value="">Alle</option>
+                {% for client in clients %}
+                <option value="{{ client.pk }}" {% if client_filter == client.pk|stringformat:"s" %}selected{% endif %}>
+                    {{ client.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="prioritaet">Priorität</label>
+            <select name="prioritaet" id="prioritaet" class="adea-select">
+                <option value="">Alle</option>
+                <option value="HOCH" {% if prioritaet_filter == 'HOCH' %}selected{% endif %}>Hoch</option>
+                <option value="MITTEL" {% if prioritaet_filter == 'MITTEL' %}selected{% endif %}>Mittel</option>
+                <option value="NIEDRIG" {% if prioritaet_filter == 'NIEDRIG' %}selected{% endif %}>Niedrig</option>
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="adea-button-primary">Filtern</button>
+        </div>
+    </form>
+
+    <!-- Aufgaben-Liste -->
+    <div class="adea-task-list">
+        {% for task in tasks %}
+        <div class="content-card adea-task-card adea-task-card-{{ task.prioritaet|lower }}">
+            <div class="adea-task-content-wrapper">
+                <div class="adea-task-content">
+                    <div class="adea-task-header">
+                        <h3 class="adea-task-title {% if task.status == 'ERLEDIGT' %}adea-task-title-completed{% endif %}">
+                            {{ task.titel }}
+                        </h3>
+                        <span class="adea-task-badge adea-task-badge-{{ task.status|lower }}">
+                            {{ task.get_status_display }}
+                        </span>
+                        <span class="adea-task-priority adea-task-priority-{{ task.prioritaet|lower }}">
+                            {% if task.prioritaet == 'HOCH' %}🔴 HOCH
+                            {% elif task.prioritaet == 'MITTEL' %}🟡 MITTEL
+                            {% else %}⚪ NIEDRIG{% endif %}
+                        </span>
+                    </div>
+                    
+                    {% if task.beschreibung %}
+                    <p style="margin: var(--spacing-sm) 0; color: var(--fg-muted); font-size: 0.95em;">{{ task.beschreibung|truncatewords:30 }}</p>
+                    {% endif %}
+                    
+                    <div class="adea-task-meta">
+                        <span>👤 {{ task.mitarbeiter.name }}</span>
+                        {% if task.client %}
+                        <span>🏢 {{ task.client.name }}</span>
+                        {% endif %}
+                        {% if task.fälligkeitsdatum %}
+                        <span {% if task.is_overdue %}style="color: var(--color-red); font-weight: 700;"{% endif %}>
+                            📅 {{ task.fälligkeitsdatum|date:"d.m.Y" }}
+                            {% if task.is_overdue %}
+                            ⚠️ Überfällig!
+                            {% elif task.days_until_due <= 3 and task.days_until_due >= 0 %}
+                            ⚠️ Fällig in {{ task.days_until_due }} Tag{{ task.days_until_due|pluralize:"en" }}
+                            {% endif %}
+                        </span>
+                        {% endif %}
+                        <span>📝 Erstellt: {{ task.erstellt_am|date:"d.m.Y" }}</span>
+                    </div>
+                    
+                    {% if task.notizen %}
+                    <div class="adea-task-notes">
+                        <strong class="adea-task-notes-label">Notizen:</strong>
+                        <p class="adea-task-notes-content">{{ task.notizen }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="adea-task-actions">
+                    <!-- Schnelle Status-Buttons -->
+                    <div class="adea-task-quick-actions">
+                        {% if task.status != 'OFFEN' %}
+                        <button onclick="quickStatusUpdate({{ task.pk }}, 'OFFEN')" class="adea-button-secondary">
+                            Offen
+                        </button>
+                        {% endif %}
+                        {% if task.status != 'IN_ARBEIT' %}
+                        <button onclick="quickStatusUpdate({{ task.pk }}, 'IN_ARBEIT')" class="adea-button-secondary">
+                            → In Arbeit
+                        </button>
+                        {% endif %}
+                        {% if task.status != 'ERLEDIGT' %}
+                        <button onclick="quickStatusUpdate({{ task.pk }}, 'ERLEDIGT')" class="adea-button-primary">
+                            ✓ Erledigt
+                        </button>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Bearbeiten/Löschen -->
+                    <div class="adea-task-edit-actions">
+                        <a href="{% url 'adeazeit:task-update' task.pk %}" class="adea-button-secondary">
+                            Bearbeiten
+                        </a>
+                        {% if adeazeit_can_delete %}
+                        <a href="{% url 'adeazeit:task-delete' task.pk %}" class="adea-task-link-danger">
+                            Löschen
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="content-card" style="text-align: center; padding: 40px;">
+            <p class="adea-text-secondary" style="font-size: 1.1em;">Keine Aufgaben gefunden.</p>
+            <a href="{% url 'adeazeit:task-create' %}" class="adea-button-primary" style="margin-top: var(--spacing-md);">+ Erste Aufgabe erstellen</a>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+<script>
+function quickStatusUpdate(taskId, newStatus) {
+    fetch("{% url 'adeazeit:task-quick-status' 0 %}".replace('0', taskId), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'task_id=' + taskId + '&status=' + newStatus
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Seite neu laden
+            window.location.reload();
+        } else {
+            alert('Fehler: ' + (data.error || 'Unbekannter Fehler'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Fehler beim Aktualisieren des Status');
+    });
+}
+</script>
+{% endblock %}
+
+

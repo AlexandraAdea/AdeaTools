@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block title %}AdeaLohn – Payroll{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <div class="adea-d-flex-between">
+        <div>
+            <h1 style="margin-bottom: 8px;">Payroll-Records</h1>
+            <p class="lead">Monatliche Lohnabrechnungen mit Filter nach Mitarbeitenden, Monat und Jahr.</p>
+        </div>
+        <a class="adea-button-primary" href="{% url 'adealohn:payroll-create' %}">Neuer Payroll-Eintrag</a>
+    </div>
+
+    <form method="get" class="adea-filter-bar">
+        <div>
+            <label for="employee-filter">Mitarbeiter</label>
+            <select id="employee-filter" name="employee" class="adea-select">
+                <option value="">Alle</option>
+                {% for employee in employees %}
+                <option value="{{ employee.id }}" {% if employee.id|stringformat:"s" == selected_employee|stringformat:"s" %}selected{% endif %}>
+                    {{ employee.first_name }} {{ employee.last_name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="month-filter">Monat</label>
+            <select id="month-filter" name="month" class="adea-select">
+                <option value="">Alle</option>
+                {% for value,label in months %}
+                <option value="{{ value }}" {% if value|stringformat:"s" == selected_month|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="year-filter">Jahr</label>
+            <select id="year-filter" name="year" class="adea-select">
+                <option value="">Alle</option>
+                {% for value in years %}
+                <option value="{{ value }}" {% if value|stringformat:"s" == selected_year|stringformat:"s" %}selected{% endif %}>{{ value }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="search-query">Suche</label>
+            <input id="search-query" type="text" name="q" value="{{ query }}" placeholder="Mitarbeiter oder Client…" class="adea-input">
+        </div>
+        <div class="adea-filter-actions">
+            <button type="submit" class="adea-button-primary">Filter anwenden</button>
+            <a href="{% url 'adealohn:payroll-list' %}" class="adea-button-secondary">Zurücksetzen</a>
+        </div>
+    </form>
+
+    <div class="adea-table-wrapper">
+        <table class="adea-table">
+            <thead>
+                <tr>
+                    <th>Monat</th>
+                    <th>Mitarbeiter</th>
+                    <th>Client</th>
+                    <th>Status</th>
+                    <th>Bruttolohn</th>
+                    <th>Netto</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    <td>{{ record.month }}/{{ record.year }}</td>
+                    <td>{{ record.employee.first_name }} {{ record.employee.last_name }}</td>
+                    <td>{{ record.employee.client.name }}</td>
+                    <td>
+                        {% if record.status == 'ENTWURF' %}
+                        <span style="padding: 2px 8px; border-radius: 4px; font-size: 0.85em; background: #e3f2fd; color: #1976d2;">
+                            {{ record.get_status_display }}
+                        </span>
+                        {% elif record.status == 'GEPRUEFT' %}
+                        <span style="padding: 2px 8px; border-radius: 4px; font-size: 0.85em; background: #fff3e0; color: #f57c00;">
+                            {{ record.get_status_display }}
+                        </span>
+                        {% elif record.status == 'ABGERECHNET' %}
+                        <span style="padding: 2px 8px; border-radius: 4px; font-size: 0.85em; background: #e8f5e9; color: #388e3c;">
+                            {{ record.get_status_display }}
+                        </span>
+                        {% elif record.status == 'GESPERRT' %}
+                        <span style="padding: 2px 8px; border-radius: 4px; font-size: 0.85em; background: #ffebee; color: #d32f2f;">
+                            {{ record.get_status_display }}
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>{{ record.gross_salary|floatformat:2 }} CHF</td>
+                    <td>{{ record.net_salary|floatformat:2 }} CHF</td>
+                    <td class="adea-table-actions">
+                        <a href="{% url 'adealohn:payroll-detail' record.pk %}">Details</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6">Keine Payroll-Daten vorhanden.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="adea-pagination">
+        {% if page_obj.has_previous %}
+        <a href="?employee={{ selected_employee }}&month={{ selected_month }}&year={{ selected_year }}&q={{ query }}&page={{ page_obj.previous_page_number }}">Zurück</a>
+        {% endif %}
+        <span>Seite {{ page_obj.number }} von {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?employee={{ selected_employee }}&month={{ selected_month }}&year={{ selected_year }}&q={{ query }}&page={{ page_obj.next_page_number }}">Weiter</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
+
+
+
+

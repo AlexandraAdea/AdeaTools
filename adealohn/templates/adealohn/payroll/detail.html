@@ -1,0 +1,391 @@
+{% extends 'base.html' %}
+
+{% block title %}Payroll {{ month_name }} {{ record.year }} – AdeaLohn{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <div class="adea-d-flex-between">
+        <div>
+            <h1>{{ month_name }} {{ record.year }}</h1>
+            <p class="lead">Mitarbeiter: {{ record.employee.first_name }} {{ record.employee.last_name }} · Client: {{ record.employee.client.name }}</p>
+            <div style="margin-top: 8px;">
+                <strong>Status:</strong> 
+                {% if record.status == 'ENTWURF' %}
+                <span style="padding: 4px 12px; border-radius: 4px; font-size: 0.9em; background: #e3f2fd; color: #1976d2;">
+                    {{ record.get_status_display }}
+                </span>
+                {% elif record.status == 'GEPRUEFT' %}
+                <span style="padding: 4px 12px; border-radius: 4px; font-size: 0.9em; background: #fff3e0; color: #f57c00;">
+                    {{ record.get_status_display }}
+                </span>
+                {% elif record.status == 'ABGERECHNET' %}
+                <span style="padding: 4px 12px; border-radius: 4px; font-size: 0.9em; background: #e8f5e9; color: #388e3c;">
+                    {{ record.get_status_display }}
+                </span>
+                {% elif record.status == 'GESPERRT' %}
+                <span style="padding: 4px 12px; border-radius: 4px; font-size: 0.9em; background: #ffebee; color: #d32f2f;">
+                    {{ record.get_status_display }}
+                </span>
+                {% endif %}
+            </div>
+            {% if record.is_locked %}
+            <div style="margin-top: 12px; padding: 12px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+                <strong>⚠️ Gesperrt:</strong> Dieser Lohnlauf ist gesperrt ({{ record.get_status_display }}) und kann nicht mehr bearbeitet werden.
+            </div>
+            {% endif %}
+        </div>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+            {% if not record.is_locked %}
+                <a class="adea-button-primary" href="{% url 'adealohn:payroll-update' record.pk %}">Bearbeiten</a>
+                <a class="adea-button-primary" style="background:#ff5f57;" href="{% url 'adealohn:payroll-delete' record.pk %}">Löschen</a>
+            {% else %}
+                <span style="color: #8e8e93; font-size: 0.9em;">Bearbeitung gesperrt</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="feature-grid" style="margin-top:24px;">
+        <div class="feature-item">
+            <h2>Übersicht</h2>
+            <ul>
+                <li><strong>Stundensatz:</strong> {{ record.employee.hourly_rate|floatformat:2 }} CHF</li>
+                <li><strong>Monat:</strong> {{ month_name }} / {{ record.month }}</li>
+                <li><strong>Jahr:</strong> {{ record.year }}</li>
+            </ul>
+        </div>
+        <div class="feature-item">
+            <h2>Ergebnisse</h2>
+            <ul>
+                <li><strong>Stunden gesamt:</strong> {{ hours_total|floatformat:2 }} h</li>
+                <li><strong>Bruttolohn:</strong> {{ record.gross_salary|floatformat:2 }} CHF</li>
+            </ul>
+        </div>
+        <div class="feature-item">
+            <h2>AHV-Berechnung</h2>
+            <ul>
+                <li><strong>AHV-Basis:</strong> {{ record.ahv_basis|floatformat:2 }} CHF</li>
+                {% if record.employee.is_rentner and record.employee.ahv_freibetrag_aktiv %}
+                <li><strong>Rentnerfreibetrag:</strong> 1'400.00 CHF</li>
+                {% endif %}
+                <li><strong>Effektive AHV-Basis:</strong> {{ record.ahv_effective_basis|floatformat:2 }} CHF</li>
+                <li><strong>AHV Arbeitnehmer (5.3%):</strong> {{ record.ahv_employee|floatformat:2 }} CHF</li>
+                <li><strong>AHV Arbeitgeber (5.3%):</strong> {{ record.ahv_employer|floatformat:2 }} CHF</li>
+            </ul>
+        </div>
+        <div class="feature-item">
+            <h2>ALV-Berechnung</h2>
+            <ul>
+                <li><strong>ALV-Basis:</strong> {{ record.alv_basis|floatformat:2 }} CHF</li>
+                {% if record.employee.is_rentner %}
+                <li><em style="color:#8e8e93;">Keine ALV für Rentner</em></li>
+                {% else %}
+                <li><strong>ALV YTD-Basis:</strong> {{ record.employee.alv_ytd_basis|floatformat:2 }} CHF</li>
+                <li><strong>Effektive ALV-Basis:</strong> {{ record.alv_effective_basis|floatformat:2 }} CHF</li>
+                <li><em style="color:#8e8e93; font-size:0.9em;">Max. versichertes Jahreseinkommen: 148'200 CHF</em></li>
+                <li><strong>ALV Arbeitnehmer (1.1%):</strong> {{ record.alv_employee|floatformat:2 }} CHF</li>
+                <li><strong>ALV Arbeitgeber (1.1%):</strong> {{ record.alv_employer|floatformat:2 }} CHF</li>
+                {% endif %}
+            </ul>
+        </div>
+        <div class="feature-item">
+            <h2>UVG-Berechnung (Unfallversicherung)</h2>
+            <ul>
+                <li><strong>UV-Basis:</strong> {{ record.uv_basis|floatformat:2 }} CHF</li>
+                <li><strong>UVG YTD-Basis:</strong> {{ record.employee.uvg_ytd_basis|floatformat:2 }} CHF</li>
+                <li><strong>Effektive UV-Basis:</strong> {{ record.uvg_effective_basis|floatformat:2 }} CHF</li>
+                <li><em style="color:#8e8e93; font-size:0.9em;">Max. versichertes Jahreseinkommen: 148'200 CHF</em></li>
+                <li><strong>BU Arbeitgeber:</strong> {{ record.bu_employer|floatformat:2 }} CHF</li>
+                {% if record.employee.weekly_hours <= 8 %}
+                <li><em style="color:#8e8e93;">Keine NBU-Pflicht bei ≤8h/Woche</em></li>
+                {% else %}
+                <li><strong>NBU Arbeitnehmer:</strong> {{ record.nbu_employee|floatformat:2 }} CHF</li>
+                {% endif %}
+            </ul>
+        </div>
+        <div class="feature-item">
+            <h2>KTG-Berechnung (Krankentaggeldversicherung)</h2>
+            <ul>
+                <li><strong>KTG-Basis (UV-Basis):</strong> {{ record.uv_basis|floatformat:2 }} CHF</li>
+                <li><strong>Effektive KTG-Basis:</strong> {{ record.ktg_effective_basis|floatformat:2 }} CHF</li>
+                {% if record.ktg_employee == 0 and record.ktg_employer == 0 %}
+                <li><em style="color:#8e8e93;">Keine KTG-Beiträge konfiguriert</em></li>
+                {% else %}
+                <li><strong>KTG Arbeitnehmer:</strong> {{ record.ktg_employee|floatformat:2 }} CHF</li>
+                <li><strong>KTG Arbeitgeber:</strong> {{ record.ktg_employer|floatformat:2 }} CHF</li>
+                {% endif %}
+            </ul>
+        </div>
+        <div class="feature-item">
+            <h2>BVG-Berechnung (berufliche Vorsorge, 2. Säule)</h2>
+            <ul>
+                <li><strong>BVG-Basis (monatlich):</strong> {{ record.bvg_basis|floatformat:2 }} CHF</li>
+                <li><strong>BVG YTD-Basis:</strong> {{ record.employee.bvg_ytd_basis|floatformat:2 }} CHF</li>
+                {% if bvg_params %}
+                    <li><strong>Jahreslohn (YTD + aktuell):</strong> {{ annual_salary|floatformat:2 }} CHF</li>
+                    <li><strong>Eintrittsschwelle:</strong> {{ bvg_params.entry_threshold|floatformat:2 }} CHF</li>
+                    {% if record.bvg_insured_salary == 0 %}
+                    <li><em style="color:#8e8e93;">Unter Eintrittsschwelle – keine BVG-Pflicht</em></li>
+                    {% else %}
+                    <li><strong>BVG YTD versicherter Lohn:</strong> {{ record.employee.bvg_ytd_insured_salary|floatformat:2 }} CHF</li>
+                    <li><strong>Koordinationsabzug:</strong> {{ bvg_params.coordination_deduction|floatformat:2 }} CHF</li>
+                    <li><strong>Versicherter Lohn (jährlich):</strong> {{ record.bvg_insured_salary|floatformat:2 }} CHF</li>
+                    <li><em style="color:#8e8e93; font-size:0.9em;">Korridor: {{ bvg_params.min_insured_salary|floatformat:2 }} – {{ bvg_params.max_insured_salary|floatformat:2 }} CHF</em></li>
+                    <li><strong>BVG-Satz AN:</strong> {{ bvg_params.employee_rate|mul:100|floatformat:2 }}%</li>
+                    <li><strong>BVG-Satz AG:</strong> {{ bvg_params.employer_rate|mul:100|floatformat:2 }}%</li>
+                    <li><strong>BVG Arbeitnehmer:</strong> {{ record.bvg_employee|floatformat:2 }} CHF</li>
+                    <li><strong>BVG Arbeitgeber:</strong> {{ record.bvg_employer|floatformat:2 }} CHF</li>
+                    <li><em style="color:#8e8e93; font-size:0.9em;">Beträge gemäss Vorsorgeplan</em></li>
+                    {% endif %}
+                {% else %}
+                <li><em style="color:#8e8e93;">Keine BVG-Parameter für {{ record.year }} konfiguriert</em></li>
+                {% endif %}
+            </ul>
+        </div>
+        <div class="feature-item">
+            <h2>Quellensteuer (QST)</h2>
+            <ul>
+                {% if record.employee.qst_pflichtig %}
+                    <li><strong>Tarif (effektiv):</strong> {{ record.employee.qst_effective_tarif|default:"–" }}</li>
+                    <li><strong>Tarif (eingegeben):</strong> {{ record.employee.qst_tarif|default:"–" }}</li>
+                    <li><strong>Kinder:</strong> {{ record.employee.qst_kinder }}</li>
+                    <li><strong>Kirchensteuer:</strong> {{ record.employee.qst_kirchensteuer|yesno:"Ja,Nein" }} 
+                        <em style="color:#8e8e93; font-size:0.9em;">(im Tarif kodiert: {{ record.employee.qst_kirchensteuer|yesno:"Y,N" }})</em></li>
+                    <li><strong>QST-Basis:</strong> {{ record.qst_basis|floatformat:2 }} CHF</li>
+                    <li><strong>QST-Betrag:</strong> <strong>{{ record.qst_amount|floatformat:2 }} CHF</strong></li>
+                    {% if record.employee.qst_fixbetrag %}
+                        <li><em style="color:#8e8e93; font-size:0.9em;">Fixbetrag verwendet</em></li>
+                    {% elif record.employee.qst_prozent %}
+                        <li><em style="color:#8e8e93; font-size:0.9em;">Prozentsatz: {{ record.employee.qst_prozent|floatformat:2 }}%</em></li>
+                    {% elif record.employee.qst_tarif %}
+                        <li><em style="color:#8e8e93; font-size:0.9em;">Berechnet aus QSTParameter (Tarif: {{ record.employee.qst_effective_tarif }})</em></li>
+                    {% endif %}
+                {% else %}
+                    <li><em style="color:#8e8e93;">Keine Quellensteuerpflicht</em></li>
+                {% endif %}
+            </ul>
+        </div>
+        <div class="feature-item">
+            <h2>Familienzulagen</h2>
+            {% if laufende_zulagen or nachzahlungen %}
+                {% if laufende_zulagen %}
+                    <h3 style="font-size: 1em; margin-top: 12px; margin-bottom: 8px; color: #333;">Laufende Zulagen</h3>
+                    <div class="adea-table-wrapper" style="box-shadow:none; margin-bottom: 16px;">
+                        <table class="adea-table">
+                            <thead>
+                                <tr>
+                                    <th>Zulagenart</th>
+                                    <th>Menge</th>
+                                    <th>Betrag</th>
+                                    <th>Total</th>
+                                    <th>Beschreibung</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in laufende_zulagen %}
+                                <tr>
+                                    <td>{{ item.wage_type.name }}</td>
+                                    <td>{{ item.quantity|floatformat:2 }}</td>
+                                    <td>{{ item.amount|floatformat:2 }} CHF</td>
+                                    <td><strong>{{ item.total|floatformat:2 }} CHF</strong></td>
+                                    <td>{{ item.description|default:"–" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+                
+                {% if nachzahlungen %}
+                    <h3 style="font-size: 1em; margin-top: 12px; margin-bottom: 8px; color: #333;">Nachzahlungen</h3>
+                    <div class="adea-table-wrapper" style="box-shadow:none; margin-bottom: 16px;">
+                        <table class="adea-table">
+                            <thead>
+                                <tr>
+                                    <th>Zulagenart</th>
+                                    <th>Monate</th>
+                                    <th>Monatsbetrag</th>
+                                    <th>Total</th>
+                                    <th>Beschreibung</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in nachzahlungen %}
+                                <tr>
+                                    <td>{{ item.wage_type.name }}</td>
+                                    <td>{{ item.quantity|floatformat:0 }}</td>
+                                    <td>{{ item.amount|floatformat:2 }} CHF</td>
+                                    <td><strong>{{ item.total|floatformat:2 }} CHF</strong></td>
+                                    <td>{{ item.description|default:"–" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+                
+                <div style="border-top: 1px solid rgba(0,0,0,0.1); padding-top: 8px; margin-top: 8px;">
+                    <strong>Summe Familienzulagen: {{ summe_familienzulagen|floatformat:2 }} CHF</strong>
+                </div>
+            {% else %}
+                <p style="color:#8e8e93;">Keine Familienzulagen erfasst.</p>
+            {% endif %}
+            
+            {% if not record.is_locked %}
+            <div style="margin-top: 16px;">
+                <a class="adea-button-primary" href="{% url 'adealohn:payroll-family-allowance-nachzahlung' record.pk %}">
+                    + Nachzahlung hinzufügen
+                </a>
+            </div>
+            {% endif %}
+            <p style="color:#8e8e93; font-size:0.9em; margin-top: 8px;">
+                <em>Nachzahlungen werden immer im Monat der Auszahlung abgerechnet (FamZG).</em>
+            </p>
+        </div>
+        <div class="feature-item">
+            <h2>Netto-Lohn</h2>
+            <ul>
+                <li><strong>Bruttolohn:</strong> {{ record.gross_salary|floatformat:2 }} CHF</li>
+                {% if summe_familienzulagen > 0 %}
+                <li><strong>Familienzulagen:</strong> +{{ summe_familienzulagen|floatformat:2 }} CHF</li>
+                <li><strong>Bruttolohn gesamt:</strong> {{ record.gross_salary|add:summe_familienzulagen|floatformat:2 }} CHF</li>
+                {% endif %}
+                <li><strong>AHV Abzug:</strong> -{{ record.ahv_employee|floatformat:2 }} CHF</li>
+                <li><strong>ALV Abzug:</strong> -{{ record.alv_employee|floatformat:2 }} CHF</li>
+                <li><strong>NBU Abzug:</strong> -{{ record.nbu_employee|floatformat:2 }} CHF</li>
+                <li><strong>KTG Abzug:</strong> -{{ record.ktg_employee|floatformat:2 }} CHF</li>
+                <li><strong>BVG Abzug:</strong> -{{ record.bvg_employee|floatformat:2 }} CHF</li>
+                <li><strong>QST Abzug:</strong> -{{ record.qst_amount|floatformat:2 }} CHF</li>
+                <li style="border-top:1px solid rgba(0,0,0,0.1); padding-top:8px; margin-top:8px;"><strong>Netto-Lohn:</strong> {{ record.net_salary|floatformat:2 }} CHF</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="feature-item" style="margin-top:24px;">
+        <h2>Spesen</h2>
+        {% if spesen_items %}
+            <div class="adea-table-wrapper" style="box-shadow:none; margin-bottom: 16px;">
+                <table class="adea-table">
+                    <thead>
+                        <tr>
+                            <th>Spesenart</th>
+                            <th>Betrag</th>
+                            <th>Beschreibung</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in spesen_items %}
+                        <tr>
+                            <td>{{ item.wage_type.name }}</td>
+                            <td><strong>{{ item.amount|floatformat:2 }} CHF</strong></td>
+                            <td>{{ item.description|default:"–" }}</td>
+                            <td>
+                                {% if item.wage_type.ahv_relevant %}
+                                    <span style="color: #ff9500;">AHV-pflichtig</span>
+                                {% else %}
+                                    <span style="color: green;">AHV-frei</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr style="border-top: 1px solid rgba(0,0,0,0.1);">
+                            <td colspan="4" style="text-align: right; padding-top: 8px;">
+                                <strong>Summe Spesen: {{ summe_spesen|floatformat:2 }} CHF</strong>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        {% else %}
+            <p style="color:#8e8e93;">Keine Spesen erfasst.</p>
+        {% endif %}
+        
+        {% if not record.is_locked %}
+        <div style="margin-top: 16px;">
+            <a class="adea-button-secondary" href="{% url 'adealohn:payroll_spesen_create' record.pk %}">
+                + Spesen hinzufügen
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="feature-item" style="margin-top:24px;">
+        <h2>Privatanteile</h2>
+        {% if privatanteil_items %}
+            <div class="adea-table-wrapper" style="box-shadow:none; margin-bottom: 16px;">
+                <table class="adea-table">
+                    <thead>
+                        <tr>
+                            <th>Art</th>
+                            <th>Betrag</th>
+                            <th>Beschreibung</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in privatanteil_items %}
+                        <tr>
+                            <td>{{ item.wage_type.name }}</td>
+                            <td><strong>{{ item.amount|floatformat:2 }} CHF</strong></td>
+                            <td>{{ item.description|default:"–" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr style="border-top: 1px solid rgba(0,0,0,0.1);">
+                            <td colspan="3" style="text-align: right; padding-top: 8px;">
+                                <strong>Summe Privatanteile: {{ summe_privatanteile|floatformat:2 }} CHF</strong>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        {% else %}
+            <p style="color:#8e8e93;">Keine Privatanteile erfasst.</p>
+        {% endif %}
+        
+        {% if not record.is_locked %}
+        <div style="margin-top: 16px;">
+            <a class="adea-button-secondary" href="{% url 'adealohn:payroll_privatanteil_create' record.pk %}">
+                + Privatanteil hinzufügen
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="feature-item" style="margin-top:24px;">
+        <h2>Zeiteinträge ({{ time_records|length }})</h2>
+        <div class="adea-table-wrapper" style="box-shadow:none;">
+            <table class="adea-table">
+                <thead>
+                    <tr>
+                        <th>Datum</th>
+                        <th>Projekt</th>
+                        <th>Stunden</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in time_records %}
+                    <tr>
+                        <td>{{ item.date|date:"d.m.Y" }}</td>
+                        <td>{{ item.project.name if item.project else "Allgemein" }}</td>
+                        <td>{{ item.hours|floatformat:2 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3">Keine Zeiteinträge für diesen Zeitraum.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div style="margin-top:24px;">
+        <a href="{% url 'adealohn:payroll-list' %}">&larr; Zurück zur Übersicht</a>
+    </div>
+</section>
+{% endblock %}
+
+

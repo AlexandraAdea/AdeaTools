@@ -1,0 +1,118 @@
+{% extends 'adeazeit_base.html' %}
+
+{% block breadcrumbs %}
+<a href="{% url 'admin-dashboard' %}">Dashboard</a>
+<a href="{% url 'adeazeit:timeentry-day' %}">Zeiteinträge – Tag</a>
+{% endblock %}
+
+{% block title %}Zeiterfassung – Tag – AdeaZeit{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <div class="adea-d-flex-between">
+        <div>
+            <h1 style="margin-bottom: 8px;">Zeiterfassung – {{ selected_date|date:"d.m.Y" }}</h1>
+            <p class="lead">Tagesansicht für Zeiteinträge.</p>
+        </div>
+        <div style="display: flex; gap: 12px;">
+            <a class="adea-button-secondary" href="{% url 'adeazeit:timeentry-day' %}?date={{ previous_date|date:'Y-m-d' }}">← Vorheriger Tag</a>
+            <a class="adea-button-secondary" href="{% url 'adeazeit:timeentry-day' %}?date={{ next_date|date:'Y-m-d' }}">Nächster Tag →</a>
+            <a class="adea-button-primary" href="{% url 'adeazeit:timeentry-create' %}?date={{ selected_date|date:'Y-m-d' }}">+ Neuer Eintrag</a>
+        </div>
+    </div>
+
+    <div style="margin-top: 24px;">
+        <form method="get" id="date-form" style="display: flex; gap: 12px; align-items: center;">
+            <label for="date" style="font-weight: 600;">Datum:</label>
+            <input type="date" name="date" id="date" value="{{ selected_date|date:'Y-m-d' }}" class="adea-input">
+            <button type="submit" class="adea-button-primary">Anzeigen</button>
+        </form>
+    </div>
+    
+    <script>
+    // Automatisches Absenden des Formulars wenn Datum im Kalender geändert wird
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateInput = document.getElementById('date');
+        const dateForm = document.getElementById('date-form');
+        
+        if (dateInput && dateForm) {
+            dateInput.addEventListener('change', function() {
+                // Formular automatisch absenden wenn Datum geändert wird
+                dateForm.submit();
+            });
+        }
+    });
+    </script>
+
+    <div class="adea-table-wrapper" style="margin-top: 20px;">
+        <table class="adea-table">
+            <thead>
+                <tr>
+                    <th>Zeit</th>
+                    <th>Mitarbeiterin</th>
+                    <th>Mandant</th>
+                    <th>Service-Typ</th>
+                    <th>Kommentar</th>
+                    <th>Dauer</th>
+                    <th>Betrag</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in time_entries %}
+                <tr>
+                    <td>
+                        {% if entry.start %}{{ entry.start|time:"H:i" }}{% endif %}
+                        {% if entry.start and entry.ende %}–{% endif %}
+                        {% if entry.ende %}{{ entry.ende|time:"H:i" }}{% endif %}
+                    </td>
+                    <td><strong>{{ entry.mitarbeiter.name }}</strong></td>
+                    <td>{{ entry.client.name|default:"–" }}</td>
+                    <td>{{ entry.service_type.code }}</td>
+                    <td style="max-width: 300px;">
+                        {% if entry.kommentar %}
+                        <span style="color: #1d1d1f; font-size: 0.9em;" title="{{ entry.kommentar }}">{{ entry.kommentar|truncatewords:10 }}</span>
+                        {% else %}
+                        <span style="color: #8e8e93;">–</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ entry.dauer|floatformat:2 }}h</td>
+                    <td>
+                        <strong>{{ entry.betrag|floatformat:2 }} CHF</strong>
+                        {% if not entry.billable %}
+                        <span style="color: #8e8e93; font-size: 0.9em;">(nicht verrechenbar)</span>
+                        {% endif %}
+                    </td>
+                    <td class="adea-table-actions">
+                        {% if can_edit_all or entry.mitarbeiter.pk in accessible_employee_ids %}
+                        <a href="{% url 'adeazeit:timeentry-update' entry.pk %}">Bearbeiten</a>
+                        {% endif %}
+                        {% if adeazeit_can_delete %}
+                        <a href="{% url 'adeazeit:timeentry-delete' entry.pk %}" style="color: #ff3b30;">Löschen</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8">Keine Zeiteinträge für diesen Tag.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr style="background: #f5f5f7; font-weight: 600;">
+                    <td colspan="5">Gesamt</td>
+                    <td>{{ total_dauer|floatformat:2 }}h</td>
+                    <td>{{ total_betrag|floatformat:2 }} CHF</td>
+                    <td></td>
+                </tr>
+                <tr style="background: #f5f5f7;">
+                    <td colspan="5">Verrechenbar</td>
+                    <td>{{ billable_dauer|floatformat:2 }}h</td>
+                    <td colspan="2"></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</section>
+{% endblock %}
+

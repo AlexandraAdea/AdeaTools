@@ -1,0 +1,325 @@
+{% extends 'adeazeit_base.html' %}
+
+{% block title %}{% if object %}Zeiteintrag bearbeiten{% else %}Neuer Zeiteintrag{% endif %} – AdeaZeit{% endblock %}
+
+{% block breadcrumbs %}
+<a href="{% url 'admin-dashboard' %}">Dashboard</a>
+<a href="{% url 'adeazeit:timeentry-day' %}">Zeiteinträge</a>
+<a href="{% url 'adeazeit:timeentry-create' %}">{% if object %}Bearbeiten{% else %}Neu{% endif %}</a>
+{% endblock %}
+
+{% block head_extra %}
+<script>
+function calculateDuration() {
+    const startInput = document.getElementById('id_start');
+    const endInput = document.getElementById('id_ende');
+    const durationInput = document.getElementById('id_dauer');
+    
+    if (!startInput || !endInput || !durationInput) {
+        return;
+    }
+    
+    const startValue = startInput.value;
+    const endValue = endInput.value;
+    
+    if (startValue && endValue) {
+        // Parse time strings (HH:MM format)
+        const [startHours, startMinutes] = startValue.split(':').map(Number);
+        const [endHours, endMinutes] = endValue.split(':').map(Number);
+        
+        // Convert to minutes for easier calculation
+        const startTotalMinutes = startHours * 60 + startMinutes;
+        const endTotalMinutes = endHours * 60 + endMinutes;
+        
+        // Calculate difference
+        let diffMinutes = endTotalMinutes - startTotalMinutes;
+        
+        // Handle overnight (if end is before start, assume next day)
+        if (diffMinutes < 0) {
+            diffMinutes += 24 * 60; // Add 24 hours
+        }
+        
+        // Convert to hours (decimal)
+        const durationHours = diffMinutes / 60;
+        
+        // Round to 2 decimal places
+        durationInput.value = durationHours.toFixed(2);
+    } else {
+        durationInput.value = '';
+    }
+}
+
+function loadServiceTypeRate(serviceTypeId) {
+    const rateInput = document.getElementById('id_rate');
+    const billableInput = document.getElementById('id_billable');
+    
+    if (!serviceTypeId || serviceTypeId === '' || serviceTypeId === 'null') {
+        return;
+    }
+    
+    if (!rateInput) {
+        return;
+    }
+    
+    const url = `{% url 'adeazeit:load-service-type-rate' %}?service_type_id=${serviceTypeId}`;
+    
+    fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Aktualisiere Stundensatz immer, wenn Service-Typ geändert wird
+                const newRate = parseFloat(data.standard_rate).toFixed(2);
+                rateInput.value = newRate;
+                
+                // Aktualisiere Verrechenbar-Checkbox
+                if (billableInput) {
+                    billableInput.checked = data.billable;
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Fehler beim Laden des Service-Typ-Stundensatzes:', error);
+        });
+}
+
+function loadEmployeeInfo(employeeId) {
+    const sidebar = document.getElementById('employee-info-sidebar');
+    if (!employeeId || !sidebar) {
+        if (sidebar) sidebar.style.display = 'none';
+        return;
+    }
+    
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth() + 1;
+    
+    fetch(`{% url 'adeazeit:load-employee-info' %}?employee_id=${employeeId}&year=${year}&month=${month}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                sidebar.style.display = 'block';
+                document.getElementById('emp-name').textContent = data.employee.internal_full_name;
+                document.getElementById('emp-employment-percent').textContent = parseFloat(data.employee.employment_percent).toFixed(2) + '%';
+                document.getElementById('emp-weekly-soll').textContent = parseFloat(data.employee.weekly_soll_hours).toFixed(2) + 'h';
+                document.getElementById('emp-monthly-soll').textContent = parseFloat(data.employee.monthly_soll).toFixed(2) + 'h';
+                document.getElementById('emp-monthly-absence').textContent = parseFloat(data.employee.monthly_absence).toFixed(2) + 'h';
+                document.getElementById('emp-monthly-effective-soll').textContent = parseFloat(data.employee.monthly_effective_soll).toFixed(2) + 'h';
+                document.getElementById('emp-monthly-ist').textContent = parseFloat(data.employee.monthly_ist).toFixed(2) + 'h';
+                const productivity = parseFloat(data.employee.productivity);
+                const prodElement = document.getElementById('emp-productivity');
+                prodElement.textContent = productivity.toFixed(2) + '%';
+                prodElement.style.color = productivity >= 100 ? '#34c759' : '#ff9500';
+            } else {
+                sidebar.style.display = 'none';
+            }
+        })
+        .catch(error => {
+            console.error('Fehler beim Laden der Mitarbeiter-Info:', error);
+            if (sidebar) sidebar.style.display = 'none';
+        });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Automatische Dauer-Berechnung
+    const startInput = document.getElementById('id_start');
+    const endInput = document.getElementById('id_ende');
+    
+    if (startInput && endInput) {
+        startInput.addEventListener('change', calculateDuration);
+        endInput.addEventListener('change', calculateDuration);
+        // Initial calculation if values are present
+        calculateDuration();
+    }
+    
+    // Service-Typ Änderung: Stundensatz automatisch aktualisieren
+    const serviceTypeSelect = document.getElementById('id_service_type');
+    if (serviceTypeSelect) {
+        // Event-Listener für Änderungen
+        serviceTypeSelect.addEventListener('change', function(e) {
+            const selectedValue = e.target.value;
+            if (selectedValue) {
+                loadServiceTypeRate(selectedValue);
+            }
+        });
+        
+        // Event-Listener für Input (für manuelle Eingaben)
+        serviceTypeSelect.addEventListener('input', function(e) {
+            const selectedValue = e.target.value;
+            if (selectedValue) {
+                loadServiceTypeRate(selectedValue);
+            }
+        });
+        
+        // Initial load if service type is preselected
+        if (serviceTypeSelect.value) {
+            loadServiceTypeRate(serviceTypeSelect.value);
+        }
+    }
+    
+    const employeeSelect = document.getElementById('id_mitarbeiter');
+    if (employeeSelect) {
+        employeeSelect.addEventListener('change', function() {
+            loadEmployeeInfo(this.value);
+        });
+        // Initial load if employee is preselected
+        if (employeeSelect.value) {
+            loadEmployeeInfo(employeeSelect.value);
+        }
+    }
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; max-width: 1200px; margin: 0 auto;">
+    <section class="content-card">
+        <h1 style="margin-bottom: 20px;">
+            {% if object %}Zeiteintrag bearbeiten{% else %}Neuer Zeiteintrag{% endif %}
+        </h1>
+        <form method="post" novalidate>
+        {% csrf_token %}
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div>
+                <label for="{{ form.mitarbeiter.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.mitarbeiter.label }} *</label>
+                {{ form.mitarbeiter }}
+                {% if form.mitarbeiter.errors %}
+                <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.mitarbeiter.errors|striptags }}</div>
+                {% endif %}
+            </div>
+            <div>
+                <label for="{{ form.client.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.client.label }}</label>
+                {{ form.client }}
+                {% if form.client.errors %}
+                <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.client.errors|striptags }}</div>
+                {% endif %}
+                <small style="color:#8e8e93; font-size:0.8em; display:block; margin-top:4px;">Optional: Für interne Arbeiten leer lassen</small>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label for="{{ form.service_type.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.service_type.label }} *</label>
+            {{ form.service_type }}
+            {% if form.service_type.errors %}
+            <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.service_type.errors|striptags }}</div>
+            {% endif %}
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div>
+                <label for="{{ form.datum.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.datum.label }} *</label>
+                {{ form.datum }}
+                {% if form.datum.errors %}
+                <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.datum.errors|striptags }}</div>
+                {% endif %}
+            </div>
+            <div>
+                <label for="{{ form.start.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.start.label }}</label>
+                {{ form.start }}
+                {% if form.start.errors %}
+                <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.start.errors|striptags }}</div>
+                {% endif %}
+            </div>
+            <div>
+                <label for="{{ form.ende.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.ende.label }}</label>
+                {{ form.ende }}
+                {% if form.ende.errors %}
+                <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.ende.errors|striptags }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div>
+                <label for="{{ form.dauer.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.dauer.label }} *</label>
+                {{ form.dauer }}
+                {% if form.dauer.errors %}
+                <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.dauer.errors|striptags }}</div>
+                {% endif %}
+                <small style="color:#8e8e93; font-size:0.8em; display:block; margin-top:4px;">Wird automatisch aus Start- und Endzeit berechnet</small>
+            </div>
+            <div>
+                <label for="{{ form.rate.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.rate.label }}</label>
+                {{ form.rate }}
+                {% if form.rate.errors %}
+                <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.rate.errors|striptags }}</div>
+                {% endif %}
+                <small style="color:#8e8e93; font-size:0.8em; display:block; margin-top:4px;">Wird automatisch aus Service-Typ übernommen</small>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label for="{{ form.billable.id_for_label }}" style="display:flex; align-items:center; gap:8px; font-weight:600;">
+                {{ form.billable }}
+                {{ form.billable.label }}
+            </label>
+            {% if form.billable.errors %}
+            <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.billable.errors|striptags }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label for="{{ form.kommentar.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.kommentar.label }}</label>
+            {{ form.kommentar }}
+            {% if form.kommentar.errors %}
+            <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.kommentar.errors|striptags }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #e5e5ea; display:flex; gap:12px; flex-wrap:wrap;">
+            <button type="submit" class="adea-button-primary">
+                {% if object %}Speichern{% else %}Anlegen{% endif %}
+            </button>
+            <a href="{% url 'adeazeit:timeentry-day' %}" class="adea-button-primary" style="background:#e5e5ea; color:#1d1d1f; box-shadow:none;">
+                Abbrechen
+            </a>
+        </div>
+        </form>
+    </section>
+    
+    <aside id="employee-info-sidebar" class="content-card" style="background: #f5f5f7; {% if not employee_info %}display: none;{% endif %}">
+        <h2 style="margin-bottom: 16px; font-size: 1.1em; color: #1d1d1f;">Mitarbeiter-Info</h2>
+        <div style="margin-bottom: 12px;">
+            <strong id="emp-name">{% if employee_info %}{{ employee_info.employee.internal_full_name }}{% endif %}</strong>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div>
+                <div style="color: #8e8e93; font-size: 0.9em;">Beschäftigungsgrad</div>
+                <div id="emp-employment-percent" style="font-weight: 600;">{% if employee_info %}{{ employee_info.employment_percent|floatformat:2 }}%{% endif %}</div>
+            </div>
+            <div>
+                <div style="color: #8e8e93; font-size: 0.9em;">Wöchentliche Sollzeit</div>
+                <div id="emp-weekly-soll" style="font-weight: 600;">{% if employee_info %}{{ employee_info.weekly_soll_hours|floatformat:2 }}h{% endif %}</div>
+            </div>
+            <div>
+                <div style="color: #8e8e93; font-size: 0.9em;">Monatliche Sollzeit</div>
+                <div id="emp-monthly-soll" style="font-weight: 600;">{% if employee_info %}{{ employee_info.monthly_soll|floatformat:2 }}h{% endif %}</div>
+            </div>
+            <div>
+                <div style="color: #8e8e93; font-size: 0.9em;">Monatliche Abwesenheiten</div>
+                <div id="emp-monthly-absence" style="font-weight: 600;">{% if employee_info %}{{ employee_info.monthly_absence|floatformat:2 }}h{% endif %}</div>
+            </div>
+            <div>
+                <div style="color: #8e8e93; font-size: 0.9em;">Effektive Sollzeit</div>
+                <div id="emp-monthly-effective-soll" style="font-weight: 600;">{% if employee_info %}{{ employee_info.monthly_effective_soll|floatformat:2 }}h{% endif %}</div>
+            </div>
+            <div>
+                <div style="color: #8e8e93; font-size: 0.9em;">Istzeit (aktueller Monat)</div>
+                <div id="emp-monthly-ist" style="font-weight: 600;">{% if employee_info %}{{ employee_info.monthly_ist|floatformat:2 }}h{% endif %}</div>
+            </div>
+            <div>
+                <div style="color: #8e8e93; font-size: 0.9em;">Produktivität</div>
+                <div id="emp-productivity" style="font-weight: 600; color: {% if employee_info and employee_info.productivity >= 100 %}#34c759{% else %}#ff9500{% endif %};">
+                    {% if employee_info %}{{ employee_info.productivity|floatformat:2 }}%{% endif %}
+                </div>
+            </div>
+        </div>
+    </aside>
+</div>
+{% endblock %}
+

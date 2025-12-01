@@ -1,0 +1,81 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}AdeaTools{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/adeastyle.css' %}">
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+        <!-- Hauptnavigation -->
+        <nav class="adea-navbar">
+            <div class="adea-navbar-container">
+                <div class="adea-navbar-left">
+                    <a href="{% url 'home' %}" class="adea-navbar-brand">AdeaTools</a>
+                    <div class="adea-navbar-links">
+                        <a href="{% url 'adeadesk:client-list' %}" class="adea-nav-link {% if request.path|slice:":6" == '/desk/' %}active{% endif %}">AdeaDesk</a>
+                        <a href="{% url 'adeazeit:timeentry-day' %}" class="adea-nav-link {% if request.path|slice:":6" == '/zeit/' %}active{% endif %}">AdeaZeit</a>
+                        {% if can_access_adelohn %}
+                        <a href="{% url 'adealohn:payroll-list' %}" class="adea-nav-link {% if request.path|slice:":6" == '/lohn/' %}active{% endif %}">AdeaLohn</a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="adea-navbar-right">
+                    {% if user.is_authenticated %}
+                    <div class="adea-user-menu">
+                        <span class="adea-user-name">
+                            <strong>{{ user.get_full_name|default:user.username }}</strong>
+                        </span>
+                        <a href="{% url 'global-logout' %}" class="adea-link-danger">Abmelden</a>
+                    </div>
+                    {% else %}
+                    <a href="{% url 'adeazeit:login' %}" class="adea-link">Anmelden</a>
+                    {% endif %}
+                </div>
+            </div>
+        </nav>
+        
+        <!-- Mandanten-Info für AdeaLohn -->
+        {% if request.path|slice:":6" == "/lohn/" %}
+        <div class="adea-client-bar">
+            <div class="adea-client-bar-container">
+                <div class="adea-client-info">
+                    {% if current_client %}
+                        <strong>Mandant:</strong> <span class="adea-client-name">{{ current_client.name }}</span>
+                        <a href="{% url 'adealohn:client_switch' %}" class="adea-link" style="margin-left: var(--spacing-md);">Mandant wechseln</a>
+                    {% else %}
+                        <span class="adea-text-secondary">Kein Mandant ausgewählt</span>
+                        <a href="{% url 'adealohn:client_switch' %}" class="adea-link" style="margin-left: var(--spacing-md);">Mandant auswählen</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    <div class="frame">
+        <main>
+            <!-- Django Messages -->
+            {% if messages %}
+            <div class="adea-messages-container">
+                {% for message in messages %}
+                <div class="adea-message adea-message-{{ message.tags }}">
+                    <span>{{ message }}</span>
+                    <button onclick="this.parentElement.style.display='none'" class="adea-message-close">×</button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% block content %}
+            <section class="content-card">
+                <p>Inhalt fehlt – bitte überschreiben.</p>
+            </section>
+            {% endblock %}
+        </main>
+
+        <footer>© 2025 AdeaTools – entwickelt für Treuhandbüro Ivanova</footer>
+        {% block scripts %}{% endblock %}
+    </div>
+</body>
+</html>
+

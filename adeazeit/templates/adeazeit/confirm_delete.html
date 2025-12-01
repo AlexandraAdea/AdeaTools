@@ -1,0 +1,26 @@
+{% extends 'adeazeit_base.html' %}
+
+{% block title %}Löschen – AdeaZeit{% endblock %}
+
+{% block content %}
+<section class="content-card" style="max-width: 600px; margin: 0 auto;">
+    <h1 style="margin-bottom: 20px;">Löschen bestätigen</h1>
+    <p style="margin-bottom: 20px;">Möchten Sie wirklich löschen?</p>
+    
+    <div style="background: #f5f5f7; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+        <strong>{{ object }}</strong>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <div style="display:flex; gap:12px;">
+            <button type="submit" class="adea-button-primary" style="background:#ff3b30;">
+                Ja, löschen
+            </button>
+            <a href="javascript:history.back()" class="adea-button-primary" style="background:#e5e5ea; color:#1d1d1f; box-shadow:none;">
+                Abbrechen
+            </a>
+        </div>
+    </form>
+</section>
+{% endblock %}

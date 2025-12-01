@@ -1,0 +1,152 @@
+{% extends 'admin_base.html' %}
+
+{% block title %}Dashboard – Admin{% endblock %}
+
+{% block breadcrumbs %}
+<a href="{% url 'admin-dashboard' %}">Dashboard</a>
+{% endblock %}
+
+{% block content %}
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 32px;">
+    <!-- Mandanten -->
+    <div class="content-card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+            <h2 style="font-size: 1.1em; margin: 0;">Mandanten</h2>
+            <span style="font-size: 2em;">🏢</span>
+        </div>
+        <div style="font-size: 2.5em; font-weight: 600; color: #007aff; margin-bottom: 8px;">
+            {{ stats.clients.total }}
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.9em; color: #8e8e93;">
+            <div>
+                <div>FIRMA: <strong style="color: #1d1d1f;">{{ stats.clients.firma }}</strong></div>
+                <div>PRIVAT: <strong style="color: #1d1d1f;">{{ stats.clients.privat }}</strong></div>
+            </div>
+            <div>
+                <div>Lohn aktiv: <strong style="color: #1d1d1f;">{{ stats.clients.lohn_aktiv }}</strong></div>
+            </div>
+        </div>
+        <a href="{% url 'adeadesk:client-list' %}" class="adea-button-secondary" style="margin-top: 16px; width: 100%; text-align: center;">
+            Mandanten verwalten →
+        </a>
+    </div>
+    
+    <!-- Zeiterfassung -->
+    <div class="content-card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+            <h2 style="font-size: 1.1em; margin: 0;">Zeiterfassung</h2>
+            <span style="font-size: 2em;">⏱️</span>
+        </div>
+        <div style="font-size: 2.5em; font-weight: 600; color: #34c759; margin-bottom: 8px;">
+            {{ stats.time_entries.total_hours_today|floatformat:2 }}h
+        </div>
+        <div style="font-size: 0.9em; color: #8e8e93; margin-bottom: 16px;">
+            Heute: {{ stats.time_entries.today }} Einträge<br>
+            Dieser Monat: {{ stats.time_entries.this_month }} Einträge
+        </div>
+        <a href="{% url 'adeazeit:timeentry-day' %}" class="adea-button-secondary" style="margin-top: 16px; width: 100%; text-align: center;">
+            Zeiteinträge anzeigen →
+        </a>
+    </div>
+    
+    <!-- Mitarbeitende (Zeit) -->
+    <div class="content-card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+            <h2 style="font-size: 1.1em; margin: 0;">Mitarbeitende</h2>
+            <span style="font-size: 2em;">👥</span>
+        </div>
+        <div style="font-size: 2.5em; font-weight: 600; color: #007aff; margin-bottom: 8px;">
+            {{ stats.employees_internal.total }}
+        </div>
+        <div style="font-size: 0.9em; color: #8e8e93; margin-bottom: 16px;">
+            Aktiv: <strong style="color: #34c759;">{{ stats.employees_internal.active }}</strong>
+        </div>
+        <a href="{% url 'adeazeit:employee-list' %}" class="adea-button-secondary" style="margin-top: 16px; width: 100%; text-align: center;">
+            Mitarbeitende verwalten →
+        </a>
+    </div>
+    
+    <!-- Lohnabrechnung -->
+    <div class="content-card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+            <h2 style="font-size: 1.1em; margin: 0;">Lohnabrechnung</h2>
+            <span style="font-size: 2em;">💰</span>
+        </div>
+        <div style="font-size: 2.5em; font-weight: 600; color: #007aff; margin-bottom: 8px;">
+            {{ stats.payroll.this_month }}
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.9em; color: #8e8e93; margin-bottom: 16px;">
+            <div>Entwurf: <strong style="color: #ff9500;">{{ stats.payroll.pending }}</strong></div>
+            <div>Abgerechnet: <strong style="color: #34c759;">{{ stats.payroll.completed }}</strong></div>
+        </div>
+        <a href="{% url 'adealohn:payroll-list' %}" class="adea-button-secondary" style="margin-top: 16px; width: 100%; text-align: center;">
+            Lohnabrechnungen anzeigen →
+        </a>
+    </div>
+</div>
+
+<!-- Letzte Aktivitäten -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+    <section class="content-card">
+        <h2 style="margin-bottom: 16px; font-size: 1.1em;">Letzte Zeiteinträge</h2>
+        {% if recent_time_entries %}
+        <div class="adea-table-wrapper">
+            <table class="adea-table">
+                <thead>
+                    <tr>
+                        <th>Datum</th>
+                        <th>Mitarbeiterin</th>
+                        <th>Mandant</th>
+                        <th>Dauer</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in recent_time_entries %}
+                    <tr>
+                        <td>{{ entry.datum|date:"d.m.Y" }}</td>
+                        <td><strong>{{ entry.mitarbeiter.name }}</strong></td>
+                        <td>{{ entry.client.name }}</td>
+                        <td>{{ entry.dauer|floatformat:2 }}h</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="color: #8e8e93; text-align: center; padding: 20px;">Noch keine Zeiteinträge vorhanden.</p>
+        {% endif %}
+    </section>
+    
+    <section class="content-card">
+        <h2 style="margin-bottom: 16px; font-size: 1.1em;">Aktive Abwesenheiten</h2>
+        {% if recent_absences %}
+        <div class="adea-table-wrapper">
+            <table class="adea-table">
+                <thead>
+                    <tr>
+                        <th>Mitarbeiterin</th>
+                        <th>Typ</th>
+                        <th>Von</th>
+                        <th>Bis</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for absence in recent_absences %}
+                    <tr>
+                        <td><strong>{{ absence.employee.name }}</strong></td>
+                        <td>{{ absence.get_absence_type_display }}</td>
+                        <td>{{ absence.date_from|date:"d.m.Y" }}</td>
+                        <td>{{ absence.date_to|date:"d.m.Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="color: #8e8e93; text-align: center; padding: 20px;">Keine aktiven Abwesenheiten.</p>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}
+
+

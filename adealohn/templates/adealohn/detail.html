@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ employee.first_name }} {{ employee.last_name }} – AdeaLohn{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <div class="adea-d-flex-between">
+        <div>
+            <h1>{{ employee.first_name }} {{ employee.last_name }}</h1>
+            <p class="lead">Client: {{ employee.client.name }} · Rolle: {{ employee.role|default:"–" }}</p>
+        </div>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+            <a class="adea-button-primary" href="{% url 'adealohn:employee-update' employee.pk %}">Bearbeiten</a>
+            <a class="adea-button-primary" style="background:#ff5f57;" href="{% url 'adealohn:employee-delete' employee.pk %}">Löschen</a>
+        </div>
+    </div>
+
+    <div class="feature-grid" style="margin-top:24px;">
+        <div class="feature-item">
+            <h2>Details</h2>
+            <ul>
+                <li><strong>Client:</strong> {{ employee.client.name }}</li>
+                <li><strong>Rolle:</strong> {{ employee.role|default:"–" }}</li>
+                <li><strong>Stundensatz:</strong> {{ employee.hourly_rate }} CHF</li>
+                <li><strong>Angelegt:</strong> {{ employee.created_at|date:"d.m.Y" }}</li>
+            </ul>
+        </div>
+        <div class="feature-item">
+            <h2>Arbeitsstunden</h2>
+            <ul>
+                <li><strong>Einträge:</strong> {{ time_records|length }}</li>
+                <li><strong>Summe Stunden:</strong> {{ hours_sum|floatformat:2 }}</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="feature-item" style="margin-top:24px;">
+        <h2>Zeiteinträge</h2>
+        <div class="adea-table-wrapper" style="box-shadow:none;">
+            <table class="adea-table">
+                <thead>
+                    <tr>
+                        <th>Datum</th>
+                        <th>Client</th>
+                        <th>Projekt</th>
+                        <th>Stunden</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in time_records %}
+                    <tr>
+                        <td>{{ record.date|date:"d.m.Y" }}</td>
+                        <td>{{ record.client.name }}</td>
+                        <td>{{ record.project.name if record.project else "Allgemein" }}</td>
+                        <td>{{ record.hours|floatformat:2 }}</td>
+                        <td class="adea-table-actions">
+                            <a href="{% url 'adeazeit:timerecord-detail' record.pk %}">Detail</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5">Noch keine Zeiteinträge.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div style="margin-top:24px;">
+        <a href="{% url 'adealohn:employee-list' %}">&larr; Zurück zur Übersicht</a>
+    </div>
+</section>
+{% endblock %}
+
+
+
+
+

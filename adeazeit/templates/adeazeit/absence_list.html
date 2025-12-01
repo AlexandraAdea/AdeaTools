@@ -1,0 +1,123 @@
+{% extends 'adeazeit_base.html' %}
+
+{% block title %}Abwesenheiten – AdeaZeit{% endblock %}
+
+{% block breadcrumbs %}
+<a href="{% url 'admin-dashboard' %}">Dashboard</a>
+<a href="{% url 'adeazeit:absence-list' %}">Abwesenheiten</a>
+{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <div class="adea-d-flex-between">
+        <div>
+            <h1 style="margin-bottom: 8px;">Abwesenheiten</h1>
+            <p class="lead">Verwalte Ferien, Krankheitstage und andere Abwesenheiten.</p>
+        </div>
+        <a class="adea-button-primary" href="{% url 'adeazeit:absence-create' %}">+ Abwesenheit erfassen</a>
+    </div>
+
+    <!-- Hinweisbox -->
+    <div style="background: #f5f5f7; padding: 16px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #007aff;">
+        <strong>Hinweis:</strong> Feiertage werden separat über den Feiertagskalender (Admin) gepflegt.
+    </div>
+
+    <!-- Filterleiste -->
+    <form method="get" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px; align-items: end;">
+        <div>
+            <label for="employee" style="display:block; font-weight:600; margin-bottom:6px;">Mitarbeiterin</label>
+            <select name="employee" id="employee" class="adea-select">
+                <option value="">Alle</option>
+                {% for emp in employees %}
+                <option value="{{ emp.pk }}" {% if selected_employee == emp.pk|stringformat:"s" %}selected{% endif %}>
+                    {{ emp.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="absence_type" style="display:block; font-weight:600; margin-bottom:6px;">Typ</label>
+            <select name="absence_type" id="absence_type" class="adea-select">
+                <option value="">Alle</option>
+                {% for code, label in absence_types %}
+                <option value="{{ code }}" {% if selected_absence_type == code %}selected{% endif %}>
+                    {{ label }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="month" style="display:block; font-weight:600; margin-bottom:6px;">Monat</label>
+            <select name="month" id="month" class="adea-select">
+                {% for m in "123456789101112"|make_list %}
+                <option value="{{ m }}" {% if selected_month == m|stringformat:"s" %}selected{% endif %}>
+                    {{ m }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="year" style="display:block; font-weight:600; margin-bottom:6px;">Jahr</label>
+            <input type="number" name="year" id="year" value="{{ selected_year }}" class="adea-input" min="2020" max="2100">
+        </div>
+        <div>
+            <button type="submit" class="adea-button-primary">Filtern</button>
+        </div>
+    </form>
+
+    <!-- Tabelle -->
+    <div class="adea-table-wrapper">
+        <table class="adea-table">
+            <thead>
+                <tr>
+                    <th>Mitarbeiterin</th>
+                    <th>Typ</th>
+                    <th>Von</th>
+                    <th>Bis</th>
+                    <th>Ganztägig</th>
+                    <th>Stunden</th>
+                    <th>Kommentar</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for absence in absences %}
+                <tr>
+                    <td><strong>{{ absence.employee.name }}</strong></td>
+                    <td>{{ absence.get_absence_type_display }}</td>
+                    <td>{{ absence.date_from|date:"d.m.Y" }}</td>
+                    <td>{{ absence.date_to|date:"d.m.Y" }}</td>
+                    <td>
+                        {% if absence.full_day %}
+                        <span style="color: #34c759;">✓</span>
+                        {% else %}
+                        <span style="color: #8e8e93;">–</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if absence.hours %}
+                        {{ absence.hours|floatformat:2 }}h
+                        {% else %}
+                        –
+                        {% endif %}
+                    </td>
+                    <td>{{ absence.comment|truncatewords:10|default:"–" }}</td>
+                    <td class="adea-table-actions">
+                        {% if adeazeit_can_manage_absences or absence.employee.code == user.username %}
+                        <a href="{% url 'adeazeit:absence-update' absence.pk %}">Bearbeiten</a>
+                        {% endif %}
+                        {% if adeazeit_can_delete %}
+                        <a href="{% url 'adeazeit:absence-delete' absence.pk %}" style="color: #ff3b30;">Löschen</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8">Keine Abwesenheiten gefunden.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

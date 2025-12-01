@@ -1,0 +1,68 @@
+{% extends 'adeazeit_base.html' %}
+
+{% block breadcrumbs %}
+<a href="{% url 'admin-dashboard' %}">Dashboard</a>
+<a href="{% url 'adeazeit:project-list' %}">Projekte</a>
+{% endblock %}
+
+{% block title %}Projekte – AdeaZeit{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <div class="adea-d-flex-between">
+        <div>
+            <h1 style="margin-bottom: 8px;">Projekte</h1>
+            <p class="lead">Verwalte Projekte pro Mandant.</p>
+        </div>
+        <a class="adea-button-primary" href="{% url 'adeazeit:project-create' %}">Neues Projekt</a>
+    </div>
+
+    <form method="get" class="adea-search-form" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 20px;">
+        <input type="text" name="q" value="{{ query }}" placeholder="Suchen…" class="adea-input" style="flex: 1; min-width: 200px;">
+        <select name="client" class="adea-select" style="min-width: 200px;">
+            <option value="">Alle Mandanten</option>
+            {% for client in clients %}
+            <option value="{{ client.pk }}" {% if selected_client == client.pk|stringformat:"s" %}selected{% endif %}>{{ client.name }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="adea-button-primary">Suchen</button>
+    </form>
+
+    <div class="adea-table-wrapper" style="margin-top: 20px;">
+        <table class="adea-table">
+            <thead>
+                <tr>
+                    <th>Mandant</th>
+                    <th>Projektname</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for project in projects %}
+                <tr>
+                    <td>{{ project.client.name }}</td>
+                    <td><strong>{{ project.name }}</strong></td>
+                    <td>
+                        {% if project.aktiv %}
+                        <span style="color: #34c759;">Aktiv</span>
+                        {% else %}
+                        <span style="color: #8e8e93;">Inaktiv</span>
+                        {% endif %}
+                    </td>
+                    <td class="adea-table-actions">
+                        <a href="{% url 'adeazeit:project-update' project.pk %}">Bearbeiten</a>
+                        <a href="{% url 'adeazeit:project-delete' project.pk %}" style="color: #ff3b30;">Löschen</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4">Keine Projekte gefunden.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
+

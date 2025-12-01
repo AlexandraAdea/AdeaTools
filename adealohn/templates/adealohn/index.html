@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block title %}AdeaLohn – Mitarbeitende{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <div class="adea-d-flex-between">
+        <div>
+            <h1>Mitarbeitende</h1>
+            <p class="lead">Verwalte alle Mitarbeitenden nach Client. Grundlage für Payroll- und Zeiterfassungsprozesse.</p>
+        </div>
+        <a class="adea-button-primary" href="{% url 'adealohn:employee-create' %}">Neue Person</a>
+    </div>
+</section>
+{% endblock %}
+

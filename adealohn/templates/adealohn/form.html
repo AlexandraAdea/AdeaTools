@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% if object %}
+    {% block title %}Mitarbeiter bearbeiten – AdeaLohn{% endblock %}
+{% else %}
+    {% block title %}Neuer Mitarbeiter – AdeaLohn{% endblock %}
+{% endif %}
+
+{% block content %}
+<section class="content-card">
+    <h1 style="margin-bottom: 24px;">{% if object %}Mitarbeiter bearbeiten{% else %}Neuer Mitarbeiter{% endif %}</h1>
+    <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="feature-grid">
+            {% for field in form %}
+            <div class="feature-item" style="box-shadow:none; background:transparent; border:none; padding:0;">
+                <label for="{{ field.id_for_label }}" style="display:block; font-weight:600; margin-bottom:8px;">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                <div style="color:#ff5f57; margin-top:6px; font-size:13px;">
+                    {{ field.errors|striptags }}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        <div style="margin-top:28px; display:flex; gap:12px; flex-wrap:wrap;">
+            <button type="submit" class="adea-button-primary">
+                {% if object %}Speichern{% else %}Anlegen{% endif %}
+            </button>
+            <a href="{% if object %}{% url 'adealohn:employee-detail' object.pk %}{% else %}{% url 'adealohn:employee-list' %}{% endif %}" class="adea-button-secondary">
+                Abbrechen
+            </a>
+        </div>
+    </form>
+</section>
+{% endblock %}
+
+
+
+
+

@@ -1,0 +1,163 @@
+{% extends 'adeazeit_base.html' %}
+
+{% block title %}Zeiterfassung – Woche – AdeaZeit{% endblock %}
+
+{% block breadcrumbs %}
+<a href="{% url 'admin-dashboard' %}">Dashboard</a>
+<a href="{% url 'adeazeit:timeentry-week' %}">Zeiteinträge – Woche</a>
+{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <div class="adea-d-flex-between">
+        <div>
+            <h1 style="margin-bottom: 8px;">Zeiterfassung – Woche {{ monday|date:"d.m." }} – {{ sunday|date:"d.m.Y" }}</h1>
+            <p class="lead">Wochenansicht für Zeiteinträge.</p>
+        </div>
+        <div style="display: flex; gap: 12px;">
+            <a class="adea-button-secondary" href="{% url 'adeazeit:timeentry-week' %}?date={{ previous_monday|date:'Y-m-d' }}">← Vorherige Woche</a>
+            <a class="adea-button-secondary" href="{% url 'adeazeit:timeentry-week' %}?date={{ next_monday|date:'Y-m-d' }}">Nächste Woche →</a>
+            <a class="adea-button-primary" href="{% url 'adeazeit:timeentry-create' %}">+ Neuer Eintrag</a>
+        </div>
+    </div>
+
+    <div style="margin-top: 24px;">
+        <form method="get" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end;">
+            <div>
+                <label for="date" style="display:block; font-weight: 600; margin-bottom:6px;">Datum (Woche):</label>
+                <input type="date" name="date" id="date" value="{{ monday|date:'Y-m-d' }}" class="adea-input">
+            </div>
+            <div>
+                <label for="employee" style="display:block; font-weight: 600; margin-bottom:6px;">Mitarbeiterin (für Statistik):</label>
+                <select name="employee" id="employee" class="adea-select">
+                    <option value="">Keine Auswahl</option>
+                    {% for emp in employees %}
+                    <option value="{{ emp.pk }}" {% if request.GET.employee == emp.pk|stringformat:"s" %}selected{% endif %}>
+                        {{ emp.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <button type="submit" class="adea-button-primary">Anzeigen</button>
+            </div>
+        </form>
+    </div>
+
+    <div style="margin-top: 24px;">
+        {% for day_date in week_dates %}
+        <div style="margin-bottom: 32px;">
+            <h2 style="margin-bottom: 12px; font-size: 1.1em; color: #1d1d1f;">
+                {{ day_date|date:"l, d.m.Y" }}
+                {% if day_date == today %}
+                <span style="color: #007aff; font-size: 0.9em;">(Heute)</span>
+                {% endif %}
+            </h2>
+            
+            {% if day_date in entries_by_date %}
+            <div class="adea-table-wrapper">
+                <table class="adea-table">
+                    <thead>
+                        <tr>
+                            <th>Zeit</th>
+                            <th>Mitarbeiterin</th>
+                            <th>Mandant</th>
+                            <th>Service-Typ</th>
+                            <th>Kommentar</th>
+                            <th>Dauer</th>
+                            <th>Betrag</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in entries_by_date|get_item:day_date %}
+                        <tr>
+                            <td>
+                                {% if entry.start %}{{ entry.start|time:"H:i" }}{% endif %}
+                                {% if entry.start and entry.ende %}–{% endif %}
+                                {% if entry.ende %}{{ entry.ende|time:"H:i" }}{% endif %}
+                            </td>
+                            <td><strong>{{ entry.mitarbeiter.name }}</strong></td>
+                            <td>{{ entry.client.name|default:"–" }}</td>
+                            <td>{{ entry.service_type.code }}</td>
+                            <td style="max-width: 300px;">
+                                {% if entry.kommentar %}
+                                <span style="color: #1d1d1f; font-size: 0.9em;" title="{{ entry.kommentar }}">{{ entry.kommentar|truncatewords:10 }}</span>
+                                {% else %}
+                                <span style="color: #8e8e93;">–</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ entry.dauer|floatformat:2 }}h</td>
+                            <td>
+                                <strong>{{ entry.betrag|floatformat:2 }} CHF</strong>
+                                {% if not entry.billable %}
+                                <span style="color: #8e8e93; font-size: 0.9em;">(nicht verrechenbar)</span>
+                                {% endif %}
+                            </td>
+                            <td class="adea-table-actions">
+                                {% if can_edit_all or entry.mitarbeiter.pk in accessible_employee_ids %}
+                                <a href="{% url 'adeazeit:timeentry-update' entry.pk %}">Bearbeiten</a>
+                                {% endif %}
+                                {% if adeazeit_can_delete %}
+                                <a href="{% url 'adeazeit:timeentry-delete' entry.pk %}" style="color: #ff3b30;">Löschen</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p style="color: #8e8e93; padding: 12px;">Keine Zeiteinträge für diesen Tag.</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if employee_stats %}
+    <div style="margin-top: 32px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <h2 style="margin-bottom: 16px; font-size: 1.2em; color: white;">Arbeitszeit-Statistik: {{ employee_stats.employee.name }}</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px;">
+            <div style="background: rgba(255,255,255,0.2); padding: 12px; border-radius: 8px;">
+                <div style="font-size: 0.9em; opacity: 0.9;">Sollzeit</div>
+                <div style="font-size: 1.5em; font-weight: 600;">{{ employee_stats.soll_hours|floatformat:2 }}h</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.2); padding: 12px; border-radius: 8px;">
+                <div style="font-size: 0.9em; opacity: 0.9;">Abwesenheiten</div>
+                <div style="font-size: 1.5em; font-weight: 600;">{{ employee_stats.absence_hours|floatformat:2 }}h</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.2); padding: 12px; border-radius: 8px;">
+                <div style="font-size: 0.9em; opacity: 0.9;">Effektive Sollzeit</div>
+                <div style="font-size: 1.5em; font-weight: 600;">{{ employee_stats.effective_soll_hours|floatformat:2 }}h</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.2); padding: 12px; border-radius: 8px;">
+                <div style="font-size: 0.9em; opacity: 0.9;">Istzeit</div>
+                <div style="font-size: 1.5em; font-weight: 600;">{{ employee_stats.ist_hours|floatformat:2 }}h</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.2); padding: 12px; border-radius: 8px;">
+                <div style="font-size: 0.9em; opacity: 0.9;">Produktivität</div>
+                <div style="font-size: 1.5em; font-weight: 600; color: {% if employee_stats.productivity >= 100 %}#34c759{% else %}#ff9500{% endif %};">
+                    {{ employee_stats.productivity|floatformat:1 }}%
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div style="margin-top: 32px; padding: 20px; background: #f5f5f7; border-radius: 8px;">
+        <h2 style="margin-bottom: 12px; font-size: 1.1em;">Wochenstatistik</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+            <div>
+                <strong>Gesamtstunden:</strong> {{ total_dauer|floatformat:2 }}h
+            </div>
+            <div>
+                <strong>Verrechenbare Stunden:</strong> {{ billable_dauer|floatformat:2 }}h
+            </div>
+            <div>
+                <strong>Gesamtbetrag:</strong> {{ total_betrag|floatformat:2 }} CHF
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+

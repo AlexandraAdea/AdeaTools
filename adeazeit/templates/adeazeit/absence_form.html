@@ -1,0 +1,120 @@
+{% extends 'adeazeit_base.html' %}
+
+{% block title %}{% if object %}Abwesenheit bearbeiten{% else %}Neue Abwesenheit{% endif %} – AdeaZeit{% endblock %}
+
+{% block breadcrumbs %}
+<a href="{% url 'admin-dashboard' %}">Dashboard</a>
+<a href="{% url 'adeazeit:absence-list' %}">Abwesenheiten</a>
+<a href="{% url 'adeazeit:absence-create' %}">{% if object %}Bearbeiten{% else %}Neu{% endif %}</a>
+{% endblock %}
+
+{% block head_extra %}
+<script>
+function toggleHoursField(checkbox) {
+    const hoursField = document.getElementById('id_hours');
+    const hoursLabel = document.querySelector('label[for="id_hours"]');
+    const hoursContainer = hoursField.closest('div');
+    
+    if (checkbox.checked) {
+        // Ganztägig: Stunden-Feld ausblenden
+        hoursContainer.style.display = 'none';
+        hoursField.value = '';
+    } else {
+        // Teilzeit: Stunden-Feld einblenden
+        hoursContainer.style.display = 'block';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const fullDayCheckbox = document.getElementById('id_full_day');
+    if (fullDayCheckbox) {
+        toggleHoursField(fullDayCheckbox);
+        fullDayCheckbox.addEventListener('change', function() {
+            toggleHoursField(this);
+        });
+    }
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<section class="content-card" style="max-width: 800px; margin: 0 auto;">
+    <h1 style="margin-bottom: 20px;">
+        {% if object %}Abwesenheit bearbeiten{% else %}Neue Abwesenheit{% endif %}
+    </h1>
+    <form method="post" novalidate>
+        {% csrf_token %}
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div>
+                <label for="{{ form.employee.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.employee.label }} *</label>
+                {{ form.employee }}
+                {% if form.employee.errors %}
+                <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.employee.errors|striptags }}</div>
+                {% endif %}
+            </div>
+            <div>
+                <label for="{{ form.absence_type.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.absence_type.label }} *</label>
+                {{ form.absence_type }}
+                {% if form.absence_type.errors %}
+                <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.absence_type.errors|striptags }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div>
+                <label for="{{ form.date_from.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.date_from.label }} *</label>
+                {{ form.date_from }}
+                {% if form.date_from.errors %}
+                <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.date_from.errors|striptags }}</div>
+                {% endif %}
+            </div>
+            <div>
+                <label for="{{ form.date_to.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.date_to.label }} *</label>
+                {{ form.date_to }}
+                {% if form.date_to.errors %}
+                <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.date_to.errors|striptags }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label for="{{ form.full_day.id_for_label }}" style="display:flex; align-items:center; gap:8px; font-weight:600;">
+                {{ form.full_day }}
+                {{ form.full_day.label }}
+            </label>
+            {% if form.full_day.errors %}
+            <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.full_day.errors|striptags }}</div>
+            {% endif %}
+            <small style="color:#8e8e93; font-size:0.8em; display:block; margin-top:4px;">{{ form.full_day.help_text }}</small>
+        </div>
+
+        <div id="hours-container" style="margin-bottom: 20px;">
+            <label for="{{ form.hours.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.hours.label }}</label>
+            {{ form.hours }}
+            {% if form.hours.errors %}
+            <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.hours.errors|striptags }}</div>
+            {% endif %}
+            <small style="color:#8e8e93; font-size:0.8em; display:block; margin-top:4px;">{{ form.hours.help_text }}</small>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label for="{{ form.comment.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.comment.label }}</label>
+            {{ form.comment }}
+            {% if form.comment.errors %}
+            <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.comment.errors|striptags }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #e5e5ea; display:flex; gap:12px; flex-wrap:wrap;">
+            <button type="submit" class="adea-button-primary">
+                {% if object %}Speichern{% else %}Anlegen{% endif %}
+            </button>
+            <a href="{% url 'adeazeit:absence-list' %}" class="adea-button-primary" style="background:#e5e5ea; color:#1d1d1f; box-shadow:none;">
+                Abbrechen
+            </a>
+        </div>
+    </form>
+</section>
+{% endblock %}

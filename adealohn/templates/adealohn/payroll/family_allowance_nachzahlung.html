@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+
+{% block title %}Nachzahlung Familienzulagen – {{ payroll_record.month }}/{{ payroll_record.year }} – AdeaLohn{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <div class="adea-d-flex-between">
+        <div>
+            <h1>Nachzahlung Familienzulagen</h1>
+            <p class="lead">
+                Mitarbeiter: {{ payroll_record.employee.first_name }} {{ payroll_record.employee.last_name }} · 
+                Monat: {{ month_name }} {{ payroll_record.year }}
+            </p>
+        </div>
+        <a class="adea-button-primary" href="{% url 'adealohn:payroll-detail' payroll_record.pk %}">Zurück</a>
+    </div>
+
+    <div style="margin-top: 24px;">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div style="max-width: 600px;">
+                <div style="margin-bottom: 16px;">
+                    <label for="{{ form.zulagenart.id_for_label }}" style="display: block; margin-bottom: 4px; font-weight: 600;">
+                        {{ form.zulagenart.label }}
+                    </label>
+                    {{ form.zulagenart }}
+                    {% if form.zulagenart.help_text %}
+                        <p style="color:#8e8e93; font-size:0.9em; margin-top: 4px;">{{ form.zulagenart.help_text }}</p>
+                    {% endif %}
+                    {% if form.zulagenart.errors %}
+                        <p style="color: red; font-size:0.9em; margin-top: 4px;">{{ form.zulagenart.errors }}</p>
+                    {% endif %}
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label for="{{ form.anzahl_monate.id_for_label }}" style="display: block; margin-bottom: 4px; font-weight: 600;">
+                        {{ form.anzahl_monate.label }}
+                    </label>
+                    {{ form.anzahl_monate }}
+                    {% if form.anzahl_monate.help_text %}
+                        <p style="color:#8e8e93; font-size:0.9em; margin-top: 4px;">{{ form.anzahl_monate.help_text }}</p>
+                    {% endif %}
+                    {% if form.anzahl_monate.errors %}
+                        <p style="color: red; font-size:0.9em; margin-top: 4px;">{{ form.anzahl_monate.errors }}</p>
+                    {% endif %}
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label for="{{ form.monatsbetrag.id_for_label }}" style="display: block; margin-bottom: 4px; font-weight: 600;">
+                        {{ form.monatsbetrag.label }}
+                    </label>
+                    {{ form.monatsbetrag }}
+                    {% if form.monatsbetrag.help_text %}
+                        <p style="color:#8e8e93; font-size:0.9em; margin-top: 4px;">{{ form.monatsbetrag.help_text }}</p>
+                    {% endif %}
+                    {% if form.monatsbetrag.errors %}
+                        <p style="color: red; font-size:0.9em; margin-top: 4px;">{{ form.monatsbetrag.errors }}</p>
+                    {% endif %}
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label for="{{ form.sva_entscheid.id_for_label }}" style="display: block; margin-bottom: 4px; font-weight: 600;">
+                        {{ form.sva_entscheid.label }}
+                    </label>
+                    {{ form.sva_entscheid }}
+                    {% if form.sva_entscheid.help_text %}
+                        <p style="color:#8e8e93; font-size:0.9em; margin-top: 4px;">{{ form.sva_entscheid.help_text }}</p>
+                    {% endif %}
+                    {% if form.sva_entscheid.errors %}
+                        <p style="color: red; font-size:0.9em; margin-top: 4px;">{{ form.sva_entscheid.errors }}</p>
+                    {% endif %}
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label for="{{ form.beschreibung.id_for_label }}" style="display: block; margin-bottom: 4px; font-weight: 600;">
+                        {{ form.beschreibung.label }}
+                    </label>
+                    {{ form.beschreibung }}
+                    {% if form.beschreibung.help_text %}
+                        <p style="color:#8e8e93; font-size:0.9em; margin-top: 4px;">{{ form.beschreibung.help_text }}</p>
+                    {% endif %}
+                    {% if form.beschreibung.errors %}
+                        <p style="color: red; font-size:0.9em; margin-top: 4px;">{{ form.beschreibung.errors }}</p>
+                    {% endif %}
+                </div>
+
+                {% if form.non_field_errors %}
+                    <div style="color: red; margin-bottom: 16px;">
+                        {{ form.non_field_errors }}
+                    </div>
+                {% endif %}
+
+                <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid rgba(0,0,0,0.1);">
+                    <p style="color:#8e8e93; font-size:0.9em; margin-bottom: 16px;">
+                        <strong>Hinweis:</strong> Nachzahlungen werden immer im Monat der Auszahlung abgerechnet (FamZG). 
+                        Die QST wird auf den Gesamtbetrag (inkl. Nachzahlung) berechnet.
+                    </p>
+                    <div style="display: flex; gap: 12px;">
+                        <button type="submit" class="adea-button-primary">Nachzahlung speichern</button>
+                        <a href="{% url 'adealohn:payroll-detail' payroll_record.pk %}" class="adea-button-secondary">Abbrechen</a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+
+<script>
+// Automatische Berechnung der Gesamtsumme
+document.addEventListener('DOMContentLoaded', function() {
+    const anzahlMonate = document.getElementById('{{ form.anzahl_monate.id_for_label }}');
+    const monatsbetrag = document.getElementById('{{ form.monatsbetrag.id_for_label }}');
+    
+    function updateSumme() {
+        const monate = parseFloat(anzahlMonate.value) || 0;
+        const betrag = parseFloat(monatsbetrag.value) || 0;
+        const summe = monate * betrag;
+        
+        // Zeige Summe an (falls ein Element dafür existiert)
+        const summeElement = document.getElementById('gesamtsumme');
+        if (summeElement) {
+            summeElement.textContent = summe.toFixed(2) + ' CHF';
+        }
+    }
+    
+    if (anzahlMonate && monatsbetrag) {
+        anzahlMonate.addEventListener('input', updateSumme);
+        monatsbetrag.addEventListener('input', updateSumme);
+        updateSumme();
+    }
+});
+</script>
+{% endblock %}
+

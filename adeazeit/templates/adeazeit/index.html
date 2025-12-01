@@ -1,0 +1,44 @@
+{% extends 'adeazeit_base.html' %}
+
+{% block title %}AdeaZeit – Zeiterfassung{% endblock %}
+
+{% block breadcrumbs %}
+{% if adeazeit_can_manage_employees %}
+<a href="{% url 'admin-dashboard' %}">Dashboard</a>
+{% endif %}
+<a href="{% url 'adeazeit:index' %}">AdeaZeit</a>
+{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <h1>AdeaZeit</h1>
+    <p class="lead">
+        Erfasse Arbeitszeiten in Echtzeit, plane Abwesenheiten und vergleiche Soll- mit Ist-Stunden inklusive Audit-Trail.
+    </p>
+    <div class="feature-grid">
+        <div class="feature-item">
+            <h2>Schnellzugriff</h2>
+            <ul>
+                <li><a href="{% url 'adeazeit:timeentry-day' %}">Zeiterfassung – Tag</a></li>
+                <li><a href="{% url 'adeazeit:timeentry-week' %}">Zeiterfassung – Woche</a></li>
+                <li><a href="{% url 'adeazeit:timeentry-create' %}">Neuer Zeiteintrag</a></li>
+            </ul>
+        </div>
+        <div class="feature-item">
+            <h2>Verwaltung</h2>
+            <ul>
+                {% if adeazeit_can_manage_employees %}
+                <li><a href="{% url 'adeazeit:employee-list' %}">Mitarbeitende</a></li>
+                {% endif %}
+                {% if adeazeit_can_manage_service_types %}
+                <li><a href="{% url 'adeazeit:servicetype-list' %}">Service-Typen</a></li>
+                {% endif %}
+                <li><a href="{% url 'adeazeit:absence-list' %}">Abwesenheiten</a></li>
+                {% if adeazeit_is_admin %}
+                <li><a href="/admin/adeazeit/holiday/" target="_blank">Feiertage <span style="font-size: 0.8em; color: #8e8e93;">(Admin)</span></a></li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</section>
+{% endblock %}

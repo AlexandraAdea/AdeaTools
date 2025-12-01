@@ -1,0 +1,154 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Admin – AdeaTools{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/adeastyle.css' %}">
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="admin-sidebar">
+            <div class="sidebar-header">
+                <a href="{% url 'admin-dashboard' %}" style="font-size: 1.3em; font-weight: 600; color: #1d1d1f; text-decoration: none; display: flex; align-items: center; gap: 8px;">
+                    <span>⚙️</span>
+                    <span>AdeaTools</span>
+                </a>
+                <div style="font-size: 0.9em; color: #6e6e73; margin-top: 4px; font-weight: 400;">Admin-Bereich</div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <!-- Dashboard -->
+                <a href="{% url 'admin-dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'admin-dashboard' %}active{% endif %}">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-label">Dashboard</span>
+                </a>
+                
+                <!-- Mandantenverwaltung -->
+                <div class="nav-section">
+                    <div class="nav-section-header">
+                        <span class="nav-icon">🏢</span>
+                        <span class="nav-label">Mandantenverwaltung</span>
+                    </div>
+                    <div class="nav-submenu">
+                        <a href="{% url 'adeadesk:client-list' %}" class="nav-item" target="_blank">
+                            <span class="nav-label">Mandanten</span>
+                            <span style="font-size: 0.75em; color: #8e8e93;">↗</span>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Zeiterfassung -->
+                <div class="nav-section">
+                    <div class="nav-section-header">
+                        <span class="nav-icon">⏱️</span>
+                        <span class="nav-label">Zeiterfassung</span>
+                    </div>
+                    <div class="nav-submenu">
+                        <a href="{% url 'adeazeit:timeentry-day' %}" class="nav-item {% if request.resolver_match.url_name == 'timeentry-day' or request.resolver_match.url_name == 'timeentry-week' %}active{% endif %}">
+                            <span class="nav-label">Zeiteinträge</span>
+                        </a>
+                        <a href="{% url 'adeazeit:employee-list' %}" class="nav-item {% if 'employee' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="nav-label">Mitarbeitende</span>
+                        </a>
+                        <a href="{% url 'adeazeit:absence-list' %}" class="nav-item {% if 'absence' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="nav-label">Abwesenheiten</span>
+                        </a>
+                        <a href="{% url 'adeazeit:servicetype-list' %}" class="nav-item {% if 'servicetype' in request.resolver_match.url_name %}active{% endif %}">
+                            <span class="nav-label">Service-Typen</span>
+                        </a>
+                        <a href="/admin/adeazeit/holiday/" target="_blank" class="nav-item">
+                            <span class="nav-label">Feiertage</span>
+                            <span style="font-size: 0.75em; color: #8e8e93;">↗</span>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Lohnabrechnung -->
+                <div class="nav-section">
+                    <div class="nav-section-header">
+                        <span class="nav-icon">💰</span>
+                        <span class="nav-label">Lohnabrechnung</span>
+                    </div>
+                    <div class="nav-submenu">
+                        <a href="{% url 'adealohn:payroll-list' %}" class="nav-item" target="_blank">
+                            <span class="nav-label">Lohnabrechnungen</span>
+                            <span style="font-size: 0.75em; color: #8e8e93;">↗</span>
+                        </a>
+                        <a href="{% url 'adealohn:employee-list' %}" class="nav-item" target="_blank">
+                            <span class="nav-label">Mitarbeitende</span>
+                            <span style="font-size: 0.75em; color: #8e8e93;">↗</span>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- System -->
+                <div class="nav-section">
+                    <div class="nav-section-header">
+                        <span class="nav-icon">⚙️</span>
+                        <span class="nav-label">System</span>
+                    </div>
+                    <div class="nav-submenu">
+                        <a href="/admin/" target="_blank" class="nav-item">
+                            <span class="nav-label">Django Admin</span>
+                            <span style="font-size: 0.75em; color: #8e8e93;">↗</span>
+                        </a>
+                    </div>
+                </div>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <a href="{% url 'home' %}" style="color: #6e6e73; text-decoration: none; font-size: 0.95em; font-weight: 400;">
+                    ← Zur Startseite
+                </a>
+            </div>
+        </aside>
+        
+        <!-- Main Content Area -->
+        <main class="admin-main">
+            <!-- Top Bar -->
+            <header class="admin-topbar">
+                <div class="breadcrumbs">
+                    {% block breadcrumbs %}
+                    <a href="{% url 'admin-dashboard' %}">Dashboard</a>
+                    {% endblock breadcrumbs %}
+                </div>
+                <div class="topbar-actions">
+                    {% if request.path|slice:":6" == "/lohn/" and current_client %}
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 8px 16px; background: #f5f5f7; border-radius: 8px;">
+                        <strong>Mandant:</strong> {{ current_client.name }}
+                        <a href="{% url 'adealohn:client_switch' %}" style="color: #007aff; text-decoration: none; font-size: 0.9em;">Wechseln</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </header>
+            
+            <!-- Messages -->
+            {% if messages %}
+            <div class="admin-messages">
+                {% for message in messages %}
+                <div class="adea-message adea-message-{{ message.tags }}" style="margin-bottom: 12px;">
+                    <span>{{ message }}</span>
+                    <button onclick="this.parentElement.style.display='none'" style="background: none; border: none; font-size: 1.2em; cursor: pointer; color: inherit; opacity: 0.7;">×</button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <!-- Page Content -->
+            <div class="admin-content">
+                {% block content %}
+                <section class="content-card">
+                    <p>Inhalt fehlt – bitte überschreiben.</p>
+                </section>
+                {% endblock %}
+            </div>
+        </main>
+    </div>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

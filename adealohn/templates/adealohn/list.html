@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}AdeaLohn – Mitarbeitende{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <div class="adea-d-flex-between">
+        <div>
+            <h1 style="margin-bottom: 8px;">Mitarbeitende</h1>
+            <p class="lead">Filterbar nach Client, suchbar nach Name oder Rolle.</p>
+        </div>
+        <a class="adea-button-primary" href="{% url 'adealohn:employee-create' %}">Neue Person</a>
+    </div>
+
+    <form method="get" class="adea-filter-bar">
+        <div>
+            <label for="client-filter">Client</label>
+            <select id="client-filter" name="client" class="adea-select">
+                <option value="">Alle</option>
+                {% for client in clients %}
+                <option value="{{ client.id }}" {% if client.id|stringformat:"s" == selected_client|stringformat:"s" %}selected{% endif %}>{{ client.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="employee-search">Suche</label>
+            <input id="employee-search" type="text" name="q" value="{{ query }}" placeholder="Name oder Rolle…" class="adea-input">
+        </div>
+        <div class="adea-filter-actions">
+            <button type="submit" class="adea-button-primary">Filter anwenden</button>
+            <a href="{% url 'adealohn:employee-list' %}" class="adea-button-secondary">Zurücksetzen</a>
+        </div>
+    </form>
+
+    <div class="adea-table-wrapper">
+        <table class="adea-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Client</th>
+                    <th>Rolle</th>
+                    <th>Stundensatz</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for employee in employees %}
+                <tr>
+                    <td>{{ employee.first_name }} {{ employee.last_name }}</td>
+                    <td>{{ employee.client.name }}</td>
+                    <td>{{ employee.role|default:"–" }}</td>
+                    <td>{{ employee.hourly_rate }} CHF</td>
+                    <td class="adea-table-actions">
+                        <a href="{% url 'adealohn:employee-detail' employee.pk %}">Details</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5">Keine Mitarbeitenden gefunden.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="adea-pagination">
+        {% if page_obj.has_previous %}
+        <a href="?client={{ selected_client }}&q={{ query }}&page={{ page_obj.previous_page_number }}">Zurück</a>
+        {% endif %}
+        <span>Seite {{ page_obj.number }} von {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?client={{ selected_client }}&q={{ query }}&page={{ page_obj.next_page_number }}">Weiter</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
+
+
+
+
+

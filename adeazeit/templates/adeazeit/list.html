@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}AdeaZeit – Zeiterfassung{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <div class="adea-d-flex-between">
+        <div>
+            <h1 style="margin-bottom: 8px;">Zeiterfassungen</h1>
+            <p class="lead">Filtere nach Client, Mitarbeitenden oder Projekt, um relevante Einträge zu finden.</p>
+        </div>
+        <a class="adea-button-primary" href="{% url 'adeazeit:timerecord-create' %}">Neuer Eintrag</a>
+    </div>
+
+    <form method="get" class="adea-filter-bar">
+        <div>
+            <label for="client-filter">Client</label>
+            <select id="client-filter" name="client" class="adea-select">
+                <option value="">Alle</option>
+                {% for client in clients %}
+                <option value="{{ client.id }}" {% if client.id|stringformat:"s" == selected_client|stringformat:"s" %}selected{% endif %}>{{ client.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="employee-filter">Mitarbeiter</label>
+            <select id="employee-filter" name="employee" class="adea-select">
+                <option value="">Alle</option>
+                {% for employee in employees %}
+                <option value="{{ employee.id }}" {% if employee.id|stringformat:"s" == selected_employee|stringformat:"s" %}selected{% endif %}>{{ employee.first_name }} {{ employee.last_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="project-filter">Projekt</label>
+            <select id="project-filter" name="project" class="adea-select">
+                <option value="">Alle</option>
+                {% for project in projects %}
+                <option value="{{ project.id }}" {% if project.id|stringformat:"s" == selected_project|stringformat:"s" %}selected{% endif %}>{{ project.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="search-query">Suche</label>
+            <input id="search-query" type="text" name="q" value="{{ query }}" placeholder="Beschreibung, Client, Projekt…" class="adea-input">
+        </div>
+        <div class="adea-filter-actions">
+            <button type="submit" class="adea-button-primary">Filter anwenden</button>
+            <a class="adea-button-primary" style="background:#e5e5ea; color:#1d1d1f; box-shadow:none;" href="{% url 'adeazeit:timerecord-list' %}">Zurücksetzen</a>
+        </div>
+    </form>
+
+    <div class="adea-table-wrapper">
+        <table class="adea-table">
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Client</th>
+                    <th>Mitarbeiter</th>
+                    <th>Projekt</th>
+                    <th>Stunden</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    <td>{{ record.date|date:"d.m.Y" }}</td>
+                    <td>{{ record.client.name }}</td>
+                    <td>{{ record.employee }}</td>
+                    <td>{{ record.project.name if record.project else "Allgemein" }}</td>
+                    <td>{{ record.hours|floatformat:2 }}</td>
+                    <td class="adea-table-actions">
+                        <a href="{% url 'adeazeit:timerecord-detail' record.pk %}">Details</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6">Keine Zeiteinträge gefunden.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="adea-pagination">
+        {% if page_obj.has_previous %}
+        <a href="?client={{ selected_client }}&employee={{ selected_employee }}&project={{ selected_project }}&q={{ query }}&page={{ page_obj.previous_page_number }}">Zurück</a>
+        {% endif %}
+        <span>Seite {{ page_obj.number }} von {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?client={{ selected_client }}&employee={{ selected_employee }}&project={{ selected_project }}&q={{ query }}&page={{ page_obj.next_page_number }}">Weiter</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
+
+
+
+
+

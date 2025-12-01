@@ -1,0 +1,293 @@
+{% extends 'base.html' %}
+
+{% block title %}
+{% if object %}{{ object.name }} bearbeiten – AdeaDesk{% else %}Mandant anlegen – AdeaDesk{% endif %}
+{% endblock %}
+
+{% block content %}
+<section class="content-card" style="max-width: 1000px; margin: 0 auto;">
+    <h1 style="margin-bottom: 20px;">
+        {% if object %}Mandant bearbeiten{% else %}Neuer Mandant{% endif %}
+    </h1>
+    <form method="post" novalidate id="client-form">
+        {% csrf_token %}
+        
+        <!-- Grunddaten & Kontakt in einer Zeile -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div>
+                <h2 style="margin-bottom: 12px; font-size: 1.1em; color: #1d1d1f;">Grunddaten</h2>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div>
+                        <label for="{{ form.name.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">{{ form.name.label }} *</label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                        <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.name.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label for="{{ form.client_type.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">{{ form.client_type.label }} *</label>
+                        {{ form.client_type }}
+                        {% if form.client_type.errors %}
+                        <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.client_type.errors|striptags }}</div>
+                        {% endif %}
+                        <small style="color:#8e8e93; font-size:0.8em; display:block; margin-top:4px;">FIRMA = für Lohnbuchhaltung, PRIVAT = nur für Zeiterfassung</small>
+                    </div>
+                    <div>
+                        <label for="{{ form.status.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">{{ form.status.label }} *</label>
+                        {{ form.status }}
+                        {% if form.status.errors %}
+                        <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.status.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+                    <div id="status-grund-container" style="display: none;">
+                        <label for="{{ form.status_grund.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">{{ form.status_grund.label }}</label>
+                        {{ form.status_grund }}
+                        {% if form.status_grund.errors %}
+                        <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.status_grund.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div>
+                <h2 style="margin-bottom: 12px; font-size: 1.1em; color: #1d1d1f;">Kontakt</h2>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div>
+                        <label for="{{ form.email.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">{{ form.email.label }}</label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                        <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.email.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label for="{{ form.phone.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">{{ form.phone.label }}</label>
+                        {{ form.phone }}
+                        {% if form.phone.errors %}
+                        <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.phone.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+                    {% if form.kontaktperson_name %}
+                    <div>
+                        <label for="{{ form.kontaktperson_name.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">{{ form.kontaktperson_name.label }}</label>
+                        {{ form.kontaktperson_name }}
+                        {% if form.kontaktperson_name.errors %}
+                        <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.kontaktperson_name.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Adresse kompakt -->
+        <div style="margin-bottom: 20px;">
+            <h2 style="margin-bottom: 12px; font-size: 1.1em; color: #1d1d1f;">Adresse</h2>
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 2fr; gap: 12px;">
+                <div>
+                    <label for="{{ form.street.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">{{ form.street.label }}</label>
+                    {{ form.street }}
+                    {% if form.street.errors %}
+                    <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.street.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+                <div>
+                    <label for="{{ form.house_number.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">{{ form.house_number.label }}</label>
+                    {{ form.house_number }}
+                    {% if form.house_number.errors %}
+                    <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.house_number.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+                <div>
+                    <label for="{{ form.zipcode.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">{{ form.zipcode.label }}</label>
+                    {{ form.zipcode }}
+                    {% if form.zipcode.errors %}
+                    <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.zipcode.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+                <div>
+                    <label for="{{ form.city.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">{{ form.city.label }}</label>
+                    {{ form.city }}
+                    {% if form.city.errors %}
+                    <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.city.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- MWST & Rechnungsdaten (nur FIRMA) -->
+        {% if form.mwst_pflichtig %}
+        <div style="margin-bottom: 20px;" id="mwst-section">
+            <h2 style="margin-bottom: 12px; font-size: 1.1em; color: #1d1d1f;">MWST & Rechnungsdaten</h2>
+            <div style="display: grid; grid-template-columns: 1fr 2fr 2fr 1fr; gap: 12px; align-items: end;">
+                <div>
+                    <label for="{{ form.mwst_pflichtig.id_for_label }}" style="display:flex; align-items:center; gap:8px; font-weight:600; font-size:14px; cursor:pointer;">
+                        {{ form.mwst_pflichtig }}
+                        {{ form.mwst_pflichtig.label }}
+                    </label>
+                    {% if form.mwst_pflichtig.errors %}
+                    <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.mwst_pflichtig.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+                <div>
+                    <label for="{{ form.mwst_nr.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">{{ form.mwst_nr.label }}</label>
+                    {{ form.mwst_nr }}
+                    {% if form.mwst_nr.errors %}
+                    <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.mwst_nr.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+                <div>
+                    <label for="{{ form.rechnungs_email.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">{{ form.rechnungs_email.label }}</label>
+                    {{ form.rechnungs_email }}
+                    {% if form.rechnungs_email.errors %}
+                    <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.rechnungs_email.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+                <div>
+                    <label for="{{ form.zahlungsziel_tage.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">{{ form.zahlungsziel_tage.label }}</label>
+                    {{ form.zahlungsziel_tage }}
+                    {% if form.zahlungsziel_tage.errors %}
+                    <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.zahlungsziel_tage.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Steuerdaten (nur PRIVAT) -->
+        {% if form.geburtsdatum %}
+        <div style="margin-bottom: 20px;" id="steuer-section">
+            <h2 style="margin-bottom: 12px; font-size: 1.1em; color: #1d1d1f;">Steuerdaten</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div>
+                    <label for="{{ form.geburtsdatum.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">{{ form.geburtsdatum.label }}</label>
+                    {{ form.geburtsdatum }}
+                    {% if form.geburtsdatum.errors %}
+                    <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.geburtsdatum.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+                <div>
+                    <label for="{{ form.steuerkanton.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">{{ form.steuerkanton.label }}</label>
+                    {{ form.steuerkanton }}
+                    {% if form.steuerkanton.errors %}
+                    <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.steuerkanton.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Module & Weitere Daten in einer Zeile -->
+        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-bottom: 20px;">
+            {% if form.lohn_aktiv %}
+            <div id="module-section">
+                <h2 style="margin-bottom: 12px; font-size: 1.1em; color: #1d1d1f;">Module</h2>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <label for="{{ form.lohn_aktiv.id_for_label }}" style="display:flex; align-items:center; gap:8px; font-weight:600; font-size:14px; cursor:pointer;">
+                        {{ form.lohn_aktiv }}
+                        {{ form.lohn_aktiv.label }}
+                    </label>
+                    {% if form.lohn_aktiv.errors %}
+                    <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.lohn_aktiv.errors|striptags }}</div>
+                    {% endif %}
+                    {% if form.sachbearbeiter and form.sachbearbeiter.widget.input_type != 'hidden' %}
+                    <div>
+                        <label for="{{ form.sachbearbeiter.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">{{ form.sachbearbeiter.label }}</label>
+                        {{ form.sachbearbeiter }}
+                        {% if form.sachbearbeiter.help_text %}
+                        <small style="color:#8e8e93; font-size:0.8em; display:block; margin-top:4px;">{{ form.sachbearbeiter.help_text }}</small>
+                        {% endif %}
+                        {% if form.sachbearbeiter.errors %}
+                        <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.sachbearbeiter.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            <div>
+                <h2 style="margin-bottom: 12px; font-size: 1.1em; color: #1d1d1f;">Weitere Daten</h2>
+                <div>
+                    <label for="{{ form.interne_notizen.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">{{ form.interne_notizen.label }}</label>
+                    {{ form.interne_notizen }}
+                    {% if form.interne_notizen.errors %}
+                    <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.interne_notizen.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #e5e5ea; display:flex; gap:12px; flex-wrap:wrap;">
+            <button type="submit" class="adea-button-primary">
+                {% if object %}Speichern{% else %}Anlegen{% endif %}
+            </button>
+            <a href="{% if object %}{% url 'adeadesk:client-detail' object.pk %}{% else %}{% url 'adeadesk:client-list' %}{% endif %}" class="adea-button-primary" style="background:#e5e5ea; color:#1d1d1f; box-shadow:none;">
+                Abbrechen
+            </a>
+        </div>
+    </form>
+</section>
+
+<script>
+// Dynamische Anzeige/Ausblendung basierend auf client_type und status
+document.addEventListener('DOMContentLoaded', function() {
+    const clientTypeSelect = document.getElementById('id_client_type');
+    const statusSelect = document.getElementById('id_status');
+    const mwstSection = document.getElementById('mwst-section');
+    const steuerSection = document.getElementById('steuer-section');
+    const statusGrundContainer = document.getElementById('status-grund-container');
+    const mwstNrField = document.getElementById('id_mwst_nr');
+    const uidField = document.getElementById('id_uid');
+    
+    function toggleStatusGrund() {
+        const status = statusSelect ? statusSelect.value : 'AKTIV';
+        if (statusGrundContainer) {
+            if (status === 'AKTIV') {
+                statusGrundContainer.style.display = 'none';
+            } else {
+                statusGrundContainer.style.display = 'block';
+            }
+        }
+    }
+    
+    function toggleSections() {
+        const clientType = clientTypeSelect.value;
+        const lohnAktivCheckbox = document.getElementById('id_lohn_aktiv');
+        const sachbearbeiterField = document.getElementById('id_sachbearbeiter');
+        const sachbearbeiterContainer = sachbearbeiterField ? sachbearbeiterField.closest('div') : null;
+        
+        if (clientType === 'FIRMA') {
+            if (mwstSection) mwstSection.style.display = 'block';
+            if (steuerSection) steuerSection.style.display = 'none';
+            // Sachbearbeiter nur anzeigen wenn Lohn aktiviert ist
+            if (lohnAktivCheckbox && sachbearbeiterContainer) {
+                if (lohnAktivCheckbox.checked) {
+                    sachbearbeiterContainer.style.display = 'block';
+                } else {
+                    sachbearbeiterContainer.style.display = 'none';
+                }
+            }
+        } else if (clientType === 'PRIVAT') {
+            if (mwstSection) mwstSection.style.display = 'none';
+            if (steuerSection) steuerSection.style.display = 'block';
+            if (sachbearbeiterContainer) sachbearbeiterContainer.style.display = 'none';
+        }
+    }
+    
+    // Event Listener für Status-Änderung
+    if (statusSelect) {
+        statusSelect.addEventListener('change', toggleStatusGrund);
+        toggleStatusGrund(); // Initial aufrufen
+    }
+    
+    // Event Listener für lohn_aktiv Checkbox
+    const lohnAktivCheckbox = document.getElementById('id_lohn_aktiv');
+    if (lohnAktivCheckbox) {
+        lohnAktivCheckbox.addEventListener('change', toggleSections);
+    }
+    
+    if (clientTypeSelect) {
+        clientTypeSelect.addEventListener('change', toggleSections);
+        toggleSections(); // Initial aufrufen
+    }
+});
+</script>
+{% endblock %}

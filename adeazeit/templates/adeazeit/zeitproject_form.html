@@ -1,0 +1,50 @@
+{% extends 'adeazeit_base.html' %}
+
+{% block title %}{% if object %}{{ object.name }} bearbeiten{% else %}Neues Projekt{% endif %} – AdeaZeit{% endblock %}
+
+{% block content %}
+<section class="content-card" style="max-width: 800px; margin: 0 auto;">
+    <h1 style="margin-bottom: 20px;">
+        {% if object %}Projekt bearbeiten{% else %}Neues Projekt{% endif %}
+    </h1>
+    <form method="post" novalidate>
+        {% csrf_token %}
+        
+        <div style="margin-bottom: 20px;">
+            <label for="{{ form.client.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.client.label }} *</label>
+            {{ form.client }}
+            {% if form.client.errors %}
+            <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.client.errors|striptags }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label for="{{ form.name.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.name.label }} *</label>
+            {{ form.name }}
+            {% if form.name.errors %}
+            <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.name.errors|striptags }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label for="{{ form.aktiv.id_for_label }}" style="display:flex; align-items:center; gap:8px; font-weight:600;">
+                {{ form.aktiv }}
+                {{ form.aktiv.label }}
+            </label>
+            {% if form.aktiv.errors %}
+            <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.aktiv.errors|striptags }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #e5e5ea; display:flex; gap:12px; flex-wrap:wrap;">
+            <button type="submit" class="adea-button-primary">
+                {% if object %}Speichern{% else %}Anlegen{% endif %}
+            </button>
+            <a href="{% url 'adeazeit:project-list' %}" class="adea-button-primary" style="background:#e5e5ea; color:#1d1d1f; box-shadow:none;">
+                Abbrechen
+            </a>
+        </div>
+    </form>
+</section>
+{% endblock %}
+

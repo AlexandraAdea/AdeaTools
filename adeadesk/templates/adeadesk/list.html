@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+
+{% block title %}AdeaDesk – Mandanten{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <div class="adea-d-flex-between">
+        <div>
+            <h1 style="margin-bottom: 8px;">Mandanten</h1>
+            <p class="lead">Verwalte alle Mandanten der AdeaSuite zentral. Nutze Suche und Bearbeitungsfunktionen für schnelle Änderungen.</p>
+        </div>
+        {% if adeazeit_can_manage_employees %}
+        <a class="adea-button-primary" href="{% url 'adeadesk:client-create' %}">Neuer Mandant</a>
+        {% endif %}
+    </div>
+
+    <form method="get" class="adea-search-form" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+        <input type="text" name="q" value="{{ query }}" placeholder="Mandanten suchen…" class="adea-input" style="flex: 1; min-width: 200px;">
+        <select name="status" class="adea-select" style="min-width: 150px;">
+            <option value="">Alle Status</option>
+            <option value="AKTIV" {% if status_filter == "AKTIV" %}selected{% endif %}>Aktiv</option>
+            <option value="INAKTIV" {% if status_filter == "INAKTIV" %}selected{% endif %}>Inaktiv</option>
+            <option value="POTENZIELL" {% if status_filter == "POTENZIELL" %}selected{% endif %}>Potenziell</option>
+            <option value="GESPERRT" {% if status_filter == "GESPERRT" %}selected{% endif %}>Gesperrt</option>
+        </select>
+        <select name="client_type" class="adea-select" style="min-width: 150px;">
+            <option value="">Alle Typen</option>
+            <option value="FIRMA" {% if client_type_filter == "FIRMA" %}selected{% endif %}>Firma</option>
+            <option value="PRIVAT" {% if client_type_filter == "PRIVAT" %}selected{% endif %}>Privatperson</option>
+        </select>
+        <button type="submit" class="adea-button-primary">Suchen</button>
+    </form>
+
+    <div class="adea-table-wrapper">
+        <table class="adea-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Ort</th>
+                    <th>E-Mail</th>
+                    <th>MWST-Nr / UID</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for client in clients %}
+                <tr>
+                    <td><strong>{{ client.name }}</strong></td>
+                    <td>
+                        <span style="{% if client.status == 'AKTIV' %}background: #e8f5e9; color: #388e3c;{% elif client.status == 'INAKTIV' %}background: #ffebee; color: #d32f2f;{% elif client.status == 'POTENZIELL' %}background: #fff3e0; color: #f57c00;{% else %}background: #f3e5f5; color: #7b1fa2;{% endif %} padding: 2px 8px; border-radius: 4px; font-size: 0.85em;">
+                            {{ client.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if client.city %}
+                            {{ client.city }}
+                        {% else %}
+                            <span class="adea-text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if client.email %}
+                            {{ client.email }}
+                        {% else %}
+                            <span class="adea-text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if client.uid %}
+                            {{ client.uid }}
+                        {% else %}
+                            <span class="adea-text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="adea-table-actions">
+                        <a href="{% url 'adeadesk:client-detail' client.pk %}" class="adea-link">Details</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="adea-text-muted" style="text-align: center; padding: 32px;">
+                        Keine Mandanten gefunden.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="adea-pagination">
+        {% if page_obj.has_previous %}
+        <a href="?q={{ query }}&page={{ page_obj.previous_page_number }}">Zurück</a>
+        {% endif %}
+        <span>Seite {{ page_obj.number }} von {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?q={{ query }}&page={{ page_obj.next_page_number }}">Weiter</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
+
+
+
+

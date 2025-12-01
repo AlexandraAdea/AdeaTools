@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block title %}Spesen erfassen – {{ payroll_record.month }}/{{ payroll_record.year }} – AdeaLohn{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <div class="adea-d-flex-between">
+        <div>
+            <h1>Spesen erfassen</h1>
+            <p class="lead">
+                Mitarbeiter: {{ payroll_record.employee.first_name }} {{ payroll_record.employee.last_name }} · 
+                Monat: {{ month_name }} {{ payroll_record.year }}
+            </p>
+        </div>
+        <a class="adea-button-primary" href="{% url 'adealohn:payroll-detail' payroll_record.pk %}">Zurück</a>
+    </div>
+
+    <div style="margin-top: 24px;">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div style="max-width: 600px;">
+                <div style="margin-bottom: 16px;">
+                    <label for="{{ form.wage_type.id_for_label }}" style="display: block; margin-bottom: 4px; font-weight: 600;">
+                        {{ form.wage_type.label }}
+                    </label>
+                    {{ form.wage_type }}
+                    {% if form.wage_type.help_text %}
+                        <p style="color:#8e8e93; font-size:0.9em; margin-top: 4px;">{{ form.wage_type.help_text }}</p>
+                    {% endif %}
+                    {% if form.wage_type.errors %}
+                        <p style="color: red; font-size:0.9em; margin-top: 4px;">{{ form.wage_type.errors }}</p>
+                    {% endif %}
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label for="{{ form.amount.id_for_label }}" style="display: block; margin-bottom: 4px; font-weight: 600;">
+                        {{ form.amount.label }}
+                    </label>
+                    {{ form.amount }}
+                    {% if form.amount.help_text %}
+                        <p style="color:#8e8e93; font-size:0.9em; margin-top: 4px;">{{ form.amount.help_text }}</p>
+                    {% endif %}
+                    {% if form.amount.errors %}
+                        <p style="color: red; font-size:0.9em; margin-top: 4px;">{{ form.amount.errors }}</p>
+                    {% endif %}
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label for="{{ form.description.id_for_label }}" style="display: block; margin-bottom: 4px; font-weight: 600;">
+                        {{ form.description.label }}
+                    </label>
+                    {{ form.description }}
+                    {% if form.description.help_text %}
+                        <p style="color:#8e8e93; font-size:0.9em; margin-top: 4px;">{{ form.description.help_text }}</p>
+                    {% endif %}
+                    {% if form.description.errors %}
+                        <p style="color: red; font-size:0.9em; margin-top: 4px;">{{ form.description.errors }}</p>
+                    {% endif %}
+                </div>
+
+                {% if form.non_field_errors %}
+                    <div style="color: red; margin-bottom: 16px;">
+                        {{ form.non_field_errors }}
+                    </div>
+                {% endif %}
+
+                <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid rgba(0,0,0,0.1);">
+                    <p style="color:#8e8e93; font-size:0.9em; margin-bottom: 16px;">
+                        <strong>Hinweis:</strong> Die Sozialversicherungspflicht wird automatisch durch die gewählte Spesenart bestimmt. 
+                        AHV-pflichtige Spesen werden in die Berechnung einbezogen.
+                    </p>
+                    <div style="display: flex; gap: 12px;">
+                        <button type="submit" class="adea-button-primary">Spesen speichern</button>
+                        <a href="{% url 'adealohn:payroll-detail' payroll_record.pk %}" class="adea-button-secondary">Abbrechen</a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}
+
+

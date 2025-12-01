@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block title %}AdeaDesk – Mandanten{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <div class="adea-d-flex-between">
+        <div>
+            <h1 style="margin-bottom: 8px;">Mandanten</h1>
+            <p class="lead">Verwalte alle Mandanten der AdeaSuite zentral. Nutze Suche und Bearbeitungsfunktionen für schnelle Änderungen.</p>
+        </div>
+        <a class="adea-button-primary" href="{% url 'adeadesk:client-create' %}">Neuer Mandant</a>
+    </div>
+
+    <form method="get" class="adea-search-form" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+        <input type="text" name="q" value="{{ query }}" placeholder="Mandanten suchen…" class="adea-input" style="flex: 1; min-width: 200px;">
+        <select name="client_type" class="adea-select" style="min-width: 150px;">
+            <option value="">Alle Typen</option>
+            <option value="FIRMA" {% if client_type_filter == "FIRMA" %}selected{% endif %}>Firma</option>
+            <option value="PRIVAT" {% if client_type_filter == "PRIVAT" %}selected{% endif %}>Privatperson</option>
+        </select>
+        <button type="submit" class="adea-button-primary">Suchen</button>
+    </form>
+
+    <div class="adea-table-wrapper">
+        <table class="adea-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Typ</th>
+                    <th>Ort</th>
+                    <th>E-Mail</th>
+                    <th>MWST-Nr / UID</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for client in clients %}
+                <tr>
+                    <td>{{ client.name }}</td>
+                    <td>
+                        <span style="{% if client.client_type == 'FIRMA' %}background: #e8f5e9; color: #388e3c;{% else %}background: #fff3e0; color: #f57c00;{% endif %} padding: 2px 8px; border-radius: 4px; font-size: 0.85em;">
+                            {{ client.get_client_type_display }}
+                        </span>
+                    </td>
+                    <td>{{ client.city }}</td>
+                    <td>{{ client.email }}</td>
+                    <td>{{ client.uid }}</td>
+                    <td class="adea-table-actions">
+                        <a href="{% url 'adeadesk:client-detail' client.pk %}">Details</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6">Keine Mandanten gefunden.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="adea-pagination">
+        {% if page_obj.has_previous %}
+        <a href="?q={{ query }}&page={{ page_obj.previous_page_number }}">Zurück</a>
+        {% endif %}
+        <span>Seite {{ page_obj.number }} von {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?q={{ query }}&page={{ page_obj.next_page_number }}">Weiter</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
