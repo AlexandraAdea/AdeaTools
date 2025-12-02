@@ -3,6 +3,54 @@
 from django.db import migrations
 
 
+def remove_index_if_exists(apps, schema_editor):
+    """Entfernt Index nur wenn er existiert."""
+    db_alias = schema_editor.connection.alias
+    with schema_editor.connection.cursor() as cursor:
+        # Prüfe ob Index existiert (PostgreSQL)
+        cursor.execute("""
+            SELECT indexname FROM pg_indexes 
+            WHERE tablename = 'adeazeit_absence' 
+            AND indexname = 'adeazeit_ab_mitarbe_ada11c_idx';
+        """)
+        if cursor.fetchone():
+            cursor.execute("DROP INDEX IF EXISTS adeazeit_ab_mitarbe_ada11c_idx;")
+
+
+def rename_index_if_exists(apps, schema_editor):
+    """Benennt Index um nur wenn er existiert."""
+    db_alias = schema_editor.connection.alias
+    with schema_editor.connection.cursor() as cursor:
+        # Prüfe ob alter Index existiert
+        cursor.execute("""
+            SELECT indexname FROM pg_indexes 
+            WHERE tablename = 'adeazeit_absence' 
+            AND indexname = 'adeazeit_abs_employe_123456_idx';
+        """)
+        if cursor.fetchone():
+            # Prüfe ob neuer Index bereits existiert
+            cursor.execute("""
+                SELECT indexname FROM pg_indexes 
+                WHERE tablename = 'adeazeit_absence' 
+                AND indexname = 'adeazeit_ab_employe_c4ea6a_idx';
+            """)
+            if not cursor.fetchone():
+                cursor.execute("ALTER INDEX adeazeit_abs_employe_123456_idx RENAME TO adeazeit_ab_employe_c4ea6a_idx;")
+
+
+def reverse_rename_index(apps, schema_editor):
+    """Reverse: Benennt Index zurück."""
+    db_alias = schema_editor.connection.alias
+    with schema_editor.connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT indexname FROM pg_indexes 
+            WHERE tablename = 'adeazeit_absence' 
+            AND indexname = 'adeazeit_ab_employe_c4ea6a_idx';
+        """)
+        if cursor.fetchone():
+            cursor.execute("ALTER INDEX adeazeit_ab_employe_c4ea6a_idx RENAME TO adeazeit_abs_employe_123456_idx;")
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -10,13 +58,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveIndex(
-            model_name='absence',
-            name='adeazeit_ab_mitarbe_ada11c_idx',
-        ),
-        migrations.RenameIndex(
-            model_name='absence',
-            new_name='adeazeit_ab_employe_c4ea6a_idx',
-            old_name='adeazeit_abs_employe_123456_idx',
-        ),
+        migrations.RunPython(remove_index_if_exists, migrations.RunPython.noop),
+        migrations.RunPython(rename_index_if_exists, reverse_rename_index),
     ]
