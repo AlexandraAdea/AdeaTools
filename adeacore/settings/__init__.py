@@ -8,10 +8,13 @@ Production (DEBUG=False): settings.production
 import os
 from pathlib import Path
 
-# Load environment variables from .env file
+# WICHTIG: .env MUSS VOR allen anderen Imports geladen werden!
+# Sonst verwendet EncryptionManager den falschen Schlüssel
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    # Expliziter Pfad zur .env
+    env_path = Path(__file__).resolve().parent.parent.parent / '.env'
+    load_dotenv(dotenv_path=env_path)
 except ImportError:
     pass
 
