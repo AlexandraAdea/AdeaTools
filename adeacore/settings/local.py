@@ -19,9 +19,6 @@ DATABASES = {
 }
 
 # Static files - Development
-STATICFILES_DIRS = [
-    BASE_DIR / 'static',
-]
 STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
 # Logging - File Handler für Development
