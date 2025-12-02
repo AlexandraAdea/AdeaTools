@@ -428,7 +428,7 @@ class Absence(models.Model):
         verbose_name_plural = "Abwesenheiten"
         ordering = ["-date_from", "employee"]
         indexes = [
-            models.Index(fields=["employee", "date_from"]),
+            models.Index(fields=["employee", "date_from"], name="adeazeit_ab_employe_c4ea6a_idx"),
         ]
 
     def __str__(self):
