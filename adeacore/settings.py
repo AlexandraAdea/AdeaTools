@@ -214,11 +214,6 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
-        'file': {
-            'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs' / 'adealohn.log',
-            'formatter': 'verbose',
-        },
     },
     'root': {
         'handlers': ['console'],
@@ -226,14 +221,29 @@ LOGGING = {
     },
     'loggers': {
         'adealohn': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
         'adeacore': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
     },
 }
+
+# File Logging nur für Development (wenn DEBUG=True)
+if DEBUG:
+    # Erstelle logs-Verzeichnis falls es nicht existiert
+    logs_dir = BASE_DIR / 'logs'
+    logs_dir.mkdir(exist_ok=True)
+    
+    # Füge File-Handler hinzu
+    LOGGING['handlers']['file'] = {
+        'class': 'logging.FileHandler',
+        'filename': logs_dir / 'adealohn.log',
+        'formatter': 'verbose',
+    }
+    LOGGING['loggers']['adealohn']['handlers'].append('file')
+    LOGGING['loggers']['adeacore']['handlers'].append('file')
