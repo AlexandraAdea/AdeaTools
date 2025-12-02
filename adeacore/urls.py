@@ -17,17 +17,10 @@ Including another URLconf
 from django.shortcuts import render
 from django.contrib import admin
 from django.urls import path, include
-from django.conf import settings
-from django.conf.urls.static import static
 from . import views
 
 
 def home(request):
-    """Homepage - leitet Admin-Benutzer automatisch zum Admin-Dashboard weiter."""
-    # Wenn Benutzer eingeloggt ist und Superuser, weiterleiten zum Admin-Dashboard
-    if request.user.is_authenticated and request.user.is_superuser:
-        from django.shortcuts import redirect
-        return redirect('admin-dashboard')
     return render(request, 'home.html')
 
 
@@ -35,12 +28,7 @@ urlpatterns = [
     path('', home, name='home'),
     path('admin/', admin.site.urls),
     path('admin-dashboard/', views.admin_dashboard, name='admin-dashboard'),
-    path('logout/', views.global_logout, name='global-logout'),  # Zentrale Logout-URL
     path('desk/', include('adeadesk.urls', namespace='adeadesk')),
     path('zeit/', include('adeazeit.urls', namespace='adeazeit')),
     path('lohn/', include('adealohn.urls', namespace='adealohn')),
 ]
-
-# Media files (nur in Development)
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

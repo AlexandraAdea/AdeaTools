@@ -39,7 +39,7 @@ class Migration(migrations.Migration):
                     reverse_sql="ALTER TABLE adeazeit_absence ADD COLUMN updated_at datetime;",
                 ),
                 migrations.RunSQL(
-                    "ALTER TABLE adeazeit_absence ADD COLUMN full_day bool DEFAULT true;",
+                    "ALTER TABLE adeazeit_absence ADD COLUMN full_day bool DEFAULT 1;",
                     reverse_sql="ALTER TABLE adeazeit_absence DROP COLUMN full_day;",
                 ),
                 migrations.RunSQL(

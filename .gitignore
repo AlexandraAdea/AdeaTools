@@ -20,26 +20,24 @@ wheels/
 .installed.cfg
 *.egg
 
-# Virtual Environment
-venv/
-ENV/
-env/
-.venv
-
 # Django
 *.log
+*.pot
+*.pyc
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
 /media
 /staticfiles
-# /static - NICHT ignorieren, damit CSS/JS für Render verfügbar sind
-# Nur staticfiles/ wird ignoriert (wird von collectstatic generiert)
 
-# Environment Variables - KRITISCH!
+# Environment variables
 .env
-.env.local
-.env.production
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
 
 # IDE
 .vscode/
@@ -52,18 +50,26 @@ db.sqlite3-journal
 .DS_Store
 Thumbs.db
 
+# Backups
+backups/
+*.backup
+*.bak
+*.sql
+
 # Logs
 logs/
 *.log
 
-# Backups
-backups/
-*.backup
+# Test coverage
+htmlcov/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
 
-# Secrets
-*.key
-*.pem
-secrets/
-
-
-
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json

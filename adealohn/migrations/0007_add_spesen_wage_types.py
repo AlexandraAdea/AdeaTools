@@ -29,7 +29,7 @@ def create_spesen_wage_types(apps, schema_editor):
             'description': 'Effektiver Spesenersatz gegen Beleg. Immer AHV- und steuerfrei.',
         },
         {
-            'code': 'SPESEN_PAUSCH_AHV_F',
+            'code': 'SPESEN_PAUSCHALE_AHV_FREI',
             'name': 'Spesen pauschal (AHV-frei)',
             'category': 'SPESEN',
             'is_lohnwirksam': False,
@@ -42,7 +42,7 @@ def create_spesen_wage_types(apps, schema_editor):
             'description': 'Nur AHV-/steuerfrei bei genehmigtem Spesenreglement oder gemäss behördlicher Praxis.',
         },
         {
-            'code': 'SPESEN_PAUSCH_AHV_P',
+            'code': 'SPESEN_PAUSCHALE_AHV_PFLICHTIG',
             'name': 'Spesen pauschal (AHV-pflichtig)',
             'category': 'SPESEN',
             'is_lohnwirksam': True,
@@ -67,8 +67,8 @@ def remove_spesen_wage_types(apps, schema_editor):
     WageType = apps.get_model('adealohn', 'WageType')
     WageType.objects.filter(code__in=[
         'SPESEN_EFFEKTIV',
-        'SPESEN_PAUSCH_AHV_F',
-        'SPESEN_PAUSCH_AHV_P'
+        'SPESEN_PAUSCHALE_AHV_FREI',
+        'SPESEN_PAUSCHALE_AHV_PFLICHTIG'
     ]).delete()
 
 

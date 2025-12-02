@@ -46,8 +46,8 @@ class Client(models.Model):
     )
     
     # Kontakt (verschlüsselt)
-    email = EncryptedEmailField("E-Mail", max_length=255, blank=True, null=True)
-    phone = EncryptedCharField("Telefon", max_length=50, blank=True)
+    email = EncryptedEmailField("E-Mail", max_length=1000, blank=True, null=True)
+    phone = EncryptedCharField("Telefon", max_length=500, blank=True)
     kontaktperson_name = models.CharField(
         "Kontaktperson",
         max_length=255,
@@ -56,10 +56,10 @@ class Client(models.Model):
     )
     
     # Adresse (verschlüsselt)
-    street = EncryptedCharField("Strasse", max_length=255, blank=True)
-    house_number = EncryptedCharField("Hausnummer", max_length=50, blank=True)
-    zipcode = EncryptedCharField("PLZ", max_length=20, blank=True)
-    city = EncryptedCharField("Ort", max_length=255, blank=True)
+    street = EncryptedCharField("Strasse", max_length=1000, blank=True)
+    house_number = EncryptedCharField("Hausnummer", max_length=500, blank=True)
+    zipcode = EncryptedCharField("PLZ", max_length=500, blank=True)
+    city = EncryptedCharField("Ort", max_length=1000, blank=True)
     
     # MWST & Rechnungsdaten (nur FIRMA) - MWST-Nummer verschlüsselt
     mwst_pflichtig = models.BooleanField(
@@ -69,13 +69,13 @@ class Client(models.Model):
     )
     mwst_nr = EncryptedCharField(
         "MWST-Nummer / UID",
-        max_length=50,
+        max_length=500,
         blank=True,
         help_text="MWST-Nummer / UID (in CH identisch, nur FIRMA)",
     )
     rechnungs_email = EncryptedEmailField(
         "Rechnungs-E-Mail",
-        max_length=255,
+        max_length=1000,
         blank=True,
         null=True,
         help_text="E-Mail-Adresse für Rechnungen (nur FIRMA)",
@@ -95,7 +95,7 @@ class Client(models.Model):
     )
     steuerkanton = EncryptedCharField(
         "Steuerkanton",
-        max_length=50,
+        max_length=500,
         blank=True,
         help_text="Steuerkanton (nur PRIVAT)",
     )
