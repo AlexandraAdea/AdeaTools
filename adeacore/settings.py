@@ -162,7 +162,8 @@ if DEBUG:
     ]
 
 # WhiteNoise Configuration für Production
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Verwende CompressedStaticFilesStorage statt Manifest (einfacher, funktioniert besser)
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 # Media files (User uploads)
 MEDIA_URL = '/media/'
