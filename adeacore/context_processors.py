@@ -71,6 +71,25 @@ def adeazeit_permissions(request):
         }
 
 
+def running_timer(request):
+    """
+    Fügt laufenden Timer zum Template-Context hinzu.
+    """
+    if not request.user.is_authenticated:
+        return {'running_timer': None}
+    
+    try:
+        from adeazeit.models import UserProfile, RunningTimeEntry
+        profile = UserProfile.objects.get(user=request.user)
+        if profile.employee:
+            timer = RunningTimeEntry.objects.filter(mitarbeiter=profile.employee).first()
+            return {'running_timer': timer}
+    except:
+        pass
+    
+    return {'running_timer': None}
+
+
 def adealohn_permissions(request):
     """
     Fügt AdeaLohn-Berechtigungen zum Template-Context hinzu.

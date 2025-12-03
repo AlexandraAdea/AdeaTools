@@ -24,8 +24,16 @@
                 </div>
                 <div class="adea-navbar-right">
                     {% if user.is_authenticated %}
+                    <!-- Laufender Timer -->
+                    {% if running_timer %}
+                    <div class="timer-display" id="timer-display">
+                        <span class="timer-icon">🟢</span>
+                        <span class="timer-time" id="timer-time">00:00:00</span>
+                        <button onclick="stopTimer()" class="timer-stop-btn" title="Timer stoppen">⏹</button>
+                    </div>
+                    {% endif %}
                     <div class="adea-user-menu">
-                        <span class="adea-user-name">
+<span class="adea-user-name">
                             <strong>{{ user.get_full_name|default:user.username }}</strong>
                         </span>
                         <a href="{% url 'global-logout' %}" class="adea-link-danger">Abmelden</a>
@@ -76,6 +84,58 @@
         <footer>© 2025 AdeaTools – entwickelt für Treuhandbüro Ivanova</footer>
         {% block scripts %}{% endblock %}
     </div>
+    
+    <!-- Timer JavaScript -->
+    {% if running_timer %}
+    <script>
+        // Timer-Daten
+        const timerStartTime = new Date("{{ running_timer.start_time|date:'c' }}");
+        let timerInterval;
+        
+        // Funktion: Aktualisiere Timer-Anzeige
+        function updateTimerDisplay() {
+            const now = new Date();
+            const diff = Math.floor((now - timerStartTime) / 1000); // Sekunden
+            
+            const hours = Math.floor(diff / 3600);
+            const minutes = Math.floor((diff % 3600) / 60);
+            const seconds = diff % 60;
+            
+            const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            document.getElementById('timer-time').textContent = timeString;
+        }
+        
+        // Funktion: Stoppe Timer
+        function stopTimer() {
+            fetch("{% url 'adeazeit:timer-stop' %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                location.reload();
+            })
+            .catch(error => {
+                console.error('Fehler:', error);
+                location.reload();
+            });
+        }
+        
+        // Starte Live-Update
+        updateTimerDisplay();
+        timerInterval = setInterval(updateTimerDisplay, 1000); // Jede Sekunde aktualisieren
+        
+        // Warnung beim Browser-Schließen
+        window.addEventListener('beforeunload', function(e) {
+            e.preventDefault();
+            e.returnValue = 'Timer läuft noch! Wirklich schließen?';
+            return 'Timer läuft noch! Wirklich schließen?';
+        });
+    </script>
+    {% endif %}
 </body>
 </html>
 

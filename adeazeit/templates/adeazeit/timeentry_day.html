@@ -44,6 +44,39 @@
     });
     </script>
 
+    <!-- Laufende Timer anzeigen -->
+    {% if running_timers %}
+    <div style="background: #e8f5e9; border: 2px solid var(--color-green); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+        <h3 style="margin: 0 0 12px 0; color: var(--color-green); display: flex; align-items: center; gap: 8px;">
+            🟢 Laufende Timer
+        </h3>
+        {% for timer in running_timers %}
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: white; border-radius: 6px; margin-bottom: 8px;">
+            <div style="flex: 1;">
+                <strong>{{ timer.mitarbeiter.name }}</strong> – 
+                {{ timer.client.name|default:"Interne Leistungen" }} – 
+                {{ timer.service_type.name }}
+                {% if timer.beschreibung %}
+                <br><small style="color: #6e6e73;">{{ timer.beschreibung }}</small>
+                {% endif %}
+            </div>
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="font-family: 'SF Mono', monospace; font-weight: 600; color: var(--color-green); font-size: 1.1em;">
+                    <span class="timer-live" data-start="{{ timer.start_time|date:'c' }}">00:00:00</span>
+                </div>
+                <span style="color: #6e6e73;">seit {{ timer.start_time|time:"H:i" }} Uhr</span>
+                <button onclick="stopTimerById({{ timer.id }})" class="adea-button-primary" style="background: var(--color-red); padding: 8px 16px;">
+                    ⏹ Stop
+                </button>
+                <button onclick="cancelTimerById({{ timer.id }})" class="adea-button-secondary" style="padding: 8px 16px;">
+                    Abbrechen
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <div class="adea-table-wrapper" style="margin-top: 20px;">
         <table class="adea-table">
             <thead>
@@ -114,5 +147,75 @@
         </table>
     </div>
 </section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Stoppe Timer
+function stopTimerById(timerId) {
+    fetch("{% url 'adeazeit:timer-stop' %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            console.error('Fehler:', data.error);
+            location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Fehler:', error);
+        location.reload();
+    });
+}
+
+// Breche Timer ab
+function cancelTimerById(timerId) {
+    fetch("{% url 'adeazeit:timer-cancel' %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        location.reload();
+    })
+    .catch(error => {
+        console.error('Fehler:', error);
+        location.reload();
+    });
+}
+
+// Live-Update für laufende Timer in der Tabelle
+document.addEventListener('DOMContentLoaded', function() {
+    const timerElements = document.querySelectorAll('.timer-live');
+    
+    function updateAllTimers() {
+        timerElements.forEach(el => {
+            const startTime = new Date(el.dataset.start);
+            const now = new Date();
+            const diff = Math.floor((now - startTime) / 1000);
+            
+            const hours = Math.floor(diff / 3600);
+            const minutes = Math.floor((diff % 3600) / 60);
+            const seconds = diff % 60;
+            
+            el.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        });
+    }
+    
+    if (timerElements.length > 0) {
+        updateAllTimers();
+        setInterval(updateAllTimers, 1000);
+    }
+});
+</script>
 {% endblock %}
 

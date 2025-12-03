@@ -246,6 +246,73 @@ class ZeitProject(models.Model):
         return f"{self.client.name} – {self.name}"
 
 
+class RunningTimeEntry(models.Model):
+    """
+    Laufender Zeiteintrag (Timer).
+    Pro Mitarbeiter kann nur EIN Timer gleichzeitig laufen.
+    """
+    mitarbeiter = models.ForeignKey(
+        EmployeeInternal,
+        on_delete=models.CASCADE,
+        related_name="running_timer",
+        verbose_name="Mitarbeiterin"
+    )
+    client = models.ForeignKey(
+        Client,
+        on_delete=models.PROTECT,
+        related_name="running_timers",
+        verbose_name="Mandant",
+        null=True,
+        blank=True,
+        help_text="Nur bei externen Leistungen. Bei internen Leistungen leer lassen."
+    )
+    service_type = models.ForeignKey(
+        ServiceType,
+        on_delete=models.PROTECT,
+        related_name="running_timers",
+        verbose_name="Service-Typ"
+    )
+    projekt = models.ForeignKey(
+        "ZeitProject",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="running_timers",
+        verbose_name="Projekt"
+    )
+    beschreibung = models.TextField("Beschreibung", blank=True)
+    datum = models.DateField("Datum", auto_now_add=True)
+    start_time = models.DateTimeField("Startzeit", auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Laufender Zeiteintrag"
+        verbose_name_plural = "Laufende Zeiteinträge"
+        # Nur 1 Timer pro Mitarbeiter erlaubt
+        constraints = [
+            models.UniqueConstraint(
+                fields=['mitarbeiter'],
+                name='one_timer_per_employee'
+            )
+        ]
+    
+    def __str__(self):
+        return f"{self.mitarbeiter.name} – Timer läuft seit {self.start_time.strftime('%H:%M')}"
+    
+    def get_duration_seconds(self):
+        """Berechnet aktuelle Dauer in Sekunden."""
+        from django.utils import timezone
+        delta = timezone.now() - self.start_time
+        return int(delta.total_seconds())
+    
+    def get_duration_hours(self):
+        """Berechnet aktuelle Dauer in Stunden (gerundet auf 0.1h)."""
+        from decimal import Decimal, ROUND_HALF_UP
+        seconds = self.get_duration_seconds()
+        hours = Decimal(str(seconds)) / Decimal('3600')
+        # Runde auf 0.1h (6 Minuten) = 1 Dezimalstelle
+        return hours.quantize(Decimal('0.1'), rounding=ROUND_HALF_UP)
+
+
 class TimeEntry(models.Model):
     """
     Zeiteinträge (Kerndatenmodell).

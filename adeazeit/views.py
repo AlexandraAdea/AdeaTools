@@ -565,6 +565,16 @@ class TimeEntryDayView(LoginRequiredMixin, TemplateView):
         accessible_employees = get_accessible_employees(self.request.user)
         context["accessible_employee_ids"] = list(accessible_employees.values_list('pk', flat=True))
         
+        # Für Timer Start Modal: Verfügbare Clients und Service-Typen
+        context["available_clients"] = Client.objects.filter(status='AKTIV').order_by('name')
+        context["available_service_types"] = ServiceType.objects.all().order_by('name')
+        
+        # Laufende Timer für alle Mitarbeiter anzeigen
+        from adeazeit.models import RunningTimeEntry
+        context["running_timers"] = RunningTimeEntry.objects.select_related(
+            'mitarbeiter', 'client', 'service_type'
+        ).all()
+        
         return context
 
 
