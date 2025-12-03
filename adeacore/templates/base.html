@@ -81,7 +81,13 @@
             {% endblock %}
         </main>
 
-        <footer>© 2025 AdeaTools – entwickelt für Treuhandbüro Ivanova</footer>
+        <footer>
+            © 2025 AdeaTools – entwickelt für Treuhandbüro Ivanova
+            <span style="margin: 0 12px;">|</span>
+            <a href="{% url 'datenschutz' %}" style="color: #8e8e93; text-decoration: none;">Datenschutz</a>
+            <span style="margin: 0 12px;">|</span>
+            <a href="{% url 'impressum' %}" style="color: #8e8e93; text-decoration: none;">Impressum</a>
+        </footer>
         {% block scripts %}{% endblock %}
     </div>
     

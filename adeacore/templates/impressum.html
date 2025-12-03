@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}Impressum – AdeaTools{% endblock %}
+
+{% block content %}
+<section class="content-card" style="max-width: 900px; margin: 40px auto;">
+    <h1>Impressum</h1>
+
+    <h2>Angaben gemäß OR</h2>
+    
+    <p>
+        <strong>Treuhandbüro Ivanova</strong><br>
+        [Ihre Strasse und Hausnummer]<br>
+        [PLZ] [Ort]<br>
+        Schweiz
+    </p>
+
+    <h2>Kontakt</h2>
+    <p>
+        <strong>E-Mail:</strong> alexandra@adea-treuhand.ch<br>
+        <strong>Telefon:</strong> [Ihre Telefonnummer]
+    </p>
+
+    <h2>Vertretungsberechtigte Person</h2>
+    <p>Alexandra Ivanova, Inhaberin</p>
+
+    <h2>Handelsregister</h2>
+    <p>
+        <strong>Eingetragen im Handelsregister:</strong> [Falls zutreffend]<br>
+        <strong>UID:</strong> [Ihre UID-Nummer]<br>
+        <strong>MWST-Nr:</strong> [Falls MWST-pflichtig]
+    </p>
+
+    <h2>Haftungsausschluss</h2>
+    
+    <h3>Haftung für Inhalte</h3>
+    <p>Die Inhalte dieser Webseite wurden mit größter Sorgfalt erstellt. Für die Richtigkeit, Vollständigkeit und Aktualität der Inhalte können wir jedoch keine Gewähr übernehmen.</p>
+
+    <h3>Haftung für Links</h3>
+    <p>Unser Angebot enthält Links zu externen Webseiten Dritter, auf deren Inhalte wir keinen Einfluss haben. Für die Inhalte der verlinkten Seiten ist stets der jeweilige Anbieter verantwortlich.</p>
+
+    <h2>Urheberrecht</h2>
+    <p>Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem schweizerischen Urheberrecht. Die Vervielfältigung, Bearbeitung, Verbreitung und jede Art der Verwertung außerhalb der Grenzen des Urheberrechtes bedürfen der schriftlichen Zustimmung des jeweiligen Autors bzw. Erstellers.</p>
+
+    <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #e5e5ea;">
+        <a href="{% url 'home' %}" class="adea-button-secondary">← Zurück zur Startseite</a>
+    </div>
+</section>
+{% endblock %}
+

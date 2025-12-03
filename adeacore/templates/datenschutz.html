@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block title %}Datenschutzerklärung – AdeaTools{% endblock %}
+
+{% block content %}
+<section class="content-card" style="max-width: 900px; margin: 40px auto;">
+    <h1>Datenschutzerklärung</h1>
+    <p style="color: #8e8e93; margin-bottom: 32px;">Stand: Dezember 2025</p>
+
+    <h2>1. Verantwortliche Stelle</h2>
+    <p>
+        <strong>Treuhandbüro Ivanova</strong><br>
+        [Ihre Adresse]<br>
+        [PLZ Ort]<br>
+        Schweiz
+    </p>
+    <p>
+        <strong>E-Mail:</strong> alexandra@adea-treuhand.ch<br>
+        <strong>Telefon:</strong> [Ihre Telefonnummer]
+    </p>
+
+    <h2>2. Erhebung und Verarbeitung personenbezogener Daten</h2>
+    
+    <h3>2.1 Welche Daten wir verarbeiten</h3>
+    
+    <p><strong>Mitarbeitende:</strong></p>
+    <ul>
+        <li>Name, E-Mail, Telefon</li>
+        <li>Adresse, Geburtsdatum</li>
+        <li>Beschäftigungsdaten (Eintritt, Austritt, Pensum)</li>
+        <li>Zeiterfassung (Arbeitszeiten, Abwesenheiten)</li>
+        <li>Lohndaten (Sozialversicherungen, Steuern)</li>
+    </ul>
+
+    <p><strong>Mandanten:</strong></p>
+    <ul>
+        <li>Firmendaten (Name, Adresse, MWST-Nr)</li>
+        <li>Kontaktdaten (E-Mail, Telefon, Kontaktperson)</li>
+        <li>CRM-Daten (Kommunikation, Termine, Dokumente)</li>
+    </ul>
+
+    <h3>2.2 Zweck der Verarbeitung</h3>
+    <ul>
+        <li>Verwaltung von Mandanten</li>
+        <li>Zeiterfassung und Lohnabrechnung</li>
+        <li>Erfüllung vertraglicher Pflichten</li>
+        <li>Gesetzliche Aufbewahrungspflichten</li>
+    </ul>
+
+    <h3>2.3 Rechtsgrundlage</h3>
+    <p>Art. 6 DSGVO / DSG 2023:</p>
+    <ul>
+        <li>Vertragserfüllung (lit. b)</li>
+        <li>Rechtliche Verpflichtung (lit. c)</li>
+        <li>Berechtigtes Interesse (lit. f)</li>
+    </ul>
+
+    <h2>3. Datensicherheit</h2>
+    
+    <h3>Technische Maßnahmen:</h3>
+    <ul>
+        <li>✅ Verschlüsselung sensibler Daten (AES-256)</li>
+        <li>✅ HTTPS (SSL/TLS)</li>
+        <li>✅ Zugriffskontrolle (rollenbasiert)</li>
+        <li>✅ Audit-Logging</li>
+        <li>✅ Automatische Backups</li>
+        <li>✅ Session-Security</li>
+    </ul>
+
+    <h2>4. Auftragsverarbeiter</h2>
+    <p><strong>Hosting-Provider:</strong> Render Services, Inc.</p>
+    <ul>
+        <li><strong>Standort:</strong> Frankfurt, Deutschland (EU)</li>
+        <li><strong>Zweck:</strong> Hosting der Anwendung und Datenbank</li>
+        <li><strong>AVV:</strong> Data Processing Agreement abgeschlossen</li>
+        <li><strong>Website:</strong> <a href="https://render.com">render.com</a></li>
+    </ul>
+
+    <h2>5. Speicherdauer</h2>
+    <ul>
+        <li><strong>Mitarbeitende:</strong> Während Beschäftigung + 10 Jahre (OR 958f)</li>
+        <li><strong>Mandanten:</strong> Während Mandatsverhältnis + 10 Jahre</li>
+        <li><strong>Lohndaten:</strong> 10 Jahre (AHVV Art. 140)</li>
+        <li><strong>Audit-Logs:</strong> 10 Jahre</li>
+    </ul>
+
+    <h2>6. Ihre Rechte</h2>
+    <p>Sie haben folgende Rechte:</p>
+    <ul>
+        <li>✅ Auskunft über Ihre gespeicherten Daten (Art. 15 DSGVO)</li>
+        <li>✅ Berichtigung unrichtiger Daten (Art. 16 DSGVO)</li>
+        <li>✅ Löschung Ihrer Daten (Art. 17 DSGVO)</li>
+        <li>✅ Einschränkung der Verarbeitung (Art. 18 DSGVO)</li>
+        <li>✅ Datenübertragbarkeit (Art. 20 DSGVO)</li>
+        <li>✅ Widerspruch gegen Verarbeitung (Art. 21 DSGVO)</li>
+    </ul>
+
+    <p><strong>Kontakt für Anfragen:</strong> alexandra@adea-treuhand.ch</p>
+
+    <h2>7. Beschwerderecht</h2>
+    <p>Sie haben das Recht, sich bei einer Aufsichtsbehörde zu beschweren:</p>
+    <p>
+        <strong>Schweiz:</strong><br>
+        Eidgenössischer Datenschutz- und Öffentlichkeitsbeauftragter (EDÖB)<br>
+        <a href="https://www.edoeb.admin.ch" target="_blank">www.edoeb.admin.ch</a>
+    </p>
+
+    <h2>8. Änderungen</h2>
+    <p>Diese Datenschutzerklärung kann angepasst werden. Die aktuelle Version ist auf dieser Webseite verfügbar.</p>
+    <p><strong>Letzte Aktualisierung:</strong> Dezember 2025</p>
+
+    <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #e5e5ea;">
+        <a href="{% url 'home' %}" class="adea-button-secondary">← Zurück zur Startseite</a>
+    </div>
+</section>
+{% endblock %}
+
