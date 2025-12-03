@@ -52,6 +52,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'adeacore.context_processors.current_client',
                 'adeacore.context_processors.adeazeit_permissions',
+                'adeacore.context_processors.adealohn_permissions',
             ],
         },
     },
