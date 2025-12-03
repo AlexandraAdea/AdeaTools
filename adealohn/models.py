@@ -14,7 +14,7 @@ class WageTypeCategory(models.TextChoices):
 
 
 class WageType(models.Model):
-    code = models.CharField(max_length=20, unique=True)
+    code = models.CharField(max_length=50, unique=True)
     name = models.CharField(max_length=255)
     category = models.CharField(
         max_length=20,
