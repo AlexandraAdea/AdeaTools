@@ -11,6 +11,21 @@ from adeazeit.models import EmployeeInternal, TimeEntry, Absence
 from adealohn.models import PayrollRecord
 
 
+def home(request):
+    """Startseite."""
+    return render(request, 'home.html')
+
+
+def datenschutz(request):
+    """Datenschutzerklärung."""
+    return render(request, 'datenschutz.html')
+
+
+def impressum(request):
+    """Impressum."""
+    return render(request, 'impressum.html')
+
+
 @login_required(login_url='/admin/login/')
 def admin_dashboard(request):
     """Admin-Dashboard mit Übersicht aller Bereiche."""
