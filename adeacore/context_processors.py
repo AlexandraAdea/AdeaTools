@@ -85,3 +85,26 @@ def adealohn_permissions(request):
         "adealohn_is_visible": request.user.has_perm('adealohn.view_payrollrecord') or request.user.is_staff,
     }
 
+
+def running_timer(request):
+    """
+    Fügt den aktuell laufenden Timer zum Template-Context hinzu.
+    Für AdeaZeit Live-Tracking Feature.
+    """
+    if not request.user.is_authenticated:
+        return {'running_timer': None}
+    
+    try:
+        from adeazeit.models import RunningTimeEntry, UserProfile
+        
+        # Verknüpfung über UserProfile → EmployeeInternal
+        user_profile = UserProfile.objects.get(user=request.user)
+        if user_profile.employee:
+            timer = RunningTimeEntry.objects.filter(mitarbeiter=user_profile.employee).first()
+            return {'running_timer': timer}
+    except (ImportError, UserProfile.DoesNotExist, AttributeError):
+        # Falls adeazeit nicht installiert oder kein UserProfile
+        pass
+    
+    return {'running_timer': None}
+
