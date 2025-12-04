@@ -1,51 +1,11 @@
 from django import forms
 from django.db import models
 from datetime import date
-from .models import EmployeeInternal, ServiceType, ZeitProject, TimeEntry, Absence, Task
+from .models import EmployeeInternal, ServiceType, ZeitProject, TimeEntry, Absence
 from adeacore.models import Client
-from .permissions import can_view_all_entries, get_accessible_employees
 
 
 class EmployeeInternalForm(forms.ModelForm):
-    # Login-Zugang Felder (nicht im Model, sondern für User-Erstellung)
-    create_login = forms.BooleanField(
-        required=False,
-        label="Login-Zugang erstellen",
-        help_text="Aktivieren Sie diese Option, um automatisch einen Benutzer-Zugang für diesen Mitarbeiter zu erstellen.",
-        widget=forms.CheckboxInput(attrs={"class": "adea-checkbox", "onchange": "toggleLoginFields(this)"}),
-    )
-    login_username = forms.CharField(
-        required=False,
-        max_length=150,
-        label="Benutzername",
-        help_text="Wird automatisch aus Mitarbeiterkürzel generiert, falls leer.",
-        widget=forms.TextInput(attrs={"class": "adea-input"}),
-    )
-    login_password = forms.CharField(
-        required=False,
-        label="Passwort",
-        help_text="Wird automatisch generiert, falls leer (Format: Code123).",
-        widget=forms.PasswordInput(attrs={"class": "adea-input"}),
-    )
-    login_email = forms.EmailField(
-        required=False,
-        label="E-Mail",
-        help_text="Optional - für Passwort-Reset und Benachrichtigungen.",
-        widget=forms.EmailInput(attrs={"class": "adea-input"}),
-    )
-    login_role = forms.ChoiceField(
-        required=False,
-        choices=[
-            ("mitarbeiter", "Mitarbeiter"),
-            ("manager", "Manager"),
-            ("admin", "Admin"),
-        ],
-        initial="mitarbeiter",
-        label="Rolle",
-        help_text="Berechtigungsstufe für AdeaZeit.",
-        widget=forms.Select(attrs={"class": "adea-select"}),
-    )
-    
     class Meta:
         model = EmployeeInternal
         fields = [
@@ -107,30 +67,6 @@ class EmployeeInternalForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Hilfe-Text für alle Felder
         self.fields["employment_percent"].help_text = "Alle Arbeitszeitmodelle werden manuell erfasst und können jederzeit geändert werden."
-        
-        # Wenn Bearbeitung: Prüfe ob bereits Login existiert
-        if self.instance and self.instance.pk:
-            from .models import UserProfile
-            try:
-                profile = UserProfile.objects.get(employee=self.instance)
-                # Zeige bestehenden Zugang an
-                self.fields["create_login"].initial = True
-                self.fields["create_login"].widget.attrs["disabled"] = True
-                self.fields["login_username"].initial = profile.user.username
-                self.fields["login_username"].widget.attrs["readonly"] = True
-                self.fields["login_password"].widget.attrs["placeholder"] = "Nur ändern wenn neues Passwort gesetzt werden soll"
-                # Bestehende Rolle anzeigen
-                from django.contrib.auth.models import Group
-                from .permissions import ROLE_ADMIN, ROLE_MANAGER, ROLE_MITARBEITER
-                user_groups = profile.user.groups.values_list('name', flat=True)
-                if ROLE_ADMIN in user_groups:
-                    self.fields["login_role"].initial = "admin"
-                elif ROLE_MANAGER in user_groups:
-                    self.fields["login_role"].initial = "manager"
-                else:
-                    self.fields["login_role"].initial = "mitarbeiter"
-            except UserProfile.DoesNotExist:
-                pass
 
     def clean(self):
         cleaned_data = super().clean()
@@ -153,46 +89,6 @@ class EmployeeInternalForm(forms.ModelForm):
             raise forms.ValidationError({
                 "employment_end": "Beschäftigungsende darf nicht vor Beschäftigungsbeginn liegen."
             })
-        
-        # Validierung für Login-Felder
-        create_login = cleaned_data.get("create_login")
-        if create_login:
-            login_username = cleaned_data.get("login_username", "").strip()
-            login_password = cleaned_data.get("login_password", "").strip()
-            
-            # Wenn Username leer, generiere aus Code
-            if not login_username:
-                code = cleaned_data.get("code", "")
-                if code:
-                    login_username = code.lower()
-                else:
-                    raise forms.ValidationError({
-                        "login_username": "Benutzername ist erforderlich wenn Login erstellt wird."
-                    })
-            
-            # Prüfe ob Username bereits existiert (nur bei Neuanlage)
-            if not self.instance.pk:
-                from django.contrib.auth.models import User
-                if User.objects.filter(username=login_username).exists():
-                    raise forms.ValidationError({
-                        "login_username": f"Benutzername '{login_username}' existiert bereits."
-                    })
-            else:
-                # Bei Bearbeitung: Prüfe nur wenn Username geändert wurde
-                from django.contrib.auth.models import User
-                from .models import UserProfile
-                try:
-                    profile = UserProfile.objects.get(employee=self.instance)
-                    if profile.user.username != login_username:
-                        if User.objects.filter(username=login_username).exists():
-                            raise forms.ValidationError({
-                                "login_username": f"Benutzername '{login_username}' existiert bereits."
-                            })
-                except UserProfile.DoesNotExist:
-                    if User.objects.filter(username=login_username).exists():
-                        raise forms.ValidationError({
-                            "login_username": f"Benutzername '{login_username}' existiert bereits."
-                        })
         
         return cleaned_data
 
@@ -250,40 +146,14 @@ class TimeEntryForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-        
-        # Filter Mitarbeiter nach Rolle
-        from .permissions import get_accessible_employees, can_view_all_entries
-        
-        if self.user:
-            if can_view_all_entries(self.user):
-                # Admin/Manager: Alle aktiven Mitarbeitenden
-                today = date.today()
-                self.fields["mitarbeiter"].queryset = EmployeeInternal.objects.filter(
-                    aktiv=True
-                ).filter(
-                    models.Q(employment_end__isnull=True) | models.Q(employment_end__gte=today)
-                )
-            else:
-                # Mitarbeiter: Nur sich selbst
-                accessible_employees = get_accessible_employees(self.user)
-                self.fields["mitarbeiter"].queryset = accessible_employees
-                # Setze automatisch auf eigenen Mitarbeiter
-                if accessible_employees.exists():
-                    self.fields["mitarbeiter"].initial = accessible_employees.first()
-                    # Feld auf readonly setzen für Mitarbeiter
-                    self.fields["mitarbeiter"].widget.attrs['readonly'] = True
-                    self.fields["mitarbeiter"].widget.attrs['style'] = 'background: #f5f5f7; cursor: not-allowed;'
-        else:
-            # Fallback: Alle aktiven Mitarbeitenden
-            today = date.today()
-            self.fields["mitarbeiter"].queryset = EmployeeInternal.objects.filter(
-                aktiv=True
-            ).filter(
-                models.Q(employment_end__isnull=True) | models.Q(employment_end__gte=today)
-            )
-        
+        # Filter: Nur aktive Mitarbeitende (employment_end ist None oder >= heute)
+        today = date.today()
+        self.fields["mitarbeiter"].queryset = EmployeeInternal.objects.filter(
+            aktiv=True
+        ).filter(
+            models.Q(employment_end__isnull=True) | models.Q(employment_end__gte=today)
+        )
         # Filter: Alle Clients (FIRMA und PRIVAT)
         self.fields["client"].queryset = Client.objects.all().order_by("name")
         # Mandant ist optional für interne Arbeiten
@@ -305,122 +175,14 @@ class AbsenceForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-        
-        # Filter Mitarbeiter nach Rolle
-        from .permissions import get_accessible_employees, can_view_all_entries
-        
-        if self.user:
-            if can_view_all_entries(self.user):
-                # Admin/Manager: Alle aktiven Mitarbeitenden
-                today = date.today()
-                self.fields["employee"].queryset = EmployeeInternal.objects.filter(
-                    aktiv=True
-                ).filter(
-                    models.Q(employment_end__isnull=True) | models.Q(employment_end__gte=today)
-                )
-            else:
-                # Mitarbeiter: Nur sich selbst
-                accessible_employees = get_accessible_employees(self.user)
-                self.fields["employee"].queryset = accessible_employees
-                # Setze automatisch auf eigenen Mitarbeiter
-                if accessible_employees.exists():
-                    self.fields["employee"].initial = accessible_employees.first()
-                    # Feld auf readonly setzen für Mitarbeiter
-                    self.fields["employee"].widget.attrs['readonly'] = True
-                    self.fields["employee"].widget.attrs['style'] = 'background: #f5f5f7; cursor: not-allowed;'
-        else:
-            # Fallback: Alle aktiven Mitarbeitenden
-            today = date.today()
-            self.fields["employee"].queryset = EmployeeInternal.objects.filter(
-                aktiv=True
-            ).filter(
-                models.Q(employment_end__isnull=True) | models.Q(employment_end__gte=today)
-            )
+        # Filter: Nur aktive Mitarbeitende
+        today = date.today()
+        self.fields["employee"].queryset = EmployeeInternal.objects.filter(
+            aktiv=True
+        ).filter(
+            models.Q(employment_end__isnull=True) | models.Q(employment_end__gte=today)
+        )
         
         # JavaScript für Stunden-Feld
         self.fields["full_day"].widget.attrs["onchange"] = "toggleHoursField(this)"
-
-
-class TaskForm(forms.ModelForm):
-    class Meta:
-        model = Task
-        fields = [
-            "titel",
-            "client",
-            "beschreibung",
-            "status",
-            "prioritaet",
-            "fälligkeitsdatum",
-            "notizen",
-        ]
-        widgets = {
-            "titel": forms.TextInput(attrs={"class": "adea-input", "placeholder": "z.B. Steuererklärung Müller AG"}),
-            "client": forms.Select(attrs={"class": "adea-select"}),
-            "beschreibung": forms.Textarea(attrs={"class": "adea-textarea", "rows": 3}),
-            "status": forms.Select(attrs={"class": "adea-select"}),
-            "prioritaet": forms.Select(attrs={"class": "adea-select"}),
-            "fälligkeitsdatum": forms.DateInput(attrs={"class": "adea-input", "type": "date"}),
-            "notizen": forms.Textarea(attrs={"class": "adea-textarea", "rows": 4, "placeholder": "Notizen zum aktuellen Stand (z.B. 'Warte auf Belege vom Kunden')"}),
-        }
-        help_texts = {
-            "titel": "Kurze Beschreibung der Aufgabe",
-            "client": "Optional: Mandant zuordnen",
-            "fälligkeitsdatum": "Wichtig für Treuhand: Steuerfristen, MwSt-Abgaben, etc.",
-            "notizen": "Notizen zum aktuellen Stand ('Wo geblieben')",
-        }
-
-    def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop('user', None)
-        super().__init__(*args, **kwargs)
-        
-        # Filter Mandanten: Alle Clients (FIRMA und PRIVAT)
-        self.fields["client"].queryset = Client.objects.all().order_by("name")
-        self.fields["client"].required = False
-        
-        # Mitarbeiter-Feld hinzufügen
-        if self.user and can_view_all_entries(self.user):
-            # Admin/Manager: Kann Mitarbeiter auswählen
-            active_employees = EmployeeInternal.objects.filter(aktiv=True).order_by("name")
-            if not active_employees.exists():
-                # Keine aktiven Mitarbeiter - zeige Warnung
-                self.fields["mitarbeiter"] = forms.ModelChoiceField(
-                    queryset=active_employees,
-                    widget=forms.Select(attrs={"class": "adea-select", "disabled": True}),
-                    required=True,
-                    label="Mitarbeiterin",
-                    help_text="⚠️ Keine aktiven Mitarbeiter gefunden. Bitte erstellen Sie zuerst einen Mitarbeiter."
-                )
-            else:
-                self.fields["mitarbeiter"] = forms.ModelChoiceField(
-                    queryset=active_employees,
-                    widget=forms.Select(attrs={"class": "adea-select"}),
-                    required=True,
-                    label="Mitarbeiterin"
-                )
-            if self.instance and self.instance.pk:
-                self.fields["mitarbeiter"].initial = self.instance.mitarbeiter
-        else:
-            # Mitarbeiter: Automatisch auf sich selbst setzen (wird in View gemacht)
-            # Feld wird nicht angezeigt
-            pass
-        
-        # Wenn Bearbeitung: Status kann geändert werden
-        if self.instance and self.instance.pk:
-            pass
-        else:
-            # Bei Neuanlage: Status auf OFFEN setzen
-            self.fields["status"].initial = 'OFFEN'
-    
-    def clean(self):
-        cleaned_data = super().clean()
-        
-        # Prüfe, ob Mitarbeiter gesetzt wurde (für Admin/Manager)
-        if self.user and can_view_all_entries(self.user):
-            if 'mitarbeiter' not in cleaned_data or not cleaned_data.get('mitarbeiter'):
-                raise forms.ValidationError({
-                    'mitarbeiter': 'Bitte wählen Sie einen Mitarbeiter aus.'
-                })
-        
-        return cleaned_data

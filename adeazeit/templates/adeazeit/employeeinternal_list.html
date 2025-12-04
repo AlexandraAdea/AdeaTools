@@ -1,4 +1,4 @@
-{% extends 'adeazeit_base.html' %}
+{% extends 'admin_base_no_sidebar.html' %}
 
 {% block title %}Mitarbeitende – AdeaZeit{% endblock %}
 
@@ -8,39 +8,6 @@
 {% endblock %}
 
 {% block content %}
-{% if request.session.created_password %}
-<div class="content-card" style="background: #fff3cd; border: 2px solid #ffc107; margin-bottom: 20px;">
-    <div style="display: flex; align-items: start; gap: 16px;">
-        <div style="font-size: 2em;">🔑</div>
-        <div style="flex: 1;">
-            <h2 style="margin: 0 0 8px 0; color: #856404;">Login-Zugang erstellt!</h2>
-            <p style="margin: 0 0 12px 0; color: #856404;">
-                Für <strong>{{ request.session.created_employee }}</strong> wurde ein Login-Zugang erstellt:
-            </p>
-            <div style="background: white; padding: 16px; border-radius: 8px; margin-bottom: 12px; font-family: 'Courier New', monospace;">
-                <div style="margin-bottom: 8px;">
-                    <strong>Benutzername:</strong> <span style="font-size: 1.2em; color: #007bff;">{{ request.session.created_username }}</span>
-                </div>
-                <div>
-                    <strong>Passwort:</strong> <span style="font-size: 1.2em; color: #28a745; font-weight: bold;">{{ request.session.created_password }}</span>
-                </div>
-            </div>
-            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                <button onclick="copyToClipboard('{{ request.session.created_username }}', '{{ request.session.created_password }}')" class="adea-button-primary" style="background: #007bff;">
-                    📋 Zugangsdaten kopieren
-                </button>
-                <a href="{% url 'adeazeit:employee-list' %}?clear_password=1" class="adea-button-primary" style="background: #6c757d; text-decoration: none;">
-                    Schliessen
-                </a>
-            </div>
-            <p style="margin: 12px 0 0 0; font-size: 0.9em; color: #856404;">
-                ⚠️ <strong>Wichtig:</strong> Teilen Sie diese Zugangsdaten sicher mit dem Mitarbeiter. Das Passwort wird nur einmal angezeigt!
-            </p>
-        </div>
-    </div>
-</div>
-{% endif %}
-
 <section class="content-card">
     <div class="adea-d-flex-between">
         <div>
@@ -118,34 +85,5 @@
         </table>
     </div>
 </section>
-
-<script>
-function copyToClipboard(username, password) {
-    const text = `Benutzername: ${username}\nPasswort: ${password}`;
-    navigator.clipboard.writeText(text).then(function() {
-        alert('Zugangsdaten wurden in die Zwischenablage kopiert!');
-    }, function(err) {
-        // Fallback für ältere Browser
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        alert('Zugangsdaten wurden in die Zwischenablage kopiert!');
-    });
-}
-
-function closePasswordBox() {
-    window.location.href = '{% url "adeazeit:employee-list" %}?clear_password=1';
-}
-
-// Entferne Passwort aus Session nach 30 Sekunden (Sicherheit)
-{% if request.session.created_password %}
-setTimeout(function() {
-    closePasswordBox();
-}, 30000);
-{% endif %}
-</script>
 {% endblock %}
 

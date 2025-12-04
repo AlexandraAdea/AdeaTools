@@ -4,22 +4,16 @@ Nutzt Client als Mandant und setzt request.current_client.
 """
 from django.http import HttpResponseForbidden, Http404
 from adeacore.models import Client
-from .permissions import can_access_adelohn, can_access_client_lohn
 
 
 class TenantMixin:
     """
     Mixin für AdeaLohn-Views, das den aktiven Mandanten (Client) setzt.
     Liest aus request.session["active_client_id"] und setzt request.current_client.
-    Prüft auch Berechtigungen.
     """
     
     def dispatch(self, request, *args, **kwargs):
-        """Setze current_client aus Session und prüfe Berechtigungen."""
-        # Prüfe zuerst ob User überhaupt Zugriff auf AdeaLohn hat
-        if not can_access_adelohn(request.user):
-            return HttpResponseForbidden("Sie haben keine Berechtigung für AdeaLohn. Bitte kontaktieren Sie den Administrator.")
-        
+        """Setze current_client aus Session (nur FIRMA-Clients mit aktiviertem Lohnmodul)."""
         active_client_id = request.session.get("active_client_id")
         
         if active_client_id:
@@ -31,11 +25,6 @@ class TenantMixin:
                     request.session.pop("active_client_id", None)
                     request.current_client = None
                 else:
-                    # Prüfe ob User Zugriff auf diesen spezifischen Client hat
-                    if not can_access_client_lohn(request.user, client):
-                        request.session.pop("active_client_id", None)
-                        request.current_client = None
-                        return HttpResponseForbidden("Sie haben keine Berechtigung für diesen Mandanten in AdeaLohn.")
                     request.current_client = client
             except Client.DoesNotExist:
                 # Client existiert nicht mehr, entferne aus Session

@@ -1,13 +1,9 @@
 from django.urls import path
-from . import views, timer_views
+from . import views
 
 app_name = "adeazeit"
 
 urlpatterns = [
-    # Login/Logout
-    path("login/", views.employee_login, name="login"),
-    path("logout/", views.employee_logout, name="logout"),
-    
     # Index
     path("", views.AdeaZeitIndexView.as_view(), name="index"),
     
@@ -36,12 +32,6 @@ urlpatterns = [
     path("zeit/<int:pk>/bearbeiten/", views.TimeEntryUpdateView.as_view(), name="timeentry-update"),
     path("zeit/<int:pk>/loeschen/", views.TimeEntryDeleteView.as_view(), name="timeentry-delete"),
     
-    # Timer (Live-Tracking)
-    path("timer/start/", timer_views.start_timer, name="timer-start"),
-    path("timer/stop/", timer_views.stop_timer, name="timer-stop"),
-    path("timer/cancel/", timer_views.cancel_timer, name="timer-cancel"),
-    path("timer/status/", timer_views.get_timer_status, name="timer-status"),
-    
     # AJAX
     path("ajax/projekte/", views.LoadProjectsView.as_view(), name="load-projects"),
     path("ajax/mitarbeiter-info/", views.LoadEmployeeInfoView.as_view(), name="load-employee-info"),
@@ -52,11 +42,4 @@ urlpatterns = [
     path("abwesenheiten/neu/", views.AbsenceCreateView.as_view(), name="absence-create"),
     path("abwesenheiten/<int:pk>/bearbeiten/", views.AbsenceUpdateView.as_view(), name="absence-update"),
     path("abwesenheiten/<int:pk>/loeschen/", views.AbsenceDeleteView.as_view(), name="absence-delete"),
-    
-    # Tasks (To-Do-Liste)
-    path("aufgaben/", views.TaskListView.as_view(), name="task-list"),
-    path("aufgaben/neu/", views.TaskCreateView.as_view(), name="task-create"),
-    path("aufgaben/<int:pk>/bearbeiten/", views.TaskUpdateView.as_view(), name="task-update"),
-    path("aufgaben/<int:pk>/loeschen/", views.TaskDeleteView.as_view(), name="task-delete"),
-    path("aufgaben/<int:pk>/status/", views.TaskQuickStatusUpdateView.as_view(), name="task-quick-status"),
 ]

@@ -12,7 +12,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # Erstelle RunningTimeEntry Model
         migrations.CreateModel(
             name='RunningTimeEntry',
             fields=[
@@ -25,6 +24,15 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Laufender Zeiteintrag',
                 'verbose_name_plural': 'Laufende Zeiteinträge',
             },
+        ),
+        migrations.RemoveIndex(
+            model_name='absence',
+            name='adeazeit_ab_mitarbe_ada11c_idx',
+        ),
+        migrations.RenameIndex(
+            model_name='absence',
+            new_name='adeazeit_ab_employe_c4ea6a_idx',
+            old_name='adeazeit_abs_employe_123456_idx',
         ),
         migrations.AddField(
             model_name='runningtimeentry',

@@ -34,56 +34,20 @@ logger = logging.getLogger(__name__)
 class ClientSwitchView(LoginRequiredMixin, TemplateView):
     """View zum Wechseln des aktiven Mandanten (Client)."""
     template_name = "adealohn/client_switch.html"
-    login_url = '/zeit/login/'
-    
-    def dispatch(self, request, *args, **kwargs):
-        """Prüfe Berechtigung."""
-        from .permissions import can_access_adelohn
-        if not can_access_adelohn(request.user):
-            from django.http import HttpResponseForbidden
-            return HttpResponseForbidden("Sie haben keine Berechtigung für AdeaLohn. Bitte kontaktieren Sie den Administrator.")
-        return super().dispatch(request, *args, **kwargs)
+    login_url = '/admin/login/'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        from .permissions import can_access_client_lohn
-        from adeazeit.permissions import is_manager_or_admin
-        
-        # Basis-Query: Nur Firmen-Mandanten mit aktiviertem Lohnmodul
-        clients_query = Client.objects.filter(
+        # Nur Firmen-Mandanten mit aktiviertem Lohnmodul anzeigen
+        context['clients'] = Client.objects.filter(
             client_type="FIRMA",
             lohn_aktiv=True
-        )
-        
-        # Wenn User Admin/Manager ist, zeige alle Clients
-        # Sonst nur Clients, für die User Sachbearbeiter ist
-        try:
-            if is_manager_or_admin(self.request.user):
-                context['clients'] = clients_query.order_by("name")
-            else:
-                # Nur Clients, für die User Sachbearbeiter ist
-                from adeazeit.models import UserProfile
-                profile = UserProfile.objects.filter(user=self.request.user).first()
-                if profile and profile.employee:
-                    context['clients'] = clients_query.filter(
-                        sachbearbeiter=profile.employee
-                    ).order_by("name")
-                else:
-                    context['clients'] = Client.objects.none()
-        except Exception:
-            # Fallback: Nur Superuser
-            if self.request.user.is_superuser:
-                context['clients'] = clients_query.order_by("name")
-            else:
-                context['clients'] = Client.objects.none()
-        
+        ).order_by("name")
         context['current_client'] = self.request.session.get("active_client_id")
         return context
     
     def post(self, request, *args, **kwargs):
         """Speichere gewählten Client in Session (nur FIRMA-Clients)."""
-        from .permissions import can_access_client_lohn
-        
         client_id = request.POST.get("client_id")
         
         if client_id:
@@ -92,11 +56,6 @@ class ClientSwitchView(LoginRequiredMixin, TemplateView):
                 # Sicherheitsprüfung: Nur FIRMA-Clients mit aktiviertem Lohnmodul erlauben
                 if client.client_type != "FIRMA" or not client.lohn_aktiv:
                     logger.warning(f"Versuch, Client {client.name} (ID: {client_id}, Typ: {client.client_type}, Lohn aktiv: {client.lohn_aktiv}) in AdeaLohn zu verwenden - abgelehnt")
-                    return redirect("adealohn:client-switch")
-                
-                # Prüfe Berechtigung für diesen Client
-                if not can_access_client_lohn(request.user, client):
-                    logger.warning(f"User {request.user.username} versucht auf Client {client.name} zuzugreifen ohne Berechtigung")
                     return redirect("adealohn:client-switch")
                 
                 request.session["active_client_id"] = int(client_id)

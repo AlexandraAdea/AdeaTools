@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
-from .models import UserProfile, EmployeeInternal, ServiceType, ZeitProject, TimeEntry, Absence, Holiday, Task
+from .models import UserProfile, EmployeeInternal, ServiceType, ZeitProject, TimeEntry, Absence, Holiday
 
 
 # UserProfile Inline für User Admin
@@ -146,30 +146,3 @@ class HolidayAdmin(admin.ModelAdmin):
             "fields": ("name", "date", "canton", "is_official")
         }),
     )
-
-
-@admin.register(Task)
-class TaskAdmin(admin.ModelAdmin):
-    list_display = ("titel", "mitarbeiter", "client", "status", "prioritaet", "fälligkeitsdatum", "erstellt_am")
-    list_filter = ("status", "prioritaet", "fälligkeitsdatum", "mitarbeiter", "client")
-    search_fields = ("titel", "beschreibung", "notizen", "mitarbeiter__name", "client__name")
-    date_hierarchy = "fälligkeitsdatum"
-    fieldsets = (
-        ("Aufgabe", {
-            "fields": ("titel", "beschreibung", "mitarbeiter", "client")
-        }),
-        ("Status & Priorität", {
-            "fields": ("status", "prioritaet")
-        }),
-        ("Fristen", {
-            "fields": ("fälligkeitsdatum",)
-        }),
-        ("Notizen", {
-            "fields": ("notizen",)
-        }),
-        ("Metadaten", {
-            "fields": ("erstellt_am", "erledigt_am", "updated_at"),
-            "classes": ("collapse",)
-        }),
-    )
-    readonly_fields = ("erstellt_am", "erledigt_am", "updated_at")

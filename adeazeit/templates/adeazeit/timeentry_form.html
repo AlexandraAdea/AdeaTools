@@ -1,4 +1,4 @@
-{% extends 'adeazeit_base.html' %}
+{% extends 'admin_base_no_sidebar.html' %}
 
 {% block title %}{% if object %}Zeiteintrag bearbeiten{% else %}Neuer Zeiteintrag{% endif %} – AdeaZeit{% endblock %}
 
@@ -172,45 +172,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
-
-// Timer Start Funktion (verwendet Formular-Werte)
-function startTimerFromForm() {
-    const mitarbeiterSelect = document.getElementById('id_mitarbeiter');
-    const clientSelect = document.getElementById('id_client');
-    const serviceTypeSelect = document.getElementById('id_service_type');
-    const beschreibungField = document.getElementById('id_kommentar');
-    
-    if (!serviceTypeSelect.value) {
-        alert('❌ Bitte wähle einen Service-Typ aus!');
-        return;
-    }
-    
-    const formData = new FormData();
-    if (clientSelect.value) formData.append('client_id', clientSelect.value);
-    formData.append('service_type_id', serviceTypeSelect.value);
-    if (beschreibungField.value) formData.append('beschreibung', beschreibungField.value);
-    
-    fetch("{% url 'adeazeit:timer-start' %}", {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-CSRFToken': '{{ csrf_token }}',
-        },
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            window.location.href = "{% url 'adeazeit:timeentry-day' %}";
-        } else {
-            console.error('Fehler:', data.error);
-            window.location.href = "{% url 'adeazeit:timeentry-day' %}";
-        }
-    })
-    .catch(error => {
-        console.error('Fehler:', error);
-        window.location.href = "{% url 'adeazeit:timeentry-day' %}";
-    });
-}
 </script>
 {% endblock %}
 
@@ -311,11 +272,6 @@ function startTimerFromForm() {
         </div>
 
         <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #e5e5ea; display:flex; gap:12px; flex-wrap:wrap;">
-            {% if not object %}
-            <button type="button" onclick="startTimerFromForm()" class="adea-button-primary" style="background: var(--color-green);">
-                ▶️ Timer starten
-            </button>
-            {% endif %}
             <button type="submit" class="adea-button-primary">
                 {% if object %}Speichern{% else %}Anlegen{% endif %}
             </button>

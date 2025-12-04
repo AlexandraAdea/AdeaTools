@@ -10,8 +10,6 @@ class ClientForm(forms.ModelForm):
             # Grunddaten
             "name",
             "client_type",
-            "status",
-            "status_grund",
             # Kontakt
             "email",
             "phone",
@@ -33,14 +31,10 @@ class ClientForm(forms.ModelForm):
             "interne_notizen",
             # Module-Aktivierung
             "lohn_aktiv",
-            # Sachbearbeiter für AdeaLohn
-            "sachbearbeiter",
         ]
         widgets = {
             "name": forms.TextInput(attrs={"class": "adea-input"}),
             "client_type": forms.Select(attrs={"class": "adea-select"}),
-            "status": forms.Select(attrs={"class": "adea-select"}),
-            "status_grund": forms.Textarea(attrs={"class": "adea-textarea", "rows": 3}),
             "email": forms.EmailInput(attrs={"class": "adea-input"}),
             "phone": forms.TextInput(attrs={"class": "adea-input"}),
             "kontaktperson_name": forms.TextInput(attrs={"class": "adea-input"}),
@@ -55,11 +49,9 @@ class ClientForm(forms.ModelForm):
             "geburtsdatum": forms.DateInput(attrs={"class": "adea-input", "type": "date"}),
             "steuerkanton": forms.TextInput(attrs={"class": "adea-input"}),
             "interne_notizen": forms.Textarea(attrs={"class": "adea-textarea", "rows": 4}),
-            "sachbearbeiter": forms.Select(attrs={"class": "adea-select"}),
         }
         help_texts = {
             "client_type": "FIRMA = für Lohnbuchhaltung, PRIVAT = nur für Zeiterfassung",
-            "sachbearbeiter": "Sachbearbeiter, der für diesen Mandanten Zugriff auf AdeaLohn hat. Nur bei FIRMA-Mandanten mit aktiviertem Lohnmodul relevant.",
         }
     
     def __init__(self, *args, **kwargs):
@@ -67,48 +59,14 @@ class ClientForm(forms.ModelForm):
         # Bedingte Anzeige basierend auf client_type
         # Prüfe zuerst POST-Daten, dann instance, dann initial
         client_type = None
-        lohn_aktiv = False
         if self.data and 'client_type' in self.data:
             client_type = self.data.get('client_type')
-            lohn_aktiv = self.data.get('lohn_aktiv', 'False') == 'True' or self.data.get('lohn_aktiv') == True
         elif self.instance and self.instance.pk:
             client_type = self.instance.client_type
-            lohn_aktiv = self.instance.lohn_aktiv
         elif 'client_type' in self.initial:
             client_type = self.initial.get('client_type')
         else:
             client_type = 'FIRMA'  # Default
-        
-        # Status-Grund-Feld: Nur anzeigen wenn Status nicht AKTIV
-        status = None
-        if self.data and 'status' in self.data:
-            status = self.data.get('status')
-        elif self.instance and self.instance.pk:
-            status = self.instance.status
-        elif 'status' in self.initial:
-            status = self.initial.get('status')
-        else:
-            status = 'AKTIV'  # Default
-        
-        if status == 'AKTIV':
-            # Status-Grund ausblenden wenn Status AKTIV
-            self.fields['status_grund'].widget = forms.HiddenInput()
-            self.fields['status_grund'].required = False
-        else:
-            # Status-Grund anzeigen wenn Status nicht AKTIV
-            self.fields['status_grund'].required = False
-        
-        # Sachbearbeiter-Feld: Nur für FIRMA mit aktiviertem Lohnmodul
-        try:
-            from adeazeit.models import EmployeeInternal
-            if client_type == "FIRMA" and lohn_aktiv:
-                self.fields['sachbearbeiter'].queryset = EmployeeInternal.objects.filter(aktiv=True).order_by("name")
-                self.fields['sachbearbeiter'].required = False
-            else:
-                self.fields['sachbearbeiter'].widget = forms.HiddenInput()
-                self.fields['sachbearbeiter'].required = False
-        except ImportError:
-            self.fields['sachbearbeiter'].widget = forms.HiddenInput()
         
         # Felder für PRIVAT ausblenden wenn FIRMA
         if client_type == "FIRMA":
@@ -133,7 +91,6 @@ class ClientForm(forms.ModelForm):
             self.fields['zahlungsziel_tage'].widget = forms.HiddenInput()
             self.fields['kontaktperson_name'].widget = forms.HiddenInput()
             self.fields['lohn_aktiv'].widget = forms.HiddenInput()
-            self.fields['sachbearbeiter'].widget = forms.HiddenInput()
     
     def clean(self):
         """Bereinige Felder basierend auf client_type."""

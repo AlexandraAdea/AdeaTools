@@ -246,73 +246,6 @@ class ZeitProject(models.Model):
         return f"{self.client.name} – {self.name}"
 
 
-class RunningTimeEntry(models.Model):
-    """
-    Laufender Zeiteintrag (Timer).
-    Pro Mitarbeiter kann nur EIN Timer gleichzeitig laufen.
-    """
-    mitarbeiter = models.ForeignKey(
-        EmployeeInternal,
-        on_delete=models.CASCADE,
-        related_name="running_timer",
-        verbose_name="Mitarbeiterin"
-    )
-    client = models.ForeignKey(
-        Client,
-        on_delete=models.PROTECT,
-        related_name="running_timers",
-        verbose_name="Mandant",
-        null=True,
-        blank=True,
-        help_text="Nur bei externen Leistungen. Bei internen Leistungen leer lassen."
-    )
-    service_type = models.ForeignKey(
-        ServiceType,
-        on_delete=models.PROTECT,
-        related_name="running_timers",
-        verbose_name="Service-Typ"
-    )
-    projekt = models.ForeignKey(
-        "ZeitProject",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="running_timers",
-        verbose_name="Projekt"
-    )
-    beschreibung = models.TextField("Beschreibung", blank=True)
-    datum = models.DateField("Datum", auto_now_add=True)
-    start_time = models.DateTimeField("Startzeit", auto_now_add=True)
-    
-    class Meta:
-        verbose_name = "Laufender Zeiteintrag"
-        verbose_name_plural = "Laufende Zeiteinträge"
-        # Nur 1 Timer pro Mitarbeiter erlaubt
-        constraints = [
-            models.UniqueConstraint(
-                fields=['mitarbeiter'],
-                name='one_timer_per_employee'
-            )
-        ]
-    
-    def __str__(self):
-        return f"{self.mitarbeiter.name} – Timer läuft seit {self.start_time.strftime('%H:%M')}"
-    
-    def get_duration_seconds(self):
-        """Berechnet aktuelle Dauer in Sekunden."""
-        from django.utils import timezone
-        delta = timezone.now() - self.start_time
-        return int(delta.total_seconds())
-    
-    def get_duration_hours(self):
-        """Berechnet aktuelle Dauer in Stunden (gerundet auf 0.1h)."""
-        from decimal import Decimal, ROUND_HALF_UP
-        seconds = self.get_duration_seconds()
-        hours = Decimal(str(seconds)) / Decimal('3600')
-        # Runde auf 0.1h (6 Minuten) = 1 Dezimalstelle
-        return hours.quantize(Decimal('0.1'), rounding=ROUND_HALF_UP)
-
-
 class TimeEntry(models.Model):
     """
     Zeiteinträge (Kerndatenmodell).
@@ -391,7 +324,7 @@ class TimeEntry(models.Model):
                 'ende': 'Endzeit muss nach Startzeit liegen.'
             })
         
-        if self.dauer is not None and self.dauer <= 0:
+        if self.dauer <= 0:
             raise ValidationError({
                 'dauer': 'Dauer muss größer als 0 sein.'
             })
@@ -495,7 +428,7 @@ class Absence(models.Model):
         verbose_name_plural = "Abwesenheiten"
         ordering = ["-date_from", "employee"]
         indexes = [
-            models.Index(fields=["employee", "date_from"], name="adeazeit_ab_employe_c4ea6a_idx"),
+            models.Index(fields=["employee", "date_from"]),
         ]
 
     def __str__(self):
@@ -556,119 +489,3 @@ class Holiday(models.Model):
     def __str__(self):
         label = self.canton or "CH"
         return f"{self.date} – {self.name} ({label})"
-
-
-class Task(models.Model):
-    """
-    Aufgaben/To-Do-Liste für Mitarbeitende.
-    Ermöglicht Planung und Notizen ("Wo geblieben").
-    """
-    STATUS_CHOICES = [
-        ('OFFEN', 'Offen'),
-        ('IN_ARBEIT', 'In Arbeit'),
-        ('ERLEDIGT', 'Erledigt'),
-    ]
-    
-    PRIORITAET_CHOICES = [
-        ('NIEDRIG', 'Niedrig'),
-        ('MITTEL', 'Mittel'),
-        ('HOCH', 'Hoch'),
-    ]
-    
-    # Verknüpfungen
-    mitarbeiter = models.ForeignKey(
-        EmployeeInternal,
-        on_delete=models.PROTECT,
-        related_name="tasks",
-        verbose_name="Mitarbeiterin"
-    )
-    client = models.ForeignKey(
-        Client,
-        on_delete=models.PROTECT,
-        related_name="tasks",
-        verbose_name="Mandant",
-        null=True,
-        blank=True,
-        help_text="Optional: Mandant zuordnen (z.B. 'Steuererklärung Müller AG')"
-    )
-    
-    # Aufgaben-Daten
-    titel = models.CharField(
-        "Titel",
-        max_length=255,
-        help_text="Kurze Beschreibung der Aufgabe (z.B. 'Steuererklärung Müller AG')"
-    )
-    beschreibung = models.TextField(
-        "Beschreibung",
-        blank=True,
-        help_text="Detaillierte Beschreibung (optional)"
-    )
-    
-    # Status & Priorität
-    status = models.CharField(
-        "Status",
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default='OFFEN'
-    )
-    prioritaet = models.CharField(
-        "Priorität",
-        max_length=20,
-        choices=PRIORITAET_CHOICES,
-        default='MITTEL'
-    )
-    
-    # Fristen (KRITISCH für Treuhand!)
-    fälligkeitsdatum = models.DateField(
-        "Fälligkeitsdatum",
-        null=True,
-        blank=True,
-        help_text="Wichtig für Treuhand: Steuerfristen, MwSt-Abgaben, etc."
-    )
-    
-    # Notizen ("Wo geblieben")
-    notizen = models.TextField(
-        "Notizen",
-        blank=True,
-        help_text="Notizen zum aktuellen Stand (z.B. 'Warte auf Belege vom Kunden')"
-    )
-    
-    # Metadaten
-    erstellt_am = models.DateTimeField("Erstellt am", auto_now_add=True)
-    erledigt_am = models.DateTimeField("Erledigt am", null=True, blank=True)
-    updated_at = models.DateTimeField("Aktualisiert am", auto_now=True)
-
-    class Meta:
-        verbose_name = "Aufgabe"
-        verbose_name_plural = "Aufgaben"
-        ordering = ["prioritaet", "fälligkeitsdatum", "-erstellt_am"]
-        indexes = [
-            models.Index(fields=["mitarbeiter", "status"]),
-            models.Index(fields=["client", "status"]),
-            models.Index(fields=["fälligkeitsdatum"]),
-        ]
-
-    def __str__(self):
-        return f"{self.titel} ({self.get_status_display()})"
-    
-    def is_overdue(self):
-        """Prüft, ob die Aufgabe überfällig ist."""
-        if self.fälligkeitsdatum and self.status != 'ERLEDIGT':
-            return self.fälligkeitsdatum < date.today()
-        return False
-    
-    def days_until_due(self):
-        """Gibt die Anzahl Tage bis zum Fälligkeitsdatum zurück."""
-        if self.fälligkeitsdatum:
-            delta = self.fälligkeitsdatum - date.today()
-            return delta.days
-        return None
-    
-    def save(self, *args, **kwargs):
-        """Setze erledigt_am automatisch wenn Status auf ERLEDIGT gesetzt wird."""
-        if self.status == 'ERLEDIGT' and not self.erledigt_am:
-            from django.utils import timezone
-            self.erledigt_am = timezone.now()
-        elif self.status != 'ERLEDIGT' and self.erledigt_am:
-            self.erledigt_am = None
-        super().save(*args, **kwargs)

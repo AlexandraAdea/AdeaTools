@@ -25,14 +25,31 @@ class Migration(migrations.Migration):
                 ('erstellt_am', models.DateTimeField(auto_now_add=True, verbose_name='Erstellt am')),
                 ('erledigt_am', models.DateTimeField(blank=True, null=True, verbose_name='Erledigt am')),
                 ('updated_at', models.DateTimeField(auto_now=True, verbose_name='Aktualisiert am')),
-                ('client', models.ForeignKey(blank=True, help_text="Optional: Mandant zuordnen (z.B. 'Steuererklärung Müller AG')", null=True, on_delete=django.db.models.deletion.PROTECT, related_name='tasks', to='adeacore.client', verbose_name='Mandant')),
-                ('mitarbeiter', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='tasks', to='adeazeit.employeeinternal', verbose_name='Mitarbeiterin')),
             ],
             options={
                 'verbose_name': 'Aufgabe',
                 'verbose_name_plural': 'Aufgaben',
                 'ordering': ['prioritaet', 'fälligkeitsdatum', '-erstellt_am'],
             },
+        ),
+        migrations.RemoveIndex(
+            model_name='absence',
+            name='adeazeit_ab_mitarbe_ada11c_idx',
+        ),
+        migrations.RenameIndex(
+            model_name='absence',
+            new_name='adeazeit_ab_employe_c4ea6a_idx',
+            old_name='adeazeit_abs_employe_123456_idx',
+        ),
+        migrations.AddField(
+            model_name='task',
+            name='client',
+            field=models.ForeignKey(blank=True, help_text="Optional: Mandant zuordnen (z.B. 'Steuererklärung Müller AG')", null=True, on_delete=django.db.models.deletion.PROTECT, related_name='tasks', to='adeacore.client', verbose_name='Mandant'),
+        ),
+        migrations.AddField(
+            model_name='task',
+            name='mitarbeiter',
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='tasks', to='adeazeit.employeeinternal', verbose_name='Mitarbeiterin'),
         ),
         migrations.AddIndex(
             model_name='task',

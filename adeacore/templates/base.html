@@ -5,56 +5,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}AdeaTools{% endblock %}</title>
-    
-    <!-- PWA Meta Tags -->
-    <meta name="description" content="Zentrale Plattform für Zeiterfassung, CRM und Lohnabrechnung">
-    <meta name="theme-color" content="#007aff">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="AdeaTools">
-    
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="{% static 'manifest.json' %}">
-    
-    <!-- Icons -->
-    <link rel="icon" type="image/png" sizes="192x192" href="{% static 'icons/icon-192.png' %}">
-    <link rel="apple-touch-icon" href="{% static 'icons/icon-192.png' %}">
-    
     <link rel="stylesheet" href="{% static 'css/adeastyle.css' %}">
     {% block head_extra %}{% endblock %}
 </head>
 <body>
+    <div class="frame">
         <!-- Hauptnavigation -->
-        <nav class="adea-navbar">
-            <div class="adea-navbar-container">
-                <div class="adea-navbar-left">
-                    <a href="{% url 'home' %}" class="adea-navbar-brand">AdeaTools</a>
-                    <div class="adea-navbar-links">
+        <nav style="background: #ffffff; border-bottom: 1px solid #d2d2d7; padding: 12px 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1400px; margin: 0 auto;">
+                <div style="display: flex; align-items: center; gap: 24px;">
+                    <a href="{% url 'home' %}" style="font-size: 1.2em; font-weight: 600; color: #1d1d1f; text-decoration: none;">AdeaTools</a>
+                    {% if user.is_authenticated %}
+                    <div style="display: flex; gap: 8px;">
+                        {% if perms.adeacore.view_client or user.is_staff %}
                         <a href="{% url 'adeadesk:client-list' %}" class="adea-nav-link {% if request.path|slice:":6" == '/desk/' %}active{% endif %}">AdeaDesk</a>
+                        {% endif %}
+                        {% if perms.adeazeit.view_timeentry or user.is_staff %}
                         <a href="{% url 'adeazeit:timeentry-day' %}" class="adea-nav-link {% if request.path|slice:":6" == '/zeit/' %}active{% endif %}">AdeaZeit</a>
-                        {% if can_access_adelohn %}
+                        {% endif %}
+                        {% if perms.adealohn.view_payrollrecord or user.is_staff %}
                         <a href="{% url 'adealohn:payroll-list' %}" class="adea-nav-link {% if request.path|slice:":6" == '/lohn/' %}active{% endif %}">AdeaLohn</a>
                         {% endif %}
                     </div>
+                    {% endif %}
                 </div>
                 <div class="adea-navbar-right">
                     {% if user.is_authenticated %}
-                    <!-- Laufender Timer -->
-                    {% if running_timer %}
-                    <div class="timer-display" id="timer-display">
-                        <span class="timer-icon">🟢</span>
-                        <span class="timer-time" id="timer-time">00:00:00</span>
-                        <button onclick="stopTimer()" class="timer-stop-btn" title="Timer stoppen">⏹</button>
-                    </div>
-                    {% endif %}
-                    <div class="adea-user-menu">
-<span class="adea-user-name">
-                            <strong>{{ user.get_full_name|default:user.username }}</strong>
-                        </span>
-                        <a href="{% url 'global-logout' %}" class="adea-link-danger">Abmelden</a>
-                    </div>
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <span style="color: #6e6e73; font-size: 0.95em;">{{ user.get_full_name|default:user.username }}</span>
+                            <a href="/management-console-secure/logout/?next=/" class="adea-button-secondary" style="padding: 6px 16px; font-size: 0.9em; background: #ff3b30; color: white; border: none;">Abmelden</a>
+                        </div>
                     {% else %}
-                    <a href="{% url 'adeazeit:login' %}" class="adea-link">Anmelden</a>
+                        <a href="/management-console-secure/login/?next={{ request.path }}" class="adea-button-primary" style="padding: 6px 16px; font-size: 0.9em;">Anmelden</a>
                     {% endif %}
                 </div>
             </div>
@@ -62,29 +44,28 @@
         
         <!-- Mandanten-Info für AdeaLohn -->
         {% if request.path|slice:":6" == "/lohn/" %}
-        <div class="adea-client-bar">
-            <div class="adea-client-bar-container">
-                <div class="adea-client-info">
+        <div style="background: #f5f5f7; padding: 12px 24px; border-bottom: 1px solid #d2d2d7;">
+            <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1400px; margin: 0 auto;">
+                <div>
                     {% if current_client %}
-                        <strong>Mandant:</strong> <span class="adea-client-name">{{ current_client.name }}</span>
-                        <a href="{% url 'adealohn:client_switch' %}" class="adea-link" style="margin-left: var(--spacing-md);">Mandant wechseln</a>
+                        <strong>Mandant:</strong> {{ current_client.name }}
+                        <a href="{% url 'adealohn:client_switch' %}" style="margin-left: 16px; color: #007aff; text-decoration: none;">Mandant wechseln</a>
                     {% else %}
-                        <span class="adea-text-secondary">Kein Mandant ausgewählt</span>
-                        <a href="{% url 'adealohn:client_switch' %}" class="adea-link" style="margin-left: var(--spacing-md);">Mandant auswählen</a>
+                        <span style="color: #8e8e93;">Kein Mandant ausgewählt</span>
+                        <a href="{% url 'adealohn:client_switch' %}" style="margin-left: 16px; color: #007aff; text-decoration: none;">Mandant auswählen</a>
                     {% endif %}
                 </div>
             </div>
         </div>
         {% endif %}
-    <div class="frame">
         <main>
             <!-- Django Messages -->
             {% if messages %}
-            <div class="adea-messages-container">
+            <div style="max-width: 1400px; margin: 0 auto; padding: 12px 24px;">
                 {% for message in messages %}
-                <div class="adea-message adea-message-{{ message.tags }}">
+                <div class="adea-message adea-message-{{ message.tags }}" style="margin-bottom: 12px; padding: 12px 16px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between;">
                     <span>{{ message }}</span>
-                    <button onclick="this.parentElement.style.display='none'" class="adea-message-close">×</button>
+                    <button onclick="this.parentElement.style.display='none'" style="background: none; border: none; font-size: 1.2em; cursor: pointer; color: inherit; opacity: 0.7;">×</button>
                 </div>
                 {% endfor %}
             </div>
@@ -99,67 +80,6 @@
         <footer>© 2025 AdeaTools – entwickelt für Treuhandbüro Ivanova</footer>
         {% block scripts %}{% endblock %}
     </div>
-    
-    <!-- Timer JavaScript -->
-    {% if running_timer %}
-    <script>
-        // Timer-Daten
-        const timerStartTime = new Date("{{ running_timer.start_time|date:'c' }}");
-        let timerInterval;
-        
-        // Funktion: Aktualisiere Timer-Anzeige
-        function updateTimerDisplay() {
-            const now = new Date();
-            const diff = Math.floor((now - timerStartTime) / 1000); // Sekunden
-            
-            const hours = Math.floor(diff / 3600);
-            const minutes = Math.floor((diff % 3600) / 60);
-            const seconds = diff % 60;
-            
-            const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-            document.getElementById('timer-time').textContent = timeString;
-        }
-        
-        // Funktion: Stoppe Timer
-        function stopTimer() {
-            fetch("{% url 'adeazeit:timer-stop' %}", {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Content-Type': 'application/json',
-                },
-            })
-            .then(response => response.json())
-            .then(data => {
-                location.reload();
-            })
-            .catch(error => {
-                console.error('Fehler:', error);
-                location.reload();
-            });
-        }
-        
-        // Starte Live-Update
-        updateTimerDisplay();
-        timerInterval = setInterval(updateTimerDisplay, 1000); // Jede Sekunde aktualisieren
-        
-        // Warnung beim Browser-Schließen
-        window.addEventListener('beforeunload', function(e) {
-            e.preventDefault();
-            e.returnValue = 'Timer läuft noch! Wirklich schließen?';
-            return 'Timer läuft noch! Wirklich schließen?';
-        });
-    </script>
-    {% endif %}
-    
-    <!-- PWA Service Worker -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/static/sw.js')
-                .then(reg => console.log('Service Worker registered'))
-                .catch(err => console.log('Service Worker error:', err));
-        }
-    </script>
 </body>
 </html>
 

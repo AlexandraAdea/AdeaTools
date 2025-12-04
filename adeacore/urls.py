@@ -26,13 +26,9 @@ def home(request):
 
 urlpatterns = [
     path('', home, name='home'),
-    path('admin/', admin.site.urls),
-    path('admin-dashboard/', views.admin_dashboard, name='admin-dashboard'),
-    path('logout/', views.global_logout, name='global-logout'),
-    
-    # Rechtliches
-    path('datenschutz/', views.datenschutz, name='datenschutz'),
-    path('impressum/', views.impressum, name='impressum'),
+    # Security: Unvorhersagbare Admin-URL (nicht /admin/)
+    path('management-console-secure/', admin.site.urls),
+    path('management-dashboard/', views.admin_dashboard, name='admin-dashboard'),
     path('desk/', include('adeadesk.urls', namespace='adeadesk')),
     path('zeit/', include('adeazeit.urls', namespace='adeazeit')),
     path('lohn/', include('adealohn.urls', namespace='adealohn')),

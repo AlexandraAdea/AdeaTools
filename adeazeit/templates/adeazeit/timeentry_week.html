@@ -1,4 +1,4 @@
-{% extends 'adeazeit_base.html' %}
+{% extends 'admin_base_no_sidebar.html' %}
 
 {% block title %}Zeiterfassung – Woche – AdeaZeit{% endblock %}
 
@@ -15,8 +15,8 @@
             <p class="lead">Wochenansicht für Zeiteinträge.</p>
         </div>
         <div style="display: flex; gap: 12px;">
-            <a class="adea-button-secondary" href="{% url 'adeazeit:timeentry-week' %}?date={{ previous_monday|date:'Y-m-d' }}">← Vorherige Woche</a>
-            <a class="adea-button-secondary" href="{% url 'adeazeit:timeentry-week' %}?date={{ next_monday|date:'Y-m-d' }}">Nächste Woche →</a>
+            <a class="adea-button-secondary" href="{% url 'adeazeit:timeentry-week' %}?date={{ monday|date:'Y-m-d'|add:'-7' }}">← Vorherige Woche</a>
+            <a class="adea-button-secondary" href="{% url 'adeazeit:timeentry-week' %}?date={{ monday|date:'Y-m-d'|add:'7' }}">Nächste Woche →</a>
             <a class="adea-button-primary" href="{% url 'adeazeit:timeentry-create' %}">+ Neuer Eintrag</a>
         </div>
     </div>
@@ -63,7 +63,6 @@
                             <th>Mitarbeiterin</th>
                             <th>Mandant</th>
                             <th>Service-Typ</th>
-                            <th>Kommentar</th>
                             <th>Dauer</th>
                             <th>Betrag</th>
                             <th></th>
@@ -80,13 +79,6 @@
                             <td><strong>{{ entry.mitarbeiter.name }}</strong></td>
                             <td>{{ entry.client.name|default:"–" }}</td>
                             <td>{{ entry.service_type.code }}</td>
-                            <td style="max-width: 300px;">
-                                {% if entry.kommentar %}
-                                <span style="color: #1d1d1f; font-size: 0.9em;" title="{{ entry.kommentar }}">{{ entry.kommentar|truncatewords:10 }}</span>
-                                {% else %}
-                                <span style="color: #8e8e93;">–</span>
-                                {% endif %}
-                            </td>
                             <td>{{ entry.dauer|floatformat:2 }}h</td>
                             <td>
                                 <strong>{{ entry.betrag|floatformat:2 }} CHF</strong>
@@ -95,7 +87,7 @@
                                 {% endif %}
                             </td>
                             <td class="adea-table-actions">
-                                {% if can_edit_all or entry.mitarbeiter.pk in accessible_employee_ids %}
+                                {% if can_edit_all or entry.mitarbeiter.code == user.username %}
                                 <a href="{% url 'adeazeit:timeentry-update' entry.pk %}">Bearbeiten</a>
                                 {% endif %}
                                 {% if adeazeit_can_delete %}

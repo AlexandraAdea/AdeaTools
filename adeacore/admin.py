@@ -81,38 +81,6 @@ class ClientAdmin(admin.ModelAdmin):
     ordering = ("name",)
 
 
-# CRM-Models registrieren
-@admin.register(models.Communication)
-class CommunicationAdmin(admin.ModelAdmin):
-    list_display = ('client', 'communication_type', 'subject', 'date', 'created_by')
-    list_filter = ('communication_type', 'date')
-    search_fields = ('subject', 'content', 'client__name')
-    date_hierarchy = 'date'
-
-
-@admin.register(models.Event)
-class EventAdmin(admin.ModelAdmin):
-    list_display = ('client', 'title', 'event_type', 'start_date', 'created_by')
-    list_filter = ('event_type', 'start_date', 'is_recurring')
-    search_fields = ('title', 'description', 'client__name')
-    date_hierarchy = 'start_date'
-
-
-@admin.register(models.Invoice)
-class InvoiceAdmin(admin.ModelAdmin):
-    list_display = ('invoice_number', 'client', 'invoice_date', 'amount', 'payment_status', 'due_date')
-    list_filter = ('payment_status', 'invoice_date')
-    search_fields = ('invoice_number', 'client__name')
-    date_hierarchy = 'invoice_date'
-
-
-@admin.register(models.Document)
-class DocumentAdmin(admin.ModelAdmin):
-    list_display = ('title', 'client', 'document_type', 'created_at', 'uploaded_by')
-    list_filter = ('document_type', 'created_at')
-    search_fields = ('title', 'description', 'client__name')
-
-
 @admin.register(models.Employee)
 class EmployeeAdmin(admin.ModelAdmin):
     list_display = (

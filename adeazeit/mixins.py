@@ -23,7 +23,7 @@ class RoleRequiredMixin(LoginRequiredMixin):
     """
     Basis-Mixin für Rollenprüfung.
     """
-    login_url = '/zeit/login/'
+    login_url = '/admin/login/'
     required_role = None  # Muss in Subklassen überschrieben werden
     
     def dispatch(self, request, *args, **kwargs):
@@ -109,20 +109,26 @@ class AbsenceFilterMixin(FilterByRoleMixin):
 class CanEditMixin:
     """
     Mixin für Edit-Views - prüft Bearbeitungsrechte.
-    Standard-Implementierung - kann in Subklassen überschrieben werden.
     """
     
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
         
+        # Hole das Objekt
+        obj = self.get_object()
+        
         # Prüfe, ob User alle Einträge bearbeiten kann
         if can_edit_all_entries(request.user):
             return super().dispatch(request, *args, **kwargs)
         
-        # Für spezifische Views (wie TimeEntryUpdateView) wird dispatch überschrieben
-        # Diese Basis-Implementierung wird nur verwendet, wenn nicht überschrieben
-        return super().dispatch(request, *args, **kwargs)
+        # Prüfe, ob User das eigene Objekt bearbeiten kann
+        # Dies muss in Subklassen überschrieben werden
+        if hasattr(obj, 'mitarbeiter') and hasattr(obj.mitarbeiter, 'user'):
+            if obj.mitarbeiter.user == request.user:
+                return super().dispatch(request, *args, **kwargs)
+        
+        return HttpResponseForbidden("Sie können nur eigene Einträge bearbeiten.")
 
 
 class CanDeleteMixin:

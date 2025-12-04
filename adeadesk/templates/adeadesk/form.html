@@ -32,20 +32,6 @@
                         {% endif %}
                         <small style="color:#8e8e93; font-size:0.8em; display:block; margin-top:4px;">FIRMA = für Lohnbuchhaltung, PRIVAT = nur für Zeiterfassung</small>
                     </div>
-                    <div>
-                        <label for="{{ form.status.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">{{ form.status.label }} *</label>
-                        {{ form.status }}
-                        {% if form.status.errors %}
-                        <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.status.errors|striptags }}</div>
-                        {% endif %}
-                    </div>
-                    <div id="status-grund-container" style="display: none;">
-                        <label for="{{ form.status_grund.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">{{ form.status_grund.label }}</label>
-                        {{ form.status_grund }}
-                        {% if form.status_grund.errors %}
-                        <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.status_grund.errors|striptags }}</div>
-                        {% endif %}
-                    </div>
                 </div>
             </div>
             <div>
@@ -180,27 +166,13 @@
             {% if form.lohn_aktiv %}
             <div id="module-section">
                 <h2 style="margin-bottom: 12px; font-size: 1.1em; color: #1d1d1f;">Module</h2>
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <label for="{{ form.lohn_aktiv.id_for_label }}" style="display:flex; align-items:center; gap:8px; font-weight:600; font-size:14px; cursor:pointer;">
-                        {{ form.lohn_aktiv }}
-                        {{ form.lohn_aktiv.label }}
-                    </label>
-                    {% if form.lohn_aktiv.errors %}
-                    <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.lohn_aktiv.errors|striptags }}</div>
-                    {% endif %}
-                    {% if form.sachbearbeiter and form.sachbearbeiter.widget.input_type != 'hidden' %}
-                    <div>
-                        <label for="{{ form.sachbearbeiter.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">{{ form.sachbearbeiter.label }}</label>
-                        {{ form.sachbearbeiter }}
-                        {% if form.sachbearbeiter.help_text %}
-                        <small style="color:#8e8e93; font-size:0.8em; display:block; margin-top:4px;">{{ form.sachbearbeiter.help_text }}</small>
-                        {% endif %}
-                        {% if form.sachbearbeiter.errors %}
-                        <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.sachbearbeiter.errors|striptags }}</div>
-                        {% endif %}
-                    </div>
-                    {% endif %}
-                </div>
+                <label for="{{ form.lohn_aktiv.id_for_label }}" style="display:flex; align-items:center; gap:8px; font-weight:600; font-size:14px; cursor:pointer;">
+                    {{ form.lohn_aktiv }}
+                    {{ form.lohn_aktiv.label }}
+                </label>
+                {% if form.lohn_aktiv.errors %}
+                <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.lohn_aktiv.errors|striptags }}</div>
+                {% endif %}
             </div>
             {% endif %}
             <div>
@@ -227,61 +199,23 @@
 </section>
 
 <script>
-// Dynamische Anzeige/Ausblendung basierend auf client_type und status
+// Dynamische Anzeige/Ausblendung basierend auf client_type
 document.addEventListener('DOMContentLoaded', function() {
     const clientTypeSelect = document.getElementById('id_client_type');
-    const statusSelect = document.getElementById('id_status');
     const mwstSection = document.getElementById('mwst-section');
     const steuerSection = document.getElementById('steuer-section');
-    const statusGrundContainer = document.getElementById('status-grund-container');
     const mwstNrField = document.getElementById('id_mwst_nr');
     const uidField = document.getElementById('id_uid');
     
-    function toggleStatusGrund() {
-        const status = statusSelect ? statusSelect.value : 'AKTIV';
-        if (statusGrundContainer) {
-            if (status === 'AKTIV') {
-                statusGrundContainer.style.display = 'none';
-            } else {
-                statusGrundContainer.style.display = 'block';
-            }
-        }
-    }
-    
     function toggleSections() {
         const clientType = clientTypeSelect.value;
-        const lohnAktivCheckbox = document.getElementById('id_lohn_aktiv');
-        const sachbearbeiterField = document.getElementById('id_sachbearbeiter');
-        const sachbearbeiterContainer = sachbearbeiterField ? sachbearbeiterField.closest('div') : null;
-        
         if (clientType === 'FIRMA') {
             if (mwstSection) mwstSection.style.display = 'block';
             if (steuerSection) steuerSection.style.display = 'none';
-            // Sachbearbeiter nur anzeigen wenn Lohn aktiviert ist
-            if (lohnAktivCheckbox && sachbearbeiterContainer) {
-                if (lohnAktivCheckbox.checked) {
-                    sachbearbeiterContainer.style.display = 'block';
-                } else {
-                    sachbearbeiterContainer.style.display = 'none';
-                }
-            }
         } else if (clientType === 'PRIVAT') {
             if (mwstSection) mwstSection.style.display = 'none';
             if (steuerSection) steuerSection.style.display = 'block';
-            if (sachbearbeiterContainer) sachbearbeiterContainer.style.display = 'none';
         }
-    }
-    
-    // Event Listener für Status-Änderung
-    if (statusSelect) {
-        statusSelect.addEventListener('change', toggleStatusGrund);
-        toggleStatusGrund(); // Initial aufrufen
-    }
-    
-    // Event Listener für lohn_aktiv Checkbox
-    const lohnAktivCheckbox = document.getElementById('id_lohn_aktiv');
-    if (lohnAktivCheckbox) {
-        lohnAktivCheckbox.addEventListener('change', toggleSections);
     }
     
     if (clientTypeSelect) {

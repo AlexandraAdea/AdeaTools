@@ -18,26 +18,13 @@
                     <span>AdeaTools</span>
                 </a>
                 <nav style="display: flex; gap: 4px; flex: 1;">
-                    <a href="{% url 'adeazeit:timeentry-day' %}" class="top-nav-item {% if 'timeentry' in request.resolver_match.url_name %}active{% endif %}">Zeiteinträge</a>
-                    <a href="{% url 'adeazeit:task-list' %}" class="top-nav-item {% if 'task' in request.resolver_match.url_name %}active{% endif %}">Aufgaben</a>
-                    <a href="{% url 'adeazeit:absence-list' %}" class="top-nav-item {% if 'absence' in request.resolver_match.url_name %}active{% endif %}">Abwesenheiten</a>
-                    {% if adeazeit_can_manage_employees %}
                     <a href="{% url 'admin-dashboard' %}" class="top-nav-item {% if request.resolver_match.url_name == 'admin-dashboard' %}active{% endif %}">Dashboard</a>
+                    <a href="{% url 'adeazeit:timeentry-day' %}" class="top-nav-item {% if 'timeentry' in request.resolver_match.url_name %}active{% endif %}">Zeiteinträge</a>
                     <a href="{% url 'adeazeit:employee-list' %}" class="top-nav-item {% if 'employee' in request.resolver_match.url_name %}active{% endif %}">Mitarbeitende</a>
+                    <a href="{% url 'adeazeit:absence-list' %}" class="top-nav-item {% if 'absence' in request.resolver_match.url_name %}active{% endif %}">Abwesenheiten</a>
                     <a href="{% url 'adeazeit:servicetype-list' %}" class="top-nav-item {% if 'servicetype' in request.resolver_match.url_name %}active{% endif %}">Service-Typen</a>
-                    {% endif %}
                 </nav>
                 <div style="display: flex; align-items: center; gap: 16px;">
-                    {% if user.is_authenticated %}
-                    <div style="display: flex; align-items: center; gap: 12px; padding: 8px 16px; background: #f5f5f7; border-radius: 8px;">
-                        <span style="color: #1d1d1f; font-size: 0.9em;">
-                            <strong>{{ user.get_full_name|default:user.username }}</strong>
-                        </span>
-                        <a href="{% url 'global-logout' %}" style="color: #ff3b30; text-decoration: none; font-size: 0.9em; font-weight: 600;">Abmelden</a>
-                    </div>
-                    {% else %}
-                    <a href="{% url 'adeazeit:login' %}" style="color: #007aff; text-decoration: none; font-size: 0.9em; font-weight: 600;">Anmelden</a>
-                    {% endif %}
                     <a href="{% url 'home' %}" style="color: #6e6e73; text-decoration: none; font-size: 0.9em;">Zur Startseite</a>
                 </div>
             </div>

@@ -1,11 +1,9 @@
-{% extends 'adeazeit_base.html' %}
+{% extends 'admin_base_no_sidebar.html' %}
 
 {% block title %}AdeaZeit – Zeiterfassung{% endblock %}
 
 {% block breadcrumbs %}
-{% if adeazeit_can_manage_employees %}
 <a href="{% url 'admin-dashboard' %}">Dashboard</a>
-{% endif %}
 <a href="{% url 'adeazeit:index' %}">AdeaZeit</a>
 {% endblock %}
 

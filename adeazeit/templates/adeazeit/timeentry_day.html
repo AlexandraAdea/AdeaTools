@@ -1,4 +1,4 @@
-{% extends 'adeazeit_base.html' %}
+{% extends 'admin_base_no_sidebar.html' %}
 
 {% block breadcrumbs %}
 <a href="{% url 'admin-dashboard' %}">Dashboard</a>
@@ -15,67 +15,19 @@
             <p class="lead">Tagesansicht für Zeiteinträge.</p>
         </div>
         <div style="display: flex; gap: 12px;">
-            <a class="adea-button-secondary" href="{% url 'adeazeit:timeentry-day' %}?date={{ previous_date|date:'Y-m-d' }}">← Vorheriger Tag</a>
-            <a class="adea-button-secondary" href="{% url 'adeazeit:timeentry-day' %}?date={{ next_date|date:'Y-m-d' }}">Nächster Tag →</a>
+            <a class="adea-button-secondary" href="{% url 'adeazeit:timeentry-day' %}?date={{ selected_date|date:'Y-m-d'|add:'-1' }}">← Vorheriger Tag</a>
+            <a class="adea-button-secondary" href="{% url 'adeazeit:timeentry-day' %}?date={{ selected_date|date:'Y-m-d'|add:'1' }}">Nächster Tag →</a>
             <a class="adea-button-primary" href="{% url 'adeazeit:timeentry-create' %}?date={{ selected_date|date:'Y-m-d' }}">+ Neuer Eintrag</a>
         </div>
     </div>
 
     <div style="margin-top: 24px;">
-        <form method="get" id="date-form" style="display: flex; gap: 12px; align-items: center;">
+        <form method="get" style="display: flex; gap: 12px; align-items: center;">
             <label for="date" style="font-weight: 600;">Datum:</label>
             <input type="date" name="date" id="date" value="{{ selected_date|date:'Y-m-d' }}" class="adea-input">
             <button type="submit" class="adea-button-primary">Anzeigen</button>
         </form>
     </div>
-    
-    <script>
-    // Automatisches Absenden des Formulars wenn Datum im Kalender geändert wird
-    document.addEventListener('DOMContentLoaded', function() {
-        const dateInput = document.getElementById('date');
-        const dateForm = document.getElementById('date-form');
-        
-        if (dateInput && dateForm) {
-            dateInput.addEventListener('change', function() {
-                // Formular automatisch absenden wenn Datum geändert wird
-                dateForm.submit();
-            });
-        }
-    });
-    </script>
-
-    <!-- Laufende Timer anzeigen -->
-    {% if running_timers %}
-    <div style="background: #e8f5e9; border: 2px solid var(--color-green); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
-        <h3 style="margin: 0 0 12px 0; color: var(--color-green); display: flex; align-items: center; gap: 8px;">
-            🟢 Laufende Timer
-        </h3>
-        {% for timer in running_timers %}
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: white; border-radius: 6px; margin-bottom: 8px;">
-            <div style="flex: 1;">
-                <strong>{{ timer.mitarbeiter.name }}</strong> – 
-                {{ timer.client.name|default:"Interne Leistungen" }} – 
-                {{ timer.service_type.name }}
-                {% if timer.beschreibung %}
-                <br><small style="color: #6e6e73;">{{ timer.beschreibung }}</small>
-                {% endif %}
-            </div>
-            <div style="display: flex; align-items: center; gap: 16px;">
-                <div style="font-family: 'SF Mono', monospace; font-weight: 600; color: var(--color-green); font-size: 1.1em;">
-                    <span class="timer-live" data-start="{{ timer.start_time|date:'c' }}">00:00:00</span>
-                </div>
-                <span style="color: #6e6e73;">seit {{ timer.start_time|time:"H:i" }} Uhr</span>
-                <button onclick="stopTimerById({{ timer.id }})" class="adea-button-primary" style="background: var(--color-red); padding: 8px 16px;">
-                    ⏹ Stop
-                </button>
-                <button onclick="cancelTimerById({{ timer.id }})" class="adea-button-secondary" style="padding: 8px 16px;">
-                    Abbrechen
-                </button>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
 
     <div class="adea-table-wrapper" style="margin-top: 20px;">
         <table class="adea-table">
@@ -85,7 +37,6 @@
                     <th>Mitarbeiterin</th>
                     <th>Mandant</th>
                     <th>Service-Typ</th>
-                    <th>Kommentar</th>
                     <th>Dauer</th>
                     <th>Betrag</th>
                     <th></th>
@@ -102,13 +53,6 @@
                     <td><strong>{{ entry.mitarbeiter.name }}</strong></td>
                     <td>{{ entry.client.name|default:"–" }}</td>
                     <td>{{ entry.service_type.code }}</td>
-                    <td style="max-width: 300px;">
-                        {% if entry.kommentar %}
-                        <span style="color: #1d1d1f; font-size: 0.9em;" title="{{ entry.kommentar }}">{{ entry.kommentar|truncatewords:10 }}</span>
-                        {% else %}
-                        <span style="color: #8e8e93;">–</span>
-                        {% endif %}
-                    </td>
                     <td>{{ entry.dauer|floatformat:2 }}h</td>
                     <td>
                         <strong>{{ entry.betrag|floatformat:2 }} CHF</strong>
@@ -117,7 +61,7 @@
                         {% endif %}
                     </td>
                     <td class="adea-table-actions">
-                        {% if can_edit_all or entry.mitarbeiter.pk in accessible_employee_ids %}
+                        {% if can_edit_all or entry.mitarbeiter.code == user.username %}
                         <a href="{% url 'adeazeit:timeentry-update' entry.pk %}">Bearbeiten</a>
                         {% endif %}
                         {% if adeazeit_can_delete %}
@@ -127,19 +71,19 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8">Keine Zeiteinträge für diesen Tag.</td>
+                    <td colspan="7">Keine Zeiteinträge für diesen Tag.</td>
                 </tr>
                 {% endfor %}
             </tbody>
             <tfoot>
                 <tr style="background: #f5f5f7; font-weight: 600;">
-                    <td colspan="5">Gesamt</td>
+                    <td colspan="4">Gesamt</td>
                     <td>{{ total_dauer|floatformat:2 }}h</td>
                     <td>{{ total_betrag|floatformat:2 }} CHF</td>
                     <td></td>
                 </tr>
                 <tr style="background: #f5f5f7;">
-                    <td colspan="5">Verrechenbar</td>
+                    <td colspan="4">Verrechenbar</td>
                     <td>{{ billable_dauer|floatformat:2 }}h</td>
                     <td colspan="2"></td>
                 </tr>
@@ -147,75 +91,5 @@
         </table>
     </div>
 </section>
-
-{% endblock %}
-
-{% block scripts %}
-<script>
-// Stoppe Timer
-function stopTimerById(timerId) {
-    fetch("{% url 'adeazeit:timer-stop' %}", {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': '{{ csrf_token }}',
-        },
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            console.error('Fehler:', data.error);
-            location.reload();
-        }
-    })
-    .catch(error => {
-        console.error('Fehler:', error);
-        location.reload();
-    });
-}
-
-// Breche Timer ab
-function cancelTimerById(timerId) {
-    fetch("{% url 'adeazeit:timer-cancel' %}", {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': '{{ csrf_token }}',
-        },
-    })
-    .then(response => response.json())
-    .then(data => {
-        location.reload();
-    })
-    .catch(error => {
-        console.error('Fehler:', error);
-        location.reload();
-    });
-}
-
-// Live-Update für laufende Timer in der Tabelle
-document.addEventListener('DOMContentLoaded', function() {
-    const timerElements = document.querySelectorAll('.timer-live');
-    
-    function updateAllTimers() {
-        timerElements.forEach(el => {
-            const startTime = new Date(el.dataset.start);
-            const now = new Date();
-            const diff = Math.floor((now - startTime) / 1000);
-            
-            const hours = Math.floor(diff / 3600);
-            const minutes = Math.floor((diff % 3600) / 60);
-            const seconds = diff % 60;
-            
-            el.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        });
-    }
-    
-    if (timerElements.length > 0) {
-        updateAllTimers();
-        setInterval(updateAllTimers, 1000);
-    }
-});
-</script>
 {% endblock %}
 

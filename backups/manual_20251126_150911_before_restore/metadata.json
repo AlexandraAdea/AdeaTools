@@ -1,0 +1,7 @@
+{
+  "timestamp": "2025-11-26T15:09:11.224440",
+  "type": "manual",
+  "description": "before_restore",
+  "database": "C:\\AdeaTools\\AdeaCore\\db.sqlite3",
+  "django_version": "unknown"
+}

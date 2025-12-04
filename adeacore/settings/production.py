@@ -51,6 +51,22 @@ SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 
+# Session Security (Swiss Banking Standard)
+SESSION_COOKIE_AGE = 3600  # 1 Stunde (statt 2 Wochen Default)
+SESSION_COOKIE_SAMESITE = 'Strict'  # Verhindert CSRF
+SESSION_COOKIE_HTTPONLY = True  # Verhindert XSS
+SESSION_SAVE_EVERY_REQUEST = True  # Erneuert Session bei jeder Anfrage
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Session endet beim Schließen
+
+# HSTS (HTTP Strict Transport Security) - Swiss Standard
+SECURE_HSTS_SECONDS = 31536000  # 1 Jahr
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+
+# Zusätzliche Security Headers
+SECURE_REFERRER_POLICY = 'same-origin'
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 # Logging - nur Console für Production (keine File-Handler)
 # (Bereits in base.py konfiguriert)
 

@@ -3,79 +3,6 @@
 from django.db import migrations
 
 
-def remove_index_if_exists(apps, schema_editor):
-    """Entfernt Index nur wenn er existiert (datenbankunabhängig)."""
-    with schema_editor.connection.cursor() as cursor:
-        # SQLite und PostgreSQL unterstützen beide "DROP INDEX IF EXISTS"
-        cursor.execute("DROP INDEX IF EXISTS adeazeit_ab_mitarbe_ada11c_idx;")
-
-
-def rename_index_if_exists(apps, schema_editor):
-    """Benennt Index um nur wenn er existiert (datenbankunabhängig)."""
-    db_vendor = schema_editor.connection.vendor
-    
-    with schema_editor.connection.cursor() as cursor:
-        if db_vendor == 'postgresql':
-            # PostgreSQL: Prüfe ob alter Index existiert
-            cursor.execute("""
-                SELECT indexname FROM pg_indexes 
-                WHERE tablename = 'adeazeit_absence' 
-                AND indexname = 'adeazeit_abs_employe_123456_idx';
-            """)
-            if cursor.fetchone():
-                # Prüfe ob neuer Index bereits existiert
-                cursor.execute("""
-                    SELECT indexname FROM pg_indexes 
-                    WHERE tablename = 'adeazeit_absence' 
-                    AND indexname = 'adeazeit_ab_employe_c4ea6a_idx';
-                """)
-                if not cursor.fetchone():
-                    cursor.execute("ALTER INDEX adeazeit_abs_employe_123456_idx RENAME TO adeazeit_ab_employe_c4ea6a_idx;")
-        elif db_vendor == 'sqlite':
-            # SQLite: Prüfe ob Index existiert
-            cursor.execute("""
-                SELECT name FROM sqlite_master 
-                WHERE type='index' 
-                AND name='adeazeit_abs_employe_123456_idx';
-            """)
-            if cursor.fetchone():
-                # Prüfe ob neuer Index bereits existiert
-                cursor.execute("""
-                    SELECT name FROM sqlite_master 
-                    WHERE type='index' 
-                    AND name='adeazeit_ab_employe_c4ea6a_idx';
-                """)
-                if not cursor.fetchone():
-                    # SQLite unterstützt kein ALTER INDEX RENAME, daher neu erstellen
-                    cursor.execute("DROP INDEX adeazeit_abs_employe_123456_idx;")
-                    cursor.execute("CREATE INDEX adeazeit_ab_employe_c4ea6a_idx ON adeazeit_absence(employee_id, date_from);")
-        # Für andere Datenbanken: nichts tun
-
-
-def reverse_rename_index(apps, schema_editor):
-    """Reverse: Benennt Index zurück (datenbankunabhängig)."""
-    db_vendor = schema_editor.connection.vendor
-    
-    with schema_editor.connection.cursor() as cursor:
-        if db_vendor == 'postgresql':
-            cursor.execute("""
-                SELECT indexname FROM pg_indexes 
-                WHERE tablename = 'adeazeit_absence' 
-                AND indexname = 'adeazeit_ab_employe_c4ea6a_idx';
-            """)
-            if cursor.fetchone():
-                cursor.execute("ALTER INDEX adeazeit_ab_employe_c4ea6a_idx RENAME TO adeazeit_abs_employe_123456_idx;")
-        elif db_vendor == 'sqlite':
-            cursor.execute("""
-                SELECT name FROM sqlite_master 
-                WHERE type='index' 
-                AND name='adeazeit_ab_employe_c4ea6a_idx';
-            """)
-            if cursor.fetchone():
-                cursor.execute("DROP INDEX adeazeit_ab_employe_c4ea6a_idx;")
-                cursor.execute("CREATE INDEX adeazeit_abs_employe_123456_idx ON adeazeit_absence(employee_id, date_from);")
-
-
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -83,6 +10,13 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(remove_index_if_exists, migrations.RunPython.noop),
-        migrations.RunPython(rename_index_if_exists, reverse_rename_index),
+        migrations.RemoveIndex(
+            model_name='absence',
+            name='adeazeit_ab_mitarbe_ada11c_idx',
+        ),
+        migrations.RenameIndex(
+            model_name='absence',
+            new_name='adeazeit_ab_employe_c4ea6a_idx',
+            old_name='adeazeit_abs_employe_123456_idx',
+        ),
     ]

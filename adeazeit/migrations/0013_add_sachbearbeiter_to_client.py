@@ -10,14 +10,13 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # Index-Operationen entfernt, da der Index nicht existiert
-        # migrations.RemoveIndex(
-        #     model_name='absence',
-        #     name='adeazeit_ab_mitarbe_ada11c_idx',
-        # ),
-        # migrations.RenameIndex(
-        #     model_name='absence',
-        #     new_name='adeazeit_ab_employe_c4ea6a_idx',
-        #     old_name='adeazeit_abs_employe_123456_idx',
-        # ),
+        migrations.RemoveIndex(
+            model_name='absence',
+            name='adeazeit_ab_mitarbe_ada11c_idx',
+        ),
+        migrations.RenameIndex(
+            model_name='absence',
+            new_name='adeazeit_ab_employe_c4ea6a_idx',
+            old_name='adeazeit_abs_employe_123456_idx',
+        ),
     ]

@@ -19,6 +19,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # Security: Rate Limiting & Brute-Force Protection
+    'axes',  # django-axes MUSS nach django.contrib.auth sein!
     'adeacore.apps.AdeacoreConfig',
     # AdeaTools Module
     'adeadesk',
@@ -32,6 +34,8 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # Security: Rate Limiting Middleware (nach Auth!)
+    'axes.middleware.AxesMiddleware',  # django-axes
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'adeacore.middleware.SessionSecurityMiddleware',  # Session-Sicherheit
@@ -145,4 +149,25 @@ LOGGING = {
         },
     },
 }
+
+# ===================================================
+# django-axes: Brute-Force Protection (Swiss Banking Standard)
+# ===================================================
+
+# Authentication Backend (mit axes)
+AUTHENTICATION_BACKENDS = [
+    # AxesStandaloneBackend sollte VOR ModelBackend sein
+    'axes.backends.AxesStandaloneBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
+# axes Configuration
+AXES_FAILURE_LIMIT = 5  # Max 5 Fehlversuche
+AXES_COOLOFF_TIME = 1  # 1 Stunde Sperre (in Stunden)
+AXES_LOCKOUT_TEMPLATE = None  # Nutze Default 403-Seite
+AXES_RESET_ON_SUCCESS = True  # Reset Counter bei erfolgreichem Login
+AXES_VERBOSE = True  # Logging aktiviert
+AXES_LOCK_OUT_BY_COMBINATION_USER_AND_IP = True  # Lock by User+IP (sicherer)
+AXES_ONLY_ADMIN_SITE = False  # Schütze ALLE Login-Seiten
+AXES_ENABLED = True  # Aktiviert in Production
 
