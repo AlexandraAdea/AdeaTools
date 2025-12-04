@@ -8,29 +8,20 @@
     <p>Die zentrale Plattform für unsere digitale Treuhand-Suite.</p>
 </section>
 <section class="dashboard-grid">
-    {% if adeazeit_can_manage_employees %}
-    <a class="module-card module-card-admin" href="{% url 'admin-dashboard' %}">
-        <span class="label">Admin-Bereich</span>
-        <span class="title">⚙️ Verwaltung</span>
-        <p>Zentrale Verwaltung aller Module, Statistiken und Übersichten.</p>
-    </a>
-    {% endif %}
-    <a class="module-card" href="{% url 'adeadesk:client-list' %}">
+    <a class="module-card" href="/desk/">
         <span class="label">Modul</span>
         <span class="title">AdeaDesk</span>
         <p>Mandatsverwaltung, Stammdatenpflege und automatisierter Datenabgleich.</p>
     </a>
-    <a class="module-card" href="{% url 'adeazeit:timeentry-day' %}">
+    <a class="module-card" href="/zeit/">
         <span class="label">Modul</span>
         <span class="title">AdeaZeit</span>
         <p>Zeiterfassung mit Live-Tracking, Audit-Trail und Abwesenheitsmanagement.</p>
     </a>
-    {% if can_access_adelohn %}
-    <a class="module-card" href="{% url 'adealohn:payroll-list' %}">
+    <a class="module-card" href="/lohn/">
         <span class="label">Modul</span>
         <span class="title">AdeaLohn</span>
         <p>Vorbereitung und Kontrolle von Lohnabrechnungen mit Qualitätscheck.</p>
     </a>
-    {% endif %}
 </section>
 {% endblock %}
