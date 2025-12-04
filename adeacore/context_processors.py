@@ -70,3 +70,18 @@ def adeazeit_permissions(request):
             "adeazeit_can_delete": False,
         }
 
+
+def adealohn_permissions(request):
+    """
+    Fügt AdeaLohn-Berechtigungen zum Template-Context hinzu.
+    """
+    if not request.user.is_authenticated:
+        return {
+            "adealohn_is_visible": False,
+        }
+    
+    # AdeaLohn ist für alle eingeloggten User sichtbar (mit Berechtigungsprüfung in Views)
+    return {
+        "adealohn_is_visible": request.user.has_perm('adealohn.view_payrollrecord') or request.user.is_staff,
+    }
+
