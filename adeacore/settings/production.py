@@ -9,13 +9,17 @@ from django.core.exceptions import ImproperlyConfigured
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-# ALLOWED_HOSTS - aus Environment-Variable
+# ALLOWED_HOSTS - aus Environment-Variable oder hardcoded
 ALLOWED_HOSTS_ENV = os.environ.get('DJANGO_ALLOWED_HOSTS', '')
 if ALLOWED_HOSTS_ENV:
     ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV.split(',') if host.strip()]
 else:
-    # Fallback - sollte in Production gesetzt sein!
-    ALLOWED_HOSTS = ['*']  # WARNUNG: Nur für Testing, in Production spezifisch setzen!
+    # Hardcoded Hosts für Render und Custom Domain
+    ALLOWED_HOSTS = [
+        'adeacore-web.onrender.com',
+        'app.adea-treuhand.ch',
+        'www.app.adea-treuhand.ch',
+    ]
 
 # Database - PostgreSQL für Render
 try:
