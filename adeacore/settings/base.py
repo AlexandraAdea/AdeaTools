@@ -82,10 +82,15 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # Internationalization
-LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+LANGUAGE_CODE = 'de-ch'
+TIME_ZONE = 'Europe/Zurich'
 USE_I18N = True
 USE_TZ = True
+
+# Authentication URLs (für normale User, nicht Admin)
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
 
 # Static files
 STATIC_URL = '/static/'
