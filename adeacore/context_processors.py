@@ -102,8 +102,9 @@ def running_timer(request):
         if user_profile.employee:
             timer = RunningTimeEntry.objects.filter(mitarbeiter=user_profile.employee).first()
             return {'running_timer': timer}
-    except (ImportError, UserProfile.DoesNotExist, AttributeError):
-        # Falls adeazeit nicht installiert oder kein UserProfile
+    except Exception:
+        # Falls Model nicht existiert, Import fehlschlägt, oder kein UserProfile
+        # Fail gracefully - kein Timer verfügbar
         pass
     
     return {'running_timer': None}
