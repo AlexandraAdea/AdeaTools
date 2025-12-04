@@ -7,8 +7,15 @@ from .base import *
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-# ALLOWED_HOSTS für lokale Entwicklung
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+# ALLOWED_HOSTS für lokale Entwicklung + Custom Domains (falls auf Render geladen)
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    'adeacore-web.onrender.com',
+    'app.adea-treuhand.ch',
+    'www.app.adea-treuhand.ch',
+    '.adea-treuhand.ch',
+]
 
 # Database - SQLite für lokale Entwicklung
 DATABASES = {

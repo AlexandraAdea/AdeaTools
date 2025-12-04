@@ -19,6 +19,7 @@ else:
         'adeacore-web.onrender.com',
         'app.adea-treuhand.ch',
         'www.app.adea-treuhand.ch',
+        '.adea-treuhand.ch',  # Wildcard für alle Subdomains
     ]
 
 # Database - PostgreSQL für Render
