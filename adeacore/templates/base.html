@@ -35,8 +35,6 @@
                             <span style="color: #6e6e73; font-size: 0.95em;">{{ user.get_full_name|default:user.username }}</span>
                             <a href="/management-console-secure/logout/?next=/" class="adea-button-secondary" style="padding: 6px 16px; font-size: 0.9em; background: #ff3b30; color: white; border: none;">Abmelden</a>
                         </div>
-                    {% else %}
-                        <a href="/management-console-secure/login/?next={{ request.path }}" class="adea-button-primary" style="padding: 6px 16px; font-size: 0.9em;">Anmelden</a>
                     {% endif %}
                 </div>
             </div>
