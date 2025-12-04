@@ -167,7 +167,8 @@ AXES_COOLOFF_TIME = 1  # 1 Stunde Sperre (in Stunden)
 AXES_LOCKOUT_TEMPLATE = None  # Nutze Default 403-Seite
 AXES_RESET_ON_SUCCESS = True  # Reset Counter bei erfolgreichem Login
 AXES_VERBOSE = True  # Logging aktiviert
-AXES_LOCK_OUT_BY_COMBINATION_USER_AND_IP = True  # Lock by User+IP (sicherer)
+# axes 8.0+: Nutze AXES_LOCKOUT_PARAMETERS statt deprecated setting
+AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]  # Lock by User+IP (sicherer)
 AXES_ONLY_ADMIN_SITE = False  # Schütze ALLE Login-Seiten
 AXES_ENABLED = True  # Aktiviert in Production
 
