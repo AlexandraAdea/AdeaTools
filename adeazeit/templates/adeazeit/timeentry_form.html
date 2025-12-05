@@ -230,6 +230,7 @@ document.addEventListener('DOMContentLoaded', function() {
         {% csrf_token %}
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            {% if not form.mitarbeiter.field.widget.is_hidden %}
             <div>
                 <label for="{{ form.mitarbeiter.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.mitarbeiter.label }} *</label>
                 {{ form.mitarbeiter }}
@@ -237,6 +238,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.mitarbeiter.errors|striptags }}</div>
                 {% endif %}
             </div>
+            {% else %}
+            {{ form.mitarbeiter }}
+            {% endif %}
             <div>
                 <label for="{{ form.client.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.client.label }}</label>
                 {{ form.client }}
@@ -318,7 +322,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #e5e5ea; display:flex; gap:12px; flex-wrap:wrap;">
             {% if not object %}
-            <button type="button" onclick="startTimerFromForm()" class="adea-button-primary" style="background: var(--color-green);">
+            <button type="button" onclick="startTimerFromForm()" class="adea-button-primary" style="background: #34c759; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 500; cursor: pointer;">
                 ▶️ Timer starten
             </button>
             {% endif %}

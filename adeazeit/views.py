@@ -364,10 +364,18 @@ class TimeEntryCreateView(LoginRequiredMixin, CreateView):
         return initial
 
     def get_form(self, form_class=None):
+        from django import forms
         form = super().get_form(form_class)
         # Filter Mitarbeiter nach Rolle
         if not can_view_all_entries(self.request.user):
-            form.fields["mitarbeiter"].queryset = get_accessible_employees(self.request.user)
+            accessible_employees = get_accessible_employees(self.request.user)
+            form.fields["mitarbeiter"].queryset = accessible_employees
+            
+            # Für normale Mitarbeiter: Automatisch eigenen Mitarbeiter setzen und Feld verstecken
+            if accessible_employees.count() == 1:
+                employee = accessible_employees.first()
+                form.fields["mitarbeiter"].initial = employee
+                form.fields["mitarbeiter"].widget = forms.HiddenInput()
         return form
 
     def get_context_data(self, **kwargs):

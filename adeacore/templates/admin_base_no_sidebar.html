@@ -39,7 +39,11 @@
             <!-- Breadcrumbs -->
             <div class="admin-breadcrumbs">
                 {% block breadcrumbs %}
+                {% if user.is_staff %}
                 <a href="{% url 'admin-dashboard' %}">Dashboard</a>
+                {% else %}
+                <a href="{% url 'home' %}">Startseite</a>
+                {% endif %}
                 {% endblock breadcrumbs %}
             </div>
             
