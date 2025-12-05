@@ -14,8 +14,14 @@ ALLOWED_HOSTS_ENV = os.environ.get('DJANGO_ALLOWED_HOSTS', '')
 if ALLOWED_HOSTS_ENV:
     ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV.split(',') if host.strip()]
 else:
-    # Fallback - sollte in Production gesetzt sein!
-    ALLOWED_HOSTS = ['*']  # WARNUNG: Nur für Testing, in Production spezifisch setzen!
+    # Hardcoded Hosts für Render und Custom Domain (Fallback)
+    # Besser: DJANGO_ALLOWED_HOSTS Environment Variable setzen!
+    ALLOWED_HOSTS = [
+        'adeacore-web.onrender.com',
+        'app.adea-treuhand.ch',
+        'www.app.adea-treuhand.ch',
+        '.adea-treuhand.ch',  # Wildcard für alle Subdomains
+    ]
 
 # Database - PostgreSQL für Render
 try:
@@ -45,6 +51,8 @@ CSRF_COOKIE_SECURE = True
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+PERMISSIONS_POLICY = 'geolocation=(), microphone=(), camera=()'
 
 # Logging - nur Console für Production (keine File-Handler)
 # (Bereits in base.py konfiguriert)

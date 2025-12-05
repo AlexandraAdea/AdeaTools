@@ -20,13 +20,34 @@ except ImportError:
 
 # Prüfe ob Production-Modus
 DEBUG_ENV = os.environ.get('DJANGO_DEBUG', '').lower()
-if DEBUG_ENV == 'false':
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+if DATABASE_URL:  # If DATABASE_URL is set, assume production
     DEBUG = False
+    IS_PRODUCTION = True
+elif DEBUG_ENV == 'false':
+    DEBUG = False
+    IS_PRODUCTION = True
 elif DEBUG_ENV == 'true':
     DEBUG = True
+    IS_PRODUCTION = False
 else:
     # Standard für lokale Entwicklung: DEBUG = True
     DEBUG = True
+    IS_PRODUCTION = False
+
+# Lade base.py zuerst für SECRET_KEY
+from .base import SECRET_KEY
+
+# SECRET_KEY: Fallback nur für lokale Entwicklung, Production MUSS Environment Variable haben
+if not SECRET_KEY:
+    if IS_PRODUCTION:
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured("DJANGO_SECRET_KEY muss in Production gesetzt sein! Bitte setze die Environment Variable auf Render.")
+    else:
+        # Fallback nur für lokale Entwicklung
+        import hashlib
+        SECRET_KEY = 'django-insecure-dev-key-change-in-production-' + hashlib.md5(__file__.encode()).hexdigest()[:20]
 
 # Lade die richtige Settings-Datei
 if DEBUG:

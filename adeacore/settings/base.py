@@ -9,7 +9,8 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-2sq0xh0_=kcvx63ib^=2_&2_zf+$*vjr+mfn62h@cxb2^$+qw!')
+# SECRET_KEY wird in __init__.py gesetzt (mit Fallback nur für lokale Entwicklung)
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', None)
 
 # Application definition
 INSTALLED_APPS = [
@@ -104,14 +105,14 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Session Security
-SESSION_COOKIE_AGE = 86400  # 24 Stunden
+# Session Security (Swiss Banking Standard)
+SESSION_COOKIE_AGE = 3600  # 1 Stunde (wie in SECURITY_GUIDE.md dokumentiert)
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SAMESITE = 'Strict'  # Strenger als 'Lax' für besseren CSRF-Schutz
 CSRF_COOKIE_HTTPONLY = True
-CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Strict'
 
 # Logging Configuration (Basis)
 LOGGING = {

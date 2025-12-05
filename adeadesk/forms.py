@@ -152,8 +152,29 @@ class DocumentForm(forms.ModelForm):
             "document_type": forms.Select(attrs={"class": "adea-select"}),
             "title": forms.TextInput(attrs={"class": "adea-input"}),
             "description": forms.Textarea(attrs={"class": "adea-textarea", "rows": 4}),
-            "file": forms.FileInput(attrs={"class": "adea-input"}),
+            "file": forms.FileInput(attrs={"class": "adea-input", "accept": ".pdf,.doc,.docx,.xls,.xlsx"}),
         }
+    
+    def clean_file(self):
+        """Validiert hochgeladene Datei."""
+        file = self.cleaned_data.get('file')
+        if file:
+            # Dateigröße prüfen (max 10 MB)
+            max_size = 10 * 1024 * 1024  # 10 MB
+            if file.size > max_size:
+                raise forms.ValidationError(f"Datei ist zu groß. Maximum: {max_size / 1024 / 1024:.0f} MB")
+            
+            # Dateityp prüfen (basierend auf Extension)
+            allowed_extensions = ['.pdf', '.doc', '.docx', '.xls', '.xlsx']
+            file_ext = os.path.splitext(file.name)[1].lower()
+            if file_ext not in allowed_extensions:
+                raise forms.ValidationError(f"Ungültiger Dateityp. Erlaubt: {', '.join(allowed_extensions)}")
+            
+            # Dateiname sanitizen (einfache Version)
+            import re
+            file.name = re.sub(r'[^a-zA-Z0-9._-]', '_', file.name)
+            
+        return file
 
 
 
