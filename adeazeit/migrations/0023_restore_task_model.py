@@ -4,6 +4,35 @@ import django.db.models.deletion
 from django.db import migrations, models
 
 
+def create_task_table_if_not_exists(apps, schema_editor):
+    """Erstellt Task-Tabelle nur wenn sie nicht existiert."""
+    db_alias = schema_editor.connection.alias
+    with schema_editor.connection.cursor() as cursor:
+        # Prüfe ob Tabelle existiert
+        if db_alias == 'default':
+            # PostgreSQL
+            cursor.execute("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_schema = 'public' 
+                    AND table_name = 'adeazeit_task'
+                );
+            """)
+        else:
+            # SQLite
+            cursor.execute("""
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name='adeazeit_task';
+            """)
+        
+        table_exists = cursor.fetchone()[0] if cursor.rowcount > 0 else False
+        
+        if not table_exists:
+            # Erstelle Tabelle manuell
+            Task = apps.get_model('adeazeit', 'Task')
+            schema_editor.create_model(Task)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -12,6 +41,10 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunPython(
+            create_task_table_if_not_exists,
+            migrations.RunPython.noop,  # Reverse: nichts tun
+        ),
         migrations.CreateModel(
             name='Task',
             fields=[
