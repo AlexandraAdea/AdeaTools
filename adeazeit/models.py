@@ -6,6 +6,7 @@ from datetime import date
 from django.contrib.auth.models import User
 
 from adeacore.models import Client
+from django.utils import timezone
 
 
 class UserProfile(models.Model):
@@ -220,6 +221,96 @@ class ServiceType(models.Model):
 
     def __str__(self):
         return f"{self.code} – {self.name}"
+
+
+class Task(models.Model):
+    """
+    Aufgaben für Mitarbeiter mit Fälligkeitsdatum und Priorität.
+    Wichtig für Treuhand: Steuerfristen, MwSt-Abgaben, etc.
+    """
+    STATUS_CHOICES = [
+        ('OFFEN', 'Offen'),
+        ('IN_ARBEIT', 'In Arbeit'),
+        ('ERLEDIGT', 'Erledigt'),
+    ]
+    
+    PRIORITAET_CHOICES = [
+        ('NIEDRIG', 'Niedrig'),
+        ('MITTEL', 'Mittel'),
+        ('HOCH', 'Hoch'),
+    ]
+    
+    titel = models.CharField(
+        "Titel",
+        max_length=255,
+        help_text="Kurze Beschreibung der Aufgabe (z.B. 'Steuererklärung Müller AG')"
+    )
+    beschreibung = models.TextField(
+        "Beschreibung",
+        blank=True,
+        help_text="Detaillierte Beschreibung (optional)"
+    )
+    status = models.CharField(
+        "Status",
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='OFFEN'
+    )
+    prioritaet = models.CharField(
+        "Priorität",
+        max_length=20,
+        choices=PRIORITAET_CHOICES,
+        default='MITTEL'
+    )
+    fälligkeitsdatum = models.DateField(
+        "Fälligkeitsdatum",
+        null=True,
+        blank=True,
+        help_text="Wichtig für Treuhand: Steuerfristen, MwSt-Abgaben, etc."
+    )
+    notizen = models.TextField(
+        "Notizen",
+        blank=True,
+        help_text="Notizen zum aktuellen Stand (z.B. 'Warte auf Belege vom Kunden')"
+    )
+    client = models.ForeignKey(
+        Client,
+        on_delete=models.PROTECT,
+        related_name='tasks',
+        null=True,
+        blank=True,
+        verbose_name="Mandant",
+        help_text="Optional: Mandant zuordnen (z.B. 'Steuererklärung Müller AG')"
+    )
+    mitarbeiter = models.ForeignKey(
+        EmployeeInternal,
+        on_delete=models.PROTECT,
+        related_name='tasks',
+        verbose_name="Mitarbeiterin"
+    )
+    erstellt_am = models.DateTimeField("Erstellt am", auto_now_add=True)
+    erledigt_am = models.DateTimeField("Erledigt am", null=True, blank=True)
+    updated_at = models.DateTimeField("Aktualisiert am", auto_now=True)
+    
+    class Meta:
+        verbose_name = "Aufgabe"
+        verbose_name_plural = "Aufgaben"
+        ordering = ['prioritaet', 'fälligkeitsdatum', '-erstellt_am']
+        indexes = [
+            models.Index(fields=['mitarbeiter', 'status'], name='adeazeit_ta_mitarbe_492268_idx'),
+            models.Index(fields=['client', 'status'], name='adeazeit_ta_client__018f96_idx'),
+            models.Index(fields=['fälligkeitsdatum'], name='adeazeit_ta_fälligk_0cb4c5_idx'),
+        ]
+    
+    def __str__(self):
+        return f"{self.titel} ({self.get_status_display()})"
+    
+    def is_overdue(self):
+        """Prüft ob die Aufgabe überfällig ist."""
+        if self.fälligkeitsdatum and self.status != 'ERLEDIGT':
+            from django.utils import timezone
+            return self.fälligkeitsdatum < timezone.now().date()
+        return False
 
 
 class ZeitProject(models.Model):

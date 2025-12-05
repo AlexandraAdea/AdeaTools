@@ -1,0 +1,127 @@
+{% extends 'admin_base_no_sidebar.html' %}
+
+{% block title %}Aufgaben – AdeaZeit{% endblock %}
+
+{% block breadcrumbs %}
+{% if user.is_staff %}
+<a href="{% url 'admin-dashboard' %}">Dashboard</a>
+{% else %}
+<a href="{% url 'home' %}">Startseite</a>
+{% endif %}
+<a href="{% url 'adeazeit:task-list' %}">Aufgaben</a>
+{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <div class="adea-d-flex-between">
+        <div>
+            <h1 style="margin-bottom: 8px;">Aufgaben</h1>
+            <p class="lead">Verwalte Aufgaben mit Fälligkeitsdatum und Priorität. Wichtig für Treuhand: Steuerfristen, MwSt-Abgaben, etc.</p>
+        </div>
+        <a class="adea-button-primary" href="{% url 'adeazeit:task-create' %}">+ Neue Aufgabe</a>
+    </div>
+
+    <!-- Filterleiste -->
+    <form method="get" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px; align-items: end;">
+        <div>
+            <label for="status" style="display:block; font-weight:600; margin-bottom:6px;">Status</label>
+            <select name="status" id="status" class="adea-select">
+                <option value="">Alle</option>
+                <option value="OFFEN" {% if status_filter == "OFFEN" %}selected{% endif %}>Offen</option>
+                <option value="IN_ARBEIT" {% if status_filter == "IN_ARBEIT" %}selected{% endif %}>In Arbeit</option>
+                <option value="ERLEDIGT" {% if status_filter == "ERLEDIGT" %}selected{% endif %}>Erledigt</option>
+            </select>
+        </div>
+        <div>
+            <label for="prioritaet" style="display:block; font-weight:600; margin-bottom:6px;">Priorität</label>
+            <select name="prioritaet" id="prioritaet" class="adea-select">
+                <option value="">Alle</option>
+                <option value="HOCH" {% if prioritaet_filter == "HOCH" %}selected{% endif %}>Hoch</option>
+                <option value="MITTEL" {% if prioritaet_filter == "MITTEL" %}selected{% endif %}>Mittel</option>
+                <option value="NIEDRIG" {% if prioritaet_filter == "NIEDRIG" %}selected{% endif %}>Niedrig</option>
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="adea-button-primary">Filter anwenden</button>
+            {% if status_filter or prioritaet_filter %}
+            <a href="{% url 'adeazeit:task-list' %}" class="adea-button-primary" style="background:#e5e5ea; color:#1d1d1f; box-shadow:none; margin-left:8px;">Zurücksetzen</a>
+            {% endif %}
+        </div>
+    </form>
+
+    <!-- Aufgaben-Liste -->
+    <div class="adea-table-wrapper">
+        <table class="adea-table">
+            <thead>
+                <tr>
+                    <th>Titel</th>
+                    <th>Mitarbeiterin</th>
+                    <th>Mandant</th>
+                    <th>Status</th>
+                    <th>Priorität</th>
+                    <th>Fälligkeitsdatum</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks %}
+                <tr style="{% if task.is_overdue %}background: #ffebee;{% endif %}">
+                    <td>
+                        <strong>{{ task.titel }}</strong>
+                        {% if task.beschreibung %}
+                        <br><small style="color: #8e8e93;">{{ task.beschreibung|truncatewords:10 }}</small>
+                        {% endif %}
+                    </td>
+                    <td>{{ task.mitarbeiter.name }}</td>
+                    <td>{{ task.client.name|default:"–" }}</td>
+                    <td>
+                        <span style="{% if task.status == 'ERLEDIGT' %}background: #e8f5e9; color: #388e3c;{% elif task.status == 'IN_ARBEIT' %}background: #fff3e0; color: #f57c00;{% else %}background: #e3f2fd; color: #1976d2;{% endif %} padding: 2px 8px; border-radius: 4px; font-size: 0.85em;">
+                            {{ task.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <span style="{% if task.prioritaet == 'HOCH' %}background: #ffebee; color: #d32f2f;{% elif task.prioritaet == 'MITTEL' %}background: #fff3e0; color: #f57c00;{% else %}background: #e8f5e9; color: #388e3c;{% endif %} padding: 2px 8px; border-radius: 4px; font-size: 0.85em;">
+                            {{ task.get_prioritaet_display }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if task.fälligkeitsdatum %}
+                            {% if task.is_overdue %}
+                            <span style="color: #d32f2f; font-weight: 600;">⚠️ {{ task.fälligkeitsdatum|date:"d.m.Y" }}</span>
+                            {% else %}
+                            {{ task.fälligkeitsdatum|date:"d.m.Y" }}
+                            {% endif %}
+                        {% else %}
+                        –
+                        {% endif %}
+                    </td>
+                    <td class="adea-table-actions">
+                        <a href="{% url 'adeazeit:task-update' task.pk %}">Bearbeiten</a>
+                        <a href="{% url 'adeazeit:task-delete' task.pk %}" style="color: #ff5f57;">Löschen</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 40px; color: #8e8e93;">
+                        Keine Aufgaben gefunden.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="adea-pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if prioritaet_filter %}&prioritaet={{ prioritaet_filter }}{% endif %}">Zurück</a>
+        {% endif %}
+        <span>Seite {{ page_obj.number }} von {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if prioritaet_filter %}&prioritaet={{ prioritaet_filter }}{% endif %}">Weiter</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
+

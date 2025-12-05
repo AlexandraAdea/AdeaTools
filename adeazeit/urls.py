@@ -47,4 +47,10 @@ urlpatterns = [
     path("abwesenheiten/neu/", views.AbsenceCreateView.as_view(), name="absence-create"),
     path("abwesenheiten/<int:pk>/bearbeiten/", views.AbsenceUpdateView.as_view(), name="absence-update"),
     path("abwesenheiten/<int:pk>/loeschen/", views.AbsenceDeleteView.as_view(), name="absence-delete"),
+    
+    # Tasks
+    path("aufgaben/", views.TaskListView.as_view(), name="task-list"),
+    path("aufgaben/neu/", views.TaskCreateView.as_view(), name="task-create"),
+    path("aufgaben/<int:pk>/bearbeiten/", views.TaskUpdateView.as_view(), name="task-update"),
+    path("aufgaben/<int:pk>/loeschen/", views.TaskDeleteView.as_view(), name="task-delete"),
 ]

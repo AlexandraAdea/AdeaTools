@@ -19,13 +19,14 @@ from django.views.generic import (
 from django.http import JsonResponse
 
 from adeacore.models import Client
-from .models import EmployeeInternal, ServiceType, ZeitProject, TimeEntry, Absence, RunningTimeEntry
+from .models import EmployeeInternal, ServiceType, ZeitProject, TimeEntry, Absence, RunningTimeEntry, Task
 from .forms import (
     EmployeeInternalForm,
     ServiceTypeForm,
     ZeitProjectForm,
     TimeEntryForm,
     AbsenceForm,
+    TaskForm,
 )
 from .services import WorkingTimeCalculator
 from .mixins import (
@@ -683,6 +684,140 @@ class AbsenceDeleteView(AdminRequiredMixin, DeleteView):
     model = Absence
     template_name = "adeazeit/absence_confirm_delete.html"
     success_url = reverse_lazy("adeazeit:absence-list")
+
+
+# ============================================================================
+# Task Views
+# ============================================================================
+
+class TaskListView(LoginRequiredMixin, ListView):
+    model = Task
+    template_name = "adeazeit/task_list.html"
+    context_object_name = "tasks"
+    paginate_by = 20
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Mitarbeiter sehen nur eigene Tasks
+        if not can_view_all_entries(self.request.user):
+            try:
+                from .models import UserProfile
+                user_profile = UserProfile.objects.get(user=self.request.user)
+                if user_profile.employee:
+                    queryset = queryset.filter(mitarbeiter=user_profile.employee)
+            except UserProfile.DoesNotExist:
+                queryset = queryset.none()
+        
+        # Filter nach Status
+        status_filter = self.request.GET.get('status')
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        # Filter nach Priorität
+        prioritaet_filter = self.request.GET.get('prioritaet')
+        if prioritaet_filter:
+            queryset = queryset.filter(prioritaet=prioritaet_filter)
+        
+        return queryset.order_by('prioritaet', 'fälligkeitsdatum', '-erstellt_am')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['status_filter'] = self.request.GET.get('status', '')
+        context['prioritaet_filter'] = self.request.GET.get('prioritaet', '')
+        return context
+
+
+class TaskCreateView(LoginRequiredMixin, CreateView):
+    model = Task
+    form_class = TaskForm
+    template_name = "adeazeit/task_form.html"
+    
+    def get_initial(self):
+        initial = super().get_initial()
+        # Automatisch Mitarbeiter setzen für normale User
+        if not self.request.user.is_staff:
+            try:
+                from .models import UserProfile
+                user_profile = UserProfile.objects.get(user=self.request.user)
+                if user_profile.employee:
+                    initial["mitarbeiter"] = user_profile.employee
+            except UserProfile.DoesNotExist:
+                pass
+        return initial
+    
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        # Mitarbeiter-Feld verstecken für normale User
+        if not self.request.user.is_staff:
+            try:
+                from .models import UserProfile
+                user_profile = UserProfile.objects.get(user=self.request.user)
+                if user_profile.employee:
+                    form.fields['mitarbeiter'].widget = forms.HiddenInput()
+                    form.fields['mitarbeiter'].initial = user_profile.employee
+            except UserProfile.DoesNotExist:
+                pass
+        return form
+    
+    def form_valid(self, form):
+        # Setze erledigt_am wenn Status auf ERLEDIGT
+        if form.cleaned_data['status'] == 'ERLEDIGT' and not self.object.erledigt_am:
+            form.instance.erledigt_am = timezone.now()
+        elif form.cleaned_data['status'] != 'ERLEDIGT':
+            form.instance.erledigt_am = None
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        return reverse("adeazeit:task-list")
+
+
+class TaskUpdateView(LoginRequiredMixin, UpdateView):
+    model = Task
+    form_class = TaskForm
+    template_name = "adeazeit/task_form.html"
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Mitarbeiter können nur eigene Tasks bearbeiten
+        if not can_view_all_entries(self.request.user):
+            try:
+                from .models import UserProfile
+                user_profile = UserProfile.objects.get(user=self.request.user)
+                if user_profile.employee:
+                    queryset = queryset.filter(mitarbeiter=user_profile.employee)
+            except UserProfile.DoesNotExist:
+                queryset = queryset.none()
+        return queryset
+    
+    def form_valid(self, form):
+        # Setze erledigt_am wenn Status auf ERLEDIGT
+        if form.cleaned_data['status'] == 'ERLEDIGT' and not self.object.erledigt_am:
+            form.instance.erledigt_am = timezone.now()
+        elif form.cleaned_data['status'] != 'ERLEDIGT':
+            form.instance.erledigt_am = None
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        return reverse("adeazeit:task-list")
+
+
+class TaskDeleteView(LoginRequiredMixin, DeleteView):
+    model = Task
+    success_url = reverse_lazy("adeazeit:task-list")
+    template_name = "adeazeit/task_confirm_delete.html"
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Mitarbeiter können nur eigene Tasks löschen
+        if not can_view_all_entries(self.request.user):
+            try:
+                from .models import UserProfile
+                user_profile = UserProfile.objects.get(user=self.request.user)
+                if user_profile.employee:
+                    queryset = queryset.filter(mitarbeiter=user_profile.employee)
+            except UserProfile.DoesNotExist:
+                queryset = queryset.none()
+        return queryset
 
 
 # ============================================================================

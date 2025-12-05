@@ -1,7 +1,7 @@
 from django import forms
 from django.db import models
 from datetime import date
-from .models import EmployeeInternal, ServiceType, ZeitProject, TimeEntry, Absence
+from .models import EmployeeInternal, ServiceType, ZeitProject, TimeEntry, Absence, Task
 from adeacore.models import Client
 
 
@@ -186,3 +186,42 @@ class AbsenceForm(forms.ModelForm):
         
         # JavaScript für Stunden-Feld
         self.fields["full_day"].widget.attrs["onchange"] = "toggleHoursField(this)"
+
+
+class TaskForm(forms.ModelForm):
+    class Meta:
+        model = Task
+        fields = [
+            "titel",
+            "beschreibung",
+            "status",
+            "prioritaet",
+            "fälligkeitsdatum",
+            "notizen",
+            "client",
+            "mitarbeiter",
+        ]
+        widgets = {
+            "titel": forms.TextInput(attrs={"class": "adea-input"}),
+            "beschreibung": forms.Textarea(attrs={"class": "adea-textarea", "rows": 4}),
+            "status": forms.Select(attrs={"class": "adea-select"}),
+            "prioritaet": forms.Select(attrs={"class": "adea-select"}),
+            "fälligkeitsdatum": forms.DateInput(attrs={"class": "adea-input", "type": "date"}),
+            "notizen": forms.Textarea(attrs={"class": "adea-textarea", "rows": 3}),
+            "client": forms.Select(attrs={"class": "adea-select"}),
+            "mitarbeiter": forms.Select(attrs={"class": "adea-select"}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Filter: Nur aktive Mitarbeitende
+        today = date.today()
+        self.fields["mitarbeiter"].queryset = EmployeeInternal.objects.filter(
+            aktiv=True
+        ).filter(
+            models.Q(employment_end__isnull=True) | models.Q(employment_end__gte=today)
+        )
+        # Filter: Alle Clients
+        self.fields["client"].queryset = Client.objects.all().order_by("name")
+        # Client ist optional
+        self.fields["client"].required = False

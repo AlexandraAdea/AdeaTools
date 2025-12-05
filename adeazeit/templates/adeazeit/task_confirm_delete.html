@@ -1,0 +1,34 @@
+{% extends 'admin_base_no_sidebar.html' %}
+
+{% block title %}Aufgabe löschen – AdeaZeit{% endblock %}
+
+{% block breadcrumbs %}
+{% if user.is_staff %}
+<a href="{% url 'admin-dashboard' %}">Dashboard</a>
+{% else %}
+<a href="{% url 'home' %}">Startseite</a>
+{% endif %}
+<a href="{% url 'adeazeit:task-list' %}">Aufgaben</a>
+<a href="#">Löschen</a>
+{% endblock %}
+
+{% block content %}
+<section class="content-card" style="max-width: 600px; margin: 0 auto;">
+    <h1 style="margin-bottom: 20px;">Aufgabe löschen</h1>
+    
+    <p style="margin-bottom: 24px;">Sind Sie sicher, dass Sie die Aufgabe <strong>"{{ task.titel }}"</strong> löschen möchten?</p>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div style="display:flex; gap:12px;">
+            <button type="submit" class="adea-button-primary" style="background:#ff5f57;">
+                Ja, löschen
+            </button>
+            <a href="{% url 'adeazeit:task-list' %}" class="adea-button-primary" style="background:#e5e5ea; color:#1d1d1f; box-shadow:none;">
+                Abbrechen
+            </a>
+        </div>
+    </form>
+</section>
+{% endblock %}
+

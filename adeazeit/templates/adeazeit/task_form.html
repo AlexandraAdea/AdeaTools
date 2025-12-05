@@ -1,0 +1,107 @@
+{% extends 'admin_base_no_sidebar.html' %}
+
+{% block title %}{% if object %}Aufgabe bearbeiten{% else %}Neue Aufgabe{% endif %} – AdeaZeit{% endblock %}
+
+{% block breadcrumbs %}
+{% if user.is_staff %}
+<a href="{% url 'admin-dashboard' %}">Dashboard</a>
+{% else %}
+<a href="{% url 'home' %}">Startseite</a>
+{% endif %}
+<a href="{% url 'adeazeit:task-list' %}">Aufgaben</a>
+<a href="#">{% if object %}Bearbeiten{% else %}Neu{% endif %}</a>
+{% endblock %}
+
+{% block content %}
+<section class="content-card" style="max-width: 800px; margin: 0 auto;">
+    <h1 style="margin-bottom: 20px;">
+        {% if object %}Aufgabe bearbeiten{% else %}Neue Aufgabe{% endif %}
+    </h1>
+    
+    <form method="post" novalidate>
+        {% csrf_token %}
+        
+        <div style="margin-bottom: 20px;">
+            <label for="{{ form.titel.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.titel.label }} *</label>
+            {{ form.titel }}
+            {% if form.titel.errors %}
+            <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.titel.errors|striptags }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label for="{{ form.beschreibung.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.beschreibung.label }}</label>
+            {{ form.beschreibung }}
+            {% if form.beschreibung.errors %}
+            <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.beschreibung.errors|striptags }}</div>
+            {% endif %}
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div>
+                <label for="{{ form.status.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.status.label }} *</label>
+                {{ form.status }}
+                {% if form.status.errors %}
+                <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.status.errors|striptags }}</div>
+                {% endif %}
+            </div>
+            <div>
+                <label for="{{ form.prioritaet.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.prioritaet.label }} *</label>
+                {{ form.prioritaet }}
+                {% if form.prioritaet.errors %}
+                <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.prioritaet.errors|striptags }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label for="{{ form.fälligkeitsdatum.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.fälligkeitsdatum.label }}</label>
+            {{ form.fälligkeitsdatum }}
+            <small style="color:#8e8e93; font-size:0.8em; display:block; margin-top:4px;">Wichtig für Treuhand: Steuerfristen, MwSt-Abgaben, etc.</small>
+            {% if form.fälligkeitsdatum.errors %}
+            <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.fälligkeitsdatum.errors|striptags }}</div>
+            {% endif %}
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            {% if not form.mitarbeiter.field.widget.is_hidden %}
+            <div>
+                <label for="{{ form.mitarbeiter.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.mitarbeiter.label }} *</label>
+                {{ form.mitarbeiter }}
+                {% if form.mitarbeiter.errors %}
+                <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.mitarbeiter.errors|striptags }}</div>
+                {% endif %}
+            </div>
+            {% else %}
+            {{ form.mitarbeiter }}
+            {% endif %}
+            <div>
+                <label for="{{ form.client.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.client.label }}</label>
+                {{ form.client }}
+                {% if form.client.errors %}
+                <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.client.errors|striptags }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label for="{{ form.notizen.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.notizen.label }}</label>
+            {{ form.notizen }}
+            <small style="color:#8e8e93; font-size:0.8em; display:block; margin-top:4px;">Notizen zum aktuellen Stand (z.B. 'Warte auf Belege vom Kunden')</small>
+            {% if form.notizen.errors %}
+            <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.notizen.errors|striptags }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #e5e5ea; display:flex; gap:12px;">
+            <button type="submit" class="adea-button-primary">
+                {% if object %}Speichern{% else %}Anlegen{% endif %}
+            </button>
+            <a href="{% url 'adeazeit:task-list' %}" class="adea-button-primary" style="background:#e5e5ea; color:#1d1d1f; box-shadow:none;">
+                Abbrechen
+            </a>
+        </div>
+    </form>
+</section>
+{% endblock %}
+
