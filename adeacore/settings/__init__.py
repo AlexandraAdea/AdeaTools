@@ -19,14 +19,8 @@ except ImportError:
     pass
 
 # Prüfe ob Production-Modus
-# Wenn DATABASE_URL gesetzt ist (Render) → Production Mode
 DEBUG_ENV = os.environ.get('DJANGO_DEBUG', '').lower()
-DATABASE_URL = os.environ.get('DATABASE_URL', '')
-
-if DATABASE_URL:
-    # Production: DATABASE_URL ist auf Render gesetzt
-    DEBUG = False
-elif DEBUG_ENV == 'false':
+if DEBUG_ENV == 'false':
     DEBUG = False
 elif DEBUG_ENV == 'true':
     DEBUG = True

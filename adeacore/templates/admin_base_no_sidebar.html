@@ -18,11 +18,15 @@
                     <span>AdeaTools</span>
                 </a>
                 <nav style="display: flex; gap: 4px; flex: 1;">
+                    {% if user.is_staff %}
                     <a href="{% url 'admin-dashboard' %}" class="top-nav-item {% if request.resolver_match.url_name == 'admin-dashboard' %}active{% endif %}">Dashboard</a>
+                    {% endif %}
                     <a href="{% url 'adeazeit:timeentry-day' %}" class="top-nav-item {% if 'timeentry' in request.resolver_match.url_name %}active{% endif %}">Zeiteinträge</a>
+                    {% if user.is_staff %}
                     <a href="{% url 'adeazeit:employee-list' %}" class="top-nav-item {% if 'employee' in request.resolver_match.url_name %}active{% endif %}">Mitarbeitende</a>
                     <a href="{% url 'adeazeit:absence-list' %}" class="top-nav-item {% if 'absence' in request.resolver_match.url_name %}active{% endif %}">Abwesenheiten</a>
                     <a href="{% url 'adeazeit:servicetype-list' %}" class="top-nav-item {% if 'servicetype' in request.resolver_match.url_name %}active{% endif %}">Service-Typen</a>
+                    {% endif %}
                 </nav>
                 <div style="display: flex; align-items: center; gap: 16px;">
                     <a href="{% url 'home' %}" style="color: #6e6e73; text-decoration: none; font-size: 0.9em;">Zur Startseite</a>

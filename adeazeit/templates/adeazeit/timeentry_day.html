@@ -7,6 +7,85 @@
 
 {% block title %}Zeiterfassung – Tag – AdeaZeit{% endblock %}
 
+{% block head_extra %}
+{% if running_timer %}
+<script>
+let timerInterval;
+let startTime = new Date('{{ running_timer.start_time|date:"c" }}');
+
+function updateTimer() {
+    const now = new Date();
+    const diff = Math.floor((now - startTime) / 1000);
+    
+    const hours = Math.floor(diff / 3600);
+    const minutes = Math.floor((diff % 3600) / 60);
+    const seconds = diff % 60;
+    
+    const display = document.getElementById('timer-display');
+    if (display) {
+        display.textContent = 
+            String(hours).padStart(2, '0') + ':' +
+            String(minutes).padStart(2, '0') + ':' +
+            String(seconds).padStart(2, '0');
+    }
+}
+
+function stopTimer() {
+    if (!confirm('Timer stoppen und Zeiteintrag speichern?')) {
+        return;
+    }
+    
+    fetch('{% url "adeazeit:stop-timer" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Zeiteintrag gespeichert: ' + data.duration_hours + 'h');
+            window.location.reload();
+        } else {
+            alert('❌ Fehler: ' + (data.error || 'Unbekannter Fehler'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('❌ Netzwerkfehler!');
+    });
+}
+
+function cancelTimer() {
+    if (!confirm('Timer abbrechen? Die erfasste Zeit geht verloren!')) {
+        return;
+    }
+    
+    fetch('{% url "adeazeit:stop-timer" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert('Timer abgebrochen');
+        window.location.reload();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('❌ Netzwerkfehler!');
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateTimer();
+    timerInterval = setInterval(updateTimer, 1000);
+});
+</script>
+{% endif %}
+{% endblock %}
+
 {% block content %}
 <section class="content-card">
     <div class="adea-d-flex-between">
@@ -15,11 +94,30 @@
             <p class="lead">Tagesansicht für Zeiteinträge.</p>
         </div>
         <div style="display: flex; gap: 12px;">
-            <a class="adea-button-secondary" href="{% url 'adeazeit:timeentry-day' %}?date={{ selected_date|date:'Y-m-d'|add:'-1' }}">← Vorheriger Tag</a>
-            <a class="adea-button-secondary" href="{% url 'adeazeit:timeentry-day' %}?date={{ selected_date|date:'Y-m-d'|add:'1' }}">Nächster Tag →</a>
+            <a class="adea-button-secondary" href="{% url 'adeazeit:timeentry-day' %}?date={{ previous_date|date:'Y-m-d' }}">← Vorheriger Tag</a>
+            <a class="adea-button-secondary" href="{% url 'adeazeit:timeentry-day' %}?date={{ next_date|date:'Y-m-d' }}">Nächster Tag →</a>
             <a class="adea-button-primary" href="{% url 'adeazeit:timeentry-create' %}?date={{ selected_date|date:'Y-m-d' }}">+ Neuer Eintrag</a>
         </div>
     </div>
+
+    {% if running_timer %}
+    <div class="adea-timer-running-box" style="margin-top: 16px; padding: 16px; background: linear-gradient(135deg, #34c759 0%, #30d158 100%); border-radius: 12px; display: flex; justify-content: space-between; align-items: center; color: white;">
+        <div>
+            <div style="font-weight: 600; font-size: 1.1em; margin-bottom: 4px;">🟢 Laufender Timer</div>
+            <div style="font-size: 0.9em; opacity: 0.9;">
+                {{ running_timer.mitarbeiter.name }} –
+                {% if running_timer.client %}{{ running_timer.client.name }} – {% else %}Interne Leistungen – {% endif %}
+                {{ running_timer.service_type.name }}
+                <span style="margin-left: 12px; opacity: 0.8;">seit {{ running_timer.start_time|time:"H:i" }} Uhr</span>
+            </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <span id="timer-display" style="font-size: 2em; font-weight: 700; font-variant-numeric: tabular-nums;">00:00:00</span>
+            <button onclick="stopTimer()" class="adea-button-danger" style="padding: 10px 20px;">⏹ Stop</button>
+            <button onclick="cancelTimer()" class="adea-button-secondary" style="padding: 10px 20px; background: rgba(255,255,255,0.2); color: white; border: none;">Abbrechen</button>
+        </div>
+    </div>
+    {% endif %}
 
     <div style="margin-top: 24px;">
         <form method="get" style="display: flex; gap: 12px; align-items: center;">

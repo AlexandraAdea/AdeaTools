@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('adeazeit', '0016_remove_absence_adeazeit_ab_mitarbe_ada11c_idx_and_more'),
+        ('adeazeit', '0019_remove_absence_adeazeit_ab_mitarbe_ada11c_idx_and_more'),
     ]
 
     operations = [

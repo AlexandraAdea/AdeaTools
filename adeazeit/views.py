@@ -270,6 +270,8 @@ class TimeEntryDayView(LoginRequiredMixin, TemplateView):
             selected_date = date.today()
         
         context["selected_date"] = selected_date
+        context["previous_date"] = selected_date - timedelta(days=1)
+        context["next_date"] = selected_date + timedelta(days=1)
         
         # Filter nach Rolle
         from .permissions import get_accessible_time_entries

@@ -124,6 +124,51 @@ function loadEmployeeInfo(employeeId) {
         });
 }
 
+function startTimerFromForm() {
+    const mitarbeiterSelect = document.getElementById('id_mitarbeiter');
+    const clientSelect = document.getElementById('id_client');
+    const serviceTypeSelect = document.getElementById('id_service_type');
+    
+    if (!mitarbeiterSelect.value) {
+        alert('Bitte Mitarbeiterin auswählen!');
+        return;
+    }
+    
+    if (!serviceTypeSelect.value) {
+        alert('Bitte Service-Typ auswählen!');
+        return;
+    }
+    
+    const data = {
+        mitarbeiter_id: mitarbeiterSelect.value,
+        client_id: clientSelect.value || null,
+        service_type_id: serviceTypeSelect.value,
+        beschreibung: ''
+    };
+    
+    fetch('{% url "adeazeit:start-timer" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Timer gestartet!');
+            window.location.href = '{% url "adeazeit:timeentry-day" %}';
+        } else {
+            alert('❌ Fehler: ' + (data.error || 'Unbekannter Fehler'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('❌ Netzwerkfehler beim Starten des Timers!');
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Automatische Dauer-Berechnung
     const startInput = document.getElementById('id_start');
@@ -272,6 +317,11 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
 
         <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #e5e5ea; display:flex; gap:12px; flex-wrap:wrap;">
+            {% if not object %}
+            <button type="button" onclick="startTimerFromForm()" class="adea-button-primary" style="background: var(--color-green);">
+                ▶️ Timer starten
+            </button>
+            {% endif %}
             <button type="submit" class="adea-button-primary">
                 {% if object %}Speichern{% else %}Anlegen{% endif %}
             </button>

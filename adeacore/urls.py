@@ -16,7 +16,6 @@ Including another URLconf
 """
 from django.shortcuts import render
 from django.contrib import admin
-from django.contrib.auth import views as auth_views
 from django.urls import path, include
 from . import views
 
@@ -27,13 +26,8 @@ def home(request):
 
 urlpatterns = [
     path('', home, name='home'),
-    # User Login (für alle Mitarbeiter)
-    path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='user-login'),
-    path('logout/', auth_views.LogoutView.as_view(next_page='/'), name='user-logout'),
-    # Admin Login (nur für Staff/Admins)
-    path('management-console-secure/', admin.site.urls),
-    path('management-dashboard/', views.admin_dashboard, name='admin-dashboard'),
-    # Module
+    path('admin/', admin.site.urls),
+    path('admin-dashboard/', views.admin_dashboard, name='admin-dashboard'),
     path('desk/', include('adeadesk.urls', namespace='adeadesk')),
     path('zeit/', include('adeazeit.urls', namespace='adeazeit')),
     path('lohn/', include('adealohn.urls', namespace='adealohn')),
