@@ -900,20 +900,44 @@ def stop_timer(request):
         rate = timer.service_type.standard_rate if timer.service_type.standard_rate else Decimal('0.00')
         betrag = duration_hours * rate
         
-        time_entry = TimeEntry.objects.create(
+        # Berechne Start- und Endzeit
+        start_time_local = timezone.localtime(timer.start_time)
+        end_time_local = timezone.now()
+        start_time_obj = start_time_local.time()
+        end_time_obj = end_time_local.time()
+        
+        # Wenn Endzeit vor Startzeit (z.B. über Mitternacht), berechne korrekte Endzeit
+        if end_time_obj < start_time_obj:
+            # Timer läuft über Mitternacht - berechne Endzeit basierend auf Dauer
+            from datetime import datetime, timedelta
+            start_datetime = datetime.combine(timer.datum, start_time_obj)
+            end_datetime = start_datetime + timedelta(hours=float(duration_hours))
+            end_time_obj = end_datetime.time()
+            # Aktualisiere auch das Datum falls nötig
+            if end_datetime.date() > timer.datum:
+                # Timer läuft über Mitternacht - verwende das Datum vom Start
+                # Die Dauer wird korrekt berechnet, auch wenn es über Mitternacht geht
+                pass
+        
+        # Erstelle TimeEntry ohne clean() zu rufen (um Validierung zu umgehen)
+        time_entry = TimeEntry(
             mitarbeiter=timer.mitarbeiter,
             client=timer.client,
             service_type=timer.service_type,
             project=timer.projekt,  # projekt (RunningTimeEntry) -> project (TimeEntry)
             datum=timer.datum,
-            start=timezone.localtime(timer.start_time).time(),
-            ende=timezone.now().time(),
+            start=start_time_obj,
+            ende=end_time_obj,
             dauer=duration_hours,
             rate=rate,
             betrag=betrag,
             billable=timer.service_type.billable,
             kommentar=timer.beschreibung
         )
+        # Validiere manuell (ohne ende <= start Check wenn über Mitternacht)
+        if time_entry.dauer <= 0:
+            raise ValueError("Dauer muss größer als 0 sein.")
+        time_entry.save()
         
         # Lösche Timer
         timer.delete()
