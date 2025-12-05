@@ -698,8 +698,12 @@ class TaskListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         queryset = super().get_queryset()
-        # Mitarbeiter sehen nur eigene Tasks (außer sie sind Admin/Manager)
-        if not can_view_all_entries(self.request.user):
+        # Admin/Manager sehen alle Tasks
+        if can_view_all_entries(self.request.user) or self.request.user.is_staff:
+            # Alle Tasks anzeigen - keine Filterung
+            pass
+        else:
+            # Mitarbeiter sehen nur eigene Tasks
             try:
                 from .models import UserProfile
                 user_profile = UserProfile.objects.get(user=self.request.user)
