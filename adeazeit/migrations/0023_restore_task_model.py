@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('adeacore', '0020_increase_encrypted_field_lengths'),
-        ('adeazeit', '0022_delete_task'),
+        ('adeazeit', '0021_add_running_time_entry'),  # Direkt nach 0021, überspringe 0022
     ]
 
     operations = [
