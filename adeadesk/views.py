@@ -15,10 +15,10 @@ from .forms import ClientForm
 
 class ClientListView(LoginRequiredMixin, ListView):
     model = Client
-    template_name = "adeadesk/list.html"
+    template_name = "adeadesk/index.html"
     context_object_name = "clients"
     paginate_by = 10
-    login_url = '/admin/login/'
+    login_url = '/login/'
 
     def get_queryset(self):
         queryset = super().get_queryset().order_by("name")
@@ -48,7 +48,7 @@ class ClientCreateView(LoginRequiredMixin, CreateView):
     model = Client
     form_class = ClientForm
     template_name = "adeadesk/form.html"
-    login_url = '/admin/login/'
+    login_url = '/login/'
 
     def get_success_url(self):
         return reverse("adeadesk:client-detail", args=[self.object.pk])
@@ -58,14 +58,14 @@ class ClientDetailView(LoginRequiredMixin, DetailView):
     model = Client
     template_name = "adeadesk/detail.html"
     context_object_name = "client"
-    login_url = '/admin/login/'
+    login_url = '/login/'
 
 
 class ClientUpdateView(LoginRequiredMixin, UpdateView):
     model = Client
     form_class = ClientForm
     template_name = "adeadesk/form.html"
-    login_url = '/admin/login/'
+    login_url = '/login/'
 
     def get_success_url(self):
         return reverse("adeadesk:client-detail", args=[self.object.pk])
@@ -76,4 +76,4 @@ class ClientDeleteView(LoginRequiredMixin, DeleteView):
     template_name = "adeadesk/confirm_delete.html"
     context_object_name = "client"
     success_url = reverse_lazy("adeadesk:client-list")
-    login_url = '/admin/login/'
+    login_url = '/login/'
