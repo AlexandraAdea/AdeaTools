@@ -10,9 +10,11 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        # Migration 0009 hat bereits max_length=50 gesetzt
+        # Diese Migration ist redundant, aber wird für Konsistenz beibehalten
         migrations.AlterField(
             model_name='wagetype',
             name='code',
-            field=models.CharField(max_length=20, unique=True),
+            field=models.CharField(max_length=50, unique=True),
         ),
     ]
