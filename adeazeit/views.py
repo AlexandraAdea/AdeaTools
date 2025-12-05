@@ -698,14 +698,18 @@ class TaskListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         queryset = super().get_queryset()
-        # Mitarbeiter sehen nur eigene Tasks
+        # Mitarbeiter sehen nur eigene Tasks (außer sie sind Admin/Manager)
         if not can_view_all_entries(self.request.user):
             try:
                 from .models import UserProfile
                 user_profile = UserProfile.objects.get(user=self.request.user)
                 if user_profile.employee:
                     queryset = queryset.filter(mitarbeiter=user_profile.employee)
+                else:
+                    # User ohne Employee-Profil sehen keine Tasks
+                    queryset = queryset.none()
             except UserProfile.DoesNotExist:
+                # User ohne UserProfile sehen keine Tasks
                 queryset = queryset.none()
         
         # Filter nach Status
