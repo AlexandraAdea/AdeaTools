@@ -7,26 +7,49 @@
     <h1>AdeaTools</h1>
     <p>Die zentrale Plattform für unsere digitale Treuhand-Suite.</p>
 </section>
+
+{% if user.is_authenticated %}
 <section class="dashboard-grid">
+    {% if user.is_staff %}
     <a class="module-card" href="{% url 'admin-dashboard' %}" style="background: linear-gradient(135deg, #a8b5ff 0%, #c4a5f3 100%); border: 2px solid #8e9aff;">
         <span class="label" style="color: #4a5568; font-weight: 600;">Admin-Bereich</span>
         <span class="title" style="color: #1d1d1f;">⚙️ Verwaltung</span>
         <p style="color: #4a5568;">Zentrale Verwaltung aller Module, Statistiken und Übersichten.</p>
     </a>
-    <a class="module-card" href="/desk/">
+    {% endif %}
+    
+    {% if perms.adeadesk.view_client or user.is_staff %}
+    <a class="module-card" href="{% url 'adeadesk:client-list' %}">
         <span class="label">Modul</span>
         <span class="title">AdeaDesk</span>
         <p>Mandatsverwaltung, Stammdatenpflege und automatisierter Datenabgleich.</p>
     </a>
-    <a class="module-card" href="/zeit/">
+    {% endif %}
+    
+    {% if perms.adeazeit.view_timeentry or user.is_staff %}
+    <a class="module-card" href="{% url 'adeazeit:timeentry-day' %}">
         <span class="label">Modul</span>
         <span class="title">AdeaZeit</span>
         <p>Zeiterfassung mit Live-Tracking, Audit-Trail und Abwesenheitsmanagement.</p>
     </a>
-    <a class="module-card" href="/lohn/">
+    {% endif %}
+    
+    {% if perms.adealohn.view_payrollrecord or user.is_staff %}
+    <a class="module-card" href="{% url 'adealohn:payroll-list' %}">
         <span class="label">Modul</span>
         <span class="title">AdeaLohn</span>
         <p>Vorbereitung und Kontrolle von Lohnabrechnungen mit Qualitätscheck.</p>
     </a>
+    {% endif %}
 </section>
+{% else %}
+<section class="content-card" style="max-width: 500px; margin: 40px auto; text-align: center; padding: 40px;">
+    <h2 style="margin-bottom: 16px;">Willkommen bei AdeaTools</h2>
+    <p style="margin-bottom: 24px;">Bitte melden Sie sich an, um auf Ihre Module zuzugreifen.</p>
+    <a href="{% url 'login' %}" class="adea-button-primary" style="font-size: 1.1em; padding: 12px 30px; display: inline-block; text-decoration: none;">
+        <span style="margin-right: 8px;">🔐</span> Anmelden
+    </a>
+    <p style="margin-top: 24px; font-size: 0.85em; color: #6e6e73;">Entwickelt für Treuhandbüro Ivanova</p>
+</section>
+{% endif %}
 {% endblock %}
