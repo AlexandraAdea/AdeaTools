@@ -108,8 +108,10 @@
         </div>
     </div>
 
-    <div style="margin-top:24px;">
-        <a href="{% url 'adeadesk:client-list' %}">&larr; Zurück zur Übersicht</a>
+    <div style="margin-top:24px; padding-top: 20px; border-top: 1px solid #e5e5ea;">
+        <a href="{% url 'adeadesk:client-list' %}" class="adea-button-primary" style="background:#e5e5ea; color:#1d1d1f; box-shadow:none; text-decoration:none; display:inline-block; padding:10px 20px;">
+            &larr; Zurück zur Mandantenliste
+        </a>
     </div>
 </section>
 {% endblock %}
