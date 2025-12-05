@@ -1,5 +1,6 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import logout as auth_logout
 from django.db.models import Count, Sum
 from datetime import date, timedelta
 from decimal import Decimal
@@ -71,4 +72,10 @@ def admin_dashboard(request):
     }
     
     return render(request, 'admin/dashboard.html', context)
+
+
+def global_logout(request):
+    """Logout-Funktion für normale User (nicht nur Admin)."""
+    auth_logout(request)
+    return redirect('home')
 
