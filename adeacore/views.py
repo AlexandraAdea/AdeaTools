@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import logout as auth_logout
+from django.core.exceptions import PermissionDenied
 from django.db.models import Count, Sum
 from datetime import date, timedelta
 from decimal import Decimal
@@ -10,9 +11,17 @@ from adeazeit.models import EmployeeInternal, TimeEntry, Absence
 from adealohn.models import PayrollRecord
 
 
-@login_required(login_url='/admin/login/')
+def staff_required(user):
+    """Prüft ob User Staff-Mitglied ist."""
+    return user.is_authenticated and user.is_staff
+
+
+@login_required(login_url='/login/')
+@user_passes_test(staff_required, login_url='/login/')
 def admin_dashboard(request):
-    """Admin-Dashboard mit Übersicht aller Bereiche."""
+    """Admin-Dashboard mit Übersicht aller Bereiche - nur für Staff-User."""
+    if not request.user.is_staff:
+        raise PermissionDenied("Zugriff verweigert: Nur Administratoren können auf das Dashboard zugreifen.")
     today = date.today()
     this_month_start = date(today.year, today.month, 1)
     
