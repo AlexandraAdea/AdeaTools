@@ -13,10 +13,16 @@
         <!-- Top Navigation Bar -->
         <header class="admin-topbar-full">
             <div style="display: flex; align-items: center; gap: 24px; max-width: 1400px; margin: 0 auto; width: 100%;">
+                {% if user.is_staff %}
                 <a href="{% url 'admin-dashboard' %}" style="font-size: 1.3em; font-weight: 600; color: #1d1d1f; text-decoration: none; display: flex; align-items: center; gap: 8px;">
                     <span>⚙️</span>
                     <span>AdeaTools</span>
                 </a>
+                {% else %}
+                <a href="{% url 'home' %}" style="font-size: 1.3em; font-weight: 600; color: #1d1d1f; text-decoration: none; display: flex; align-items: center; gap: 8px;">
+                    <span>AdeaTools</span>
+                </a>
+                {% endif %}
                 <nav style="display: flex; gap: 4px; flex: 1;">
                     {% if user.is_staff %}
                     <a href="{% url 'admin-dashboard' %}" class="top-nav-item {% if request.resolver_match.url_name == 'admin-dashboard' %}active{% endif %}">Dashboard</a>
@@ -37,15 +43,13 @@
         <!-- Main Content Area -->
         <main class="admin-main-no-sidebar">
             <!-- Breadcrumbs -->
+            {% if user.is_staff %}
             <div class="admin-breadcrumbs">
                 {% block breadcrumbs %}
-                {% if user.is_staff %}
                 <a href="{% url 'admin-dashboard' %}">Dashboard</a>
-                {% else %}
-                <a href="{% url 'home' %}">Startseite</a>
-                {% endif %}
                 {% endblock breadcrumbs %}
             </div>
+            {% endif %}
             
             <!-- Messages -->
             {% if messages %}
