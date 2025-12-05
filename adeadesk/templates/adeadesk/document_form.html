@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}Dokument hochladen – AdeaDesk{% endblock %}
+
+{% block content %}
+<section class="content-card" style="max-width: 800px; margin: 0 auto;">
+    <div class="adea-d-flex-between">
+        <div>
+            <h1>Dokument hochladen</h1>
+            <p class="lead">Dokument für {{ client.name }}</p>
+        </div>
+        <a href="{% url 'adeadesk:client-detail' client.pk %}" class="adea-button-primary" style="background:#e5e5ea; color:#1d1d1f; box-shadow:none;">Zurück</a>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" style="margin-top: 24px;">
+        {% csrf_token %}
+        
+        <div style="margin-bottom: 20px;">
+            <label for="{{ form.document_type.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.document_type.label }} *</label>
+            {{ form.document_type }}
+            {% if form.document_type.errors %}
+            <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.document_type.errors|striptags }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label for="{{ form.title.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.title.label }} *</label>
+            {{ form.title }}
+            {% if form.title.errors %}
+            <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.title.errors|striptags }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label for="{{ form.description.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.description.label }}</label>
+            {{ form.description }}
+            {% if form.description.errors %}
+            <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.description.errors|striptags }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label for="{{ form.file.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.file.label }} *</label>
+            {{ form.file }}
+            {% if form.file.errors %}
+            <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.file.errors|striptags }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #e5e5ea; display:flex; gap:12px;">
+            <button type="submit" class="adea-button-primary">
+                Hochladen
+            </button>
+            <a href="{% url 'adeadesk:client-detail' client.pk %}" class="adea-button-primary" style="background:#e5e5ea; color:#1d1d1f; box-shadow:none;">
+                Abbrechen
+            </a>
+        </div>
+    </form>
+</section>
+{% endblock %}
+

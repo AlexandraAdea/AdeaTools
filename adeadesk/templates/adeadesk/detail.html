@@ -108,6 +108,68 @@
         </div>
     </div>
 
+    <!-- CRM Features: Termine und Dokumente -->
+    <div style="margin-top: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+        <!-- Termine -->
+        <section class="content-card">
+            <div class="adea-d-flex-between" style="margin-bottom: 16px;">
+                <h2 style="margin: 0; font-size: 1.2em;">Termine</h2>
+                <a href="{% url 'adeadesk:event-create' client.pk %}" class="adea-button-primary" style="padding: 8px 16px; font-size: 0.9em;">+ Neuer Termin</a>
+            </div>
+            {% if events %}
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                {% for event in events %}
+                <div style="padding: 12px; background: #f5f5f7; border-radius: 8px; border-left: 3px solid {% if event.is_overdue %}#ff5f57{% else %}#34c759{% endif %};">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div style="flex: 1;">
+                            <strong style="display: block; margin-bottom: 4px;">{{ event.title }}</strong>
+                            <small style="color: #8e8e93;">{{ event.start_date|date:"d.m.Y H:i" }}</small>
+                            {% if event.description %}
+                            <p style="margin: 8px 0 0 0; font-size: 0.9em; color: #6e6e73;">{{ event.description|truncatewords:15 }}</p>
+                            {% endif %}
+                        </div>
+                        <div style="display: flex; gap: 4px;">
+                            <a href="{% url 'adeadesk:event-update' client.pk event.pk %}" style="color: #007aff; text-decoration: none; font-size: 0.85em;">Bearbeiten</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p style="color: #8e8e93; text-align: center; padding: 20px;">Keine Termine vorhanden.</p>
+            {% endif %}
+        </section>
+
+        <!-- Dokumente -->
+        <section class="content-card">
+            <div class="adea-d-flex-between" style="margin-bottom: 16px;">
+                <h2 style="margin: 0; font-size: 1.2em;">Dokumente</h2>
+                <a href="{% url 'adeadesk:document-create' client.pk %}" class="adea-button-primary" style="padding: 8px 16px; font-size: 0.9em;">+ Dokument hochladen</a>
+            </div>
+            {% if documents %}
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                {% for document in documents %}
+                <div style="padding: 12px; background: #f5f5f7; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="flex: 1;">
+                        <strong style="display: block; margin-bottom: 4px;">{{ document.title }}</strong>
+                        <small style="color: #8e8e93;">{{ document.get_document_type_display }} • {{ document.created_at|date:"d.m.Y" }}</small>
+                        {% if document.description %}
+                        <p style="margin: 4px 0 0 0; font-size: 0.85em; color: #6e6e73;">{{ document.description|truncatewords:10 }}</p>
+                        {% endif %}
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <a href="{{ document.file.url }}" target="_blank" style="color: #007aff; text-decoration: none; font-size: 0.85em;">Öffnen</a>
+                        <a href="{% url 'adeadesk:document-delete' client.pk document.pk %}" style="color: #ff5f57; text-decoration: none; font-size: 0.85em;">Löschen</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p style="color: #8e8e93; text-align: center; padding: 20px;">Keine Dokumente vorhanden.</p>
+            {% endif %}
+        </section>
+    </div>
+
     <div style="margin-top:24px; padding-top: 20px; border-top: 1px solid #e5e5ea;">
         <a href="{% url 'adeadesk:client-list' %}" class="adea-button-primary" style="background:#e5e5ea; color:#1d1d1f; box-shadow:none; text-decoration:none; display:inline-block; padding:10px 20px;">
             &larr; Zurück zur Mandantenliste

@@ -1,6 +1,6 @@
 from django import forms
 
-from adeacore.models import Client
+from adeacore.models import Client, Event, Document
 
 
 class ClientForm(forms.ModelForm):
@@ -112,6 +112,48 @@ class ClientForm(forms.ModelForm):
             cleaned_data['steuerkanton'] = ''
         
         return cleaned_data
+
+
+class EventForm(forms.ModelForm):
+    class Meta:
+        model = Event
+        fields = [
+            "event_type",
+            "title",
+            "description",
+            "start_date",
+            "end_date",
+            "reminder_date",
+            "is_recurring",
+            "recurring_pattern",
+        ]
+        widgets = {
+            "event_type": forms.Select(attrs={"class": "adea-select"}),
+            "title": forms.TextInput(attrs={"class": "adea-input"}),
+            "description": forms.Textarea(attrs={"class": "adea-textarea", "rows": 4}),
+            "start_date": forms.DateTimeInput(attrs={"class": "adea-input", "type": "datetime-local"}),
+            "end_date": forms.DateTimeInput(attrs={"class": "adea-input", "type": "datetime-local"}),
+            "reminder_date": forms.DateTimeInput(attrs={"class": "adea-input", "type": "datetime-local"}),
+            "is_recurring": forms.CheckboxInput(attrs={"class": "adea-checkbox"}),
+            "recurring_pattern": forms.TextInput(attrs={"class": "adea-input"}),
+        }
+
+
+class DocumentForm(forms.ModelForm):
+    class Meta:
+        model = Document
+        fields = [
+            "document_type",
+            "title",
+            "description",
+            "file",
+        ]
+        widgets = {
+            "document_type": forms.Select(attrs={"class": "adea-select"}),
+            "title": forms.TextInput(attrs={"class": "adea-input"}),
+            "description": forms.Textarea(attrs={"class": "adea-textarea", "rows": 4}),
+            "file": forms.FileInput(attrs={"class": "adea-input"}),
+        }
 
 
 
