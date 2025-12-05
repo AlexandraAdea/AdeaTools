@@ -70,3 +70,40 @@ def adeazeit_permissions(request):
             "adeazeit_can_delete": False,
         }
 
+
+def adealohn_permissions(request):
+    """
+    Fügt AdeaLohn-Berechtigungen zum Template-Context hinzu.
+    """
+    if not request.user.is_authenticated:
+        return {"adealohn_is_visible": False}
+    
+    try:
+        from adealohn.permissions import can_access_adelohn
+        return {
+            "adealohn_is_visible": can_access_adelohn(request.user),
+        }
+    except ImportError:
+        return {
+            "adealohn_is_visible": False,
+        }
+
+
+def running_timer(request):
+    """
+    Fügt den aktuell laufenden Timer zum Template-Context hinzu.
+    """
+    if not request.user.is_authenticated:
+        return {'running_timer': None}
+    
+    try:
+        from adeazeit.models import RunningTimeEntry, UserProfile
+        employee_profile = UserProfile.objects.get(user=request.user)
+        if employee_profile.employee:
+            timer = RunningTimeEntry.objects.filter(mitarbeiter=employee_profile.employee).first()
+            return {'running_timer': timer}
+        return {'running_timer': None}
+    except (ImportError, UserProfile.DoesNotExist, AttributeError):
+        # Falls adeazeit nicht installiert ist oder UserProfile fehlt
+        return {'running_timer': None}
+
