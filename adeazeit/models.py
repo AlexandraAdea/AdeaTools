@@ -489,3 +489,63 @@ class Holiday(models.Model):
     def __str__(self):
         label = self.canton or "CH"
         return f"{self.date} – {self.name} ({label})"
+
+
+class RunningTimeEntry(models.Model):
+    """
+    Laufender Timer für Live-Zeiterfassung.
+    """
+    mitarbeiter = models.ForeignKey(
+        EmployeeInternal,
+        on_delete=models.CASCADE,
+        related_name="running_timer",
+        verbose_name="Mitarbeiterin"
+    )
+    client = models.ForeignKey(
+        Client,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="running_timers",
+        verbose_name="Mandant",
+        help_text="Nur bei externen Leistungen. Bei internen Leistungen leer lassen."
+    )
+    service_type = models.ForeignKey(
+        ServiceType,
+        on_delete=models.PROTECT,
+        related_name="running_timers",
+        verbose_name="Service-Typ"
+    )
+    projekt = models.ForeignKey(
+        "ZeitProject",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="running_timers",
+        verbose_name="Projekt"
+    )
+    beschreibung = models.TextField("Beschreibung", blank=True)
+    start_time = models.DateTimeField("Startzeit", auto_now_add=True)
+    datum = models.DateField("Datum", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Laufender Zeiteintrag"
+        verbose_name_plural = "Laufende Zeiteinträge"
+        constraints = [
+            models.UniqueConstraint(fields=['mitarbeiter'], name='one_timer_per_employee')
+        ]
+
+    def __str__(self):
+        from django.utils import timezone
+        return f"{self.mitarbeiter.name} – Timer läuft seit {timezone.localtime(self.start_time).strftime('%H:%M')}"
+
+    def get_duration_seconds(self):
+        from django.utils import timezone
+        delta = timezone.now() - self.start_time
+        return int(delta.total_seconds())
+
+    def get_duration_hours(self):
+        from decimal import Decimal
+        seconds = self.get_duration_seconds()
+        hours = Decimal(seconds) / Decimal(3600)
+        return hours.quantize(Decimal('0.1'))

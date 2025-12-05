@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from .views import start_timer, stop_timer
 
 app_name = "adeazeit"
 
@@ -36,6 +37,10 @@ urlpatterns = [
     path("ajax/projekte/", views.LoadProjectsView.as_view(), name="load-projects"),
     path("ajax/mitarbeiter-info/", views.LoadEmployeeInfoView.as_view(), name="load-employee-info"),
     path("ajax/service-type-rate/", views.LoadServiceTypeRateView.as_view(), name="load-service-type-rate"),
+    
+    # Timer (Live-Tracking)
+    path("timer/start/", start_timer, name="start-timer"),
+    path("timer/stop/", stop_timer, name="stop-timer"),
     
     # Absence
     path("abwesenheiten/", views.AbsenceListView.as_view(), name="absence-list"),

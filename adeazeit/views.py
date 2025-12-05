@@ -19,7 +19,7 @@ from django.views.generic import (
 from django.http import JsonResponse
 
 from adeacore.models import Client
-from .models import EmployeeInternal, ServiceType, ZeitProject, TimeEntry, Absence
+from .models import EmployeeInternal, ServiceType, ZeitProject, TimeEntry, Absence, RunningTimeEntry
 from .forms import (
     EmployeeInternalForm,
     ServiceTypeForm,
@@ -675,3 +675,110 @@ class AbsenceDeleteView(AdminRequiredMixin, DeleteView):
     model = Absence
     template_name = "adeazeit/absence_confirm_delete.html"
     success_url = reverse_lazy("adeazeit:absence-list")
+
+
+# ============================================================================
+# Timer Views (Live-Tracking)
+# ============================================================================
+
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
+import json
+
+@login_required
+@require_http_methods(["POST"])
+def start_timer(request):
+    """Startet einen Live-Timer für Zeiterfassung."""
+    try:
+        data = json.loads(request.body)
+        mitarbeiter_id = data.get('mitarbeiter_id')
+        client_id = data.get('client_id')
+        service_type_id = data.get('service_type_id')
+        beschreibung = data.get('beschreibung', '')
+        
+        if not mitarbeiter_id or not service_type_id:
+            return JsonResponse({"success": False, "error": "Mitarbeiter und Service-Typ sind erforderlich"})
+        
+        # Prüfe ob User Zugriff auf diesen Mitarbeiter hat
+        from .permissions import get_accessible_employees
+        accessible_employees = get_accessible_employees(request.user)
+        mitarbeiter = get_object_or_404(accessible_employees, pk=mitarbeiter_id)
+        
+        service_type = get_object_or_404(ServiceType, pk=service_type_id)
+        
+        # Prüfe ob bereits ein Timer läuft
+        existing_timer = RunningTimeEntry.objects.filter(mitarbeiter=mitarbeiter).first()
+        if existing_timer:
+            return JsonResponse({"success": False, "error": "Es läuft bereits ein Timer für diesen Mitarbeiter"})
+        
+        # Erstelle neuen Timer
+        timer = RunningTimeEntry.objects.create(
+            mitarbeiter=mitarbeiter,
+            client_id=client_id if client_id else None,
+            service_type=service_type,
+            beschreibung=beschreibung
+        )
+        
+        return JsonResponse({
+            "success": True,
+            "timer_id": timer.pk,
+            "message": "Timer gestartet"
+        })
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Fehler beim Starten des Timers: {e}", exc_info=True)
+        return JsonResponse({"success": False, "error": str(e)})
+
+
+@login_required
+@require_http_methods(["POST"])
+def stop_timer(request):
+    """Stoppt den laufenden Timer und erstellt einen Zeiteintrag."""
+    try:
+        from .permissions import get_accessible_employees
+        accessible_employees = get_accessible_employees(request.user)
+        
+        # Finde Timer für einen der zugänglichen Mitarbeiter
+        timer = RunningTimeEntry.objects.filter(mitarbeiter__in=accessible_employees).first()
+        
+        if not timer:
+            return JsonResponse({"success": False, "error": "Kein laufender Timer gefunden"})
+        
+        # Berechne Dauer
+        duration_hours = timer.get_duration_hours()
+        
+        # Erstelle Zeiteintrag
+        rate = timer.service_type.standard_rate if timer.service_type.standard_rate else Decimal('0.00')
+        betrag = duration_hours * rate
+        
+        time_entry = TimeEntry.objects.create(
+            mitarbeiter=timer.mitarbeiter,
+            client=timer.client,
+            service_type=timer.service_type,
+            projekt=timer.projekt,
+            datum=timer.datum,
+            start=timezone.localtime(timer.start_time).time(),
+            ende=timezone.now().time(),
+            dauer=duration_hours,
+            rate=rate,
+            betrag=betrag,
+            billable=timer.service_type.billable,
+            kommentar=timer.beschreibung
+        )
+        
+        # Lösche Timer
+        timer.delete()
+        
+        return JsonResponse({
+            "success": True,
+            "duration_hours": str(duration_hours),
+            "time_entry_id": time_entry.pk,
+            "message": "Zeiteintrag gespeichert"
+        })
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Fehler beim Stoppen des Timers: {e}", exc_info=True)
+        return JsonResponse({"success": False, "error": str(e)})
