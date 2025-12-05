@@ -900,7 +900,7 @@ def stop_timer(request):
             mitarbeiter=timer.mitarbeiter,
             client=timer.client,
             service_type=timer.service_type,
-            projekt=timer.projekt,
+            project=timer.projekt,  # projekt (RunningTimeEntry) -> project (TimeEntry)
             datum=timer.datum,
             start=timezone.localtime(timer.start_time).time(),
             ende=timezone.now().time(),
