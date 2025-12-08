@@ -1,7 +1,11 @@
 {% extends 'admin_base_no_sidebar.html' %}
 
 {% block breadcrumbs %}
+{% if user.is_staff %}
 <a href="{% url 'admin-dashboard' %}">Dashboard</a>
+{% else %}
+<a href="{% url 'home' %}">Startseite</a>
+{% endif %}
 <a href="{% url 'adeazeit:timeentry-day' %}">Zeiteinträge – Tag</a>
 {% endblock %}
 
@@ -159,7 +163,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         {% endif %}
                     </td>
                     <td class="adea-table-actions">
-                        {% if can_edit_all or entry.mitarbeiter.code == user.username %}
+                        {% if can_edit_all or entry.mitarbeiter.id in accessible_employee_ids %}
                         <a href="{% url 'adeazeit:timeentry-update' entry.pk %}">Bearbeiten</a>
                         {% endif %}
                         {% if adeazeit_can_delete %}
