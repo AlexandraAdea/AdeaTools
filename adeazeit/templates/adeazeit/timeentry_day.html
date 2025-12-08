@@ -163,7 +163,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         {% endif %}
                     </td>
                     <td class="adea-table-actions">
-                        {% if can_edit_all or entry.mitarbeiter.id in accessible_employee_ids %}
+                        {% if can_edit_all %}
+                        <a href="{% url 'adeazeit:timeentry-update' entry.pk %}">Bearbeiten</a>
+                        {% elif accessible_employee_ids and entry.mitarbeiter.id in accessible_employee_ids %}
                         <a href="{% url 'adeazeit:timeentry-update' entry.pk %}">Bearbeiten</a>
                         {% endif %}
                         {% if adeazeit_can_delete %}
