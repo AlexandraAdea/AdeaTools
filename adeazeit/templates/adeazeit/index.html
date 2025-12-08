@@ -3,7 +3,11 @@
 {% block title %}AdeaZeit – Zeiterfassung{% endblock %}
 
 {% block breadcrumbs %}
+{% if user.is_staff %}
 <a href="{% url 'admin-dashboard' %}">Dashboard</a>
+{% else %}
+<a href="{% url 'home' %}">Startseite</a>
+{% endif %}
 <a href="{% url 'adeazeit:index' %}">AdeaZeit</a>
 {% endblock %}
 
