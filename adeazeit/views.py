@@ -420,7 +420,13 @@ class TimeEntryUpdateView(LoginRequiredMixin, UpdateView):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
         
-        obj = self.get_object()
+        try:
+            obj = self.get_object()
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Fehler beim Laden des Zeiteintrags: {e}", exc_info=True)
+            return HttpResponseForbidden(f"Zeiteintrag konnte nicht geladen werden: {str(e)}")
         
         # Prüfe, ob User alle Einträge bearbeiten kann
         if can_edit_all_entries(request.user):
@@ -430,8 +436,14 @@ class TimeEntryUpdateView(LoginRequiredMixin, UpdateView):
         if not obj.mitarbeiter:
             return HttpResponseForbidden("Zeiteintrag hat keinen zugeordneten Mitarbeiter.")
         
-        accessible_employees = get_accessible_employees(request.user)
-        accessible_employee_ids = list(accessible_employees.values_list('id', flat=True))
+        try:
+            accessible_employees = get_accessible_employees(request.user)
+            accessible_employee_ids = list(accessible_employees.values_list('id', flat=True))
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Fehler beim Laden der zugänglichen Mitarbeiter: {e}", exc_info=True)
+            return HttpResponseForbidden(f"Fehler beim Prüfen der Berechtigungen: {str(e)}")
         
         if not accessible_employee_ids:
             return HttpResponseForbidden("Sie haben keinen zugeordneten Mitarbeiter-Profil. Bitte kontaktieren Sie den Administrator.")
