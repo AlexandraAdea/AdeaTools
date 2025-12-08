@@ -428,10 +428,10 @@ class TimeEntryUpdateView(LoginRequiredMixin, UpdateView):
         
         # Prüfe, ob User den eigenen Eintrag bearbeitet
         accessible_employees = get_accessible_employees(request.user)
-        if obj.mitarbeiter in accessible_employees:
+        accessible_employee_ids = list(accessible_employees.values_list('id', flat=True))
+        if obj.mitarbeiter.id in accessible_employee_ids:
             return super().dispatch(request, *args, **kwargs)
         
-        from django.http import HttpResponseForbidden
         return HttpResponseForbidden("Sie können nur eigene Zeiteinträge bearbeiten.")
 
     def get_form(self, form_class=None):
