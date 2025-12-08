@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
 {% endblock %}
 
 {% block content %}
-<section class="content-card">
+<section class="content-card" style="max-width: 100%; width: 100%;">
     <div class="adea-d-flex-between">
         <div>
             <h1 style="margin-bottom: 8px;">Zeiterfassung – {{ selected_date|date:"d.m.Y" }}</h1>
@@ -131,17 +131,18 @@ document.addEventListener('DOMContentLoaded', function() {
         </form>
     </div>
 
-    <div class="adea-table-wrapper" style="margin-top: 20px;">
-        <table class="adea-table">
+    <div class="adea-table-wrapper" style="margin-top: 20px; overflow-x: auto;">
+        <table class="adea-table" style="min-width: 1200px;">
             <thead>
                 <tr>
-                    <th>Zeit</th>
-                    <th>Mitarbeiterin</th>
-                    <th>Mandant</th>
-                    <th>Service-Typ</th>
-                    <th>Dauer</th>
-                    <th>Betrag</th>
-                    <th></th>
+                    <th style="width: 100px;">Zeit</th>
+                    <th style="width: 150px;">Mitarbeiterin</th>
+                    <th style="width: 150px;">Mandant</th>
+                    <th style="width: 100px;">Service-Typ</th>
+                    <th style="width: 200px;">Kommentar</th>
+                    <th style="width: 80px;">Dauer</th>
+                    <th style="width: 150px;">Betrag</th>
+                    <th style="width: 120px;"></th>
                 </tr>
             </thead>
             <tbody>
@@ -155,6 +156,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td><strong>{{ entry.mitarbeiter.name }}</strong></td>
                     <td>{{ entry.client.name|default:"–" }}</td>
                     <td>{{ entry.service_type.code }}</td>
+                    <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ entry.kommentar|default:'' }}">
+                        {{ entry.kommentar|default:"–"|truncatewords:10 }}
+                    </td>
                     <td>{{ entry.dauer|floatformat:2 }}h</td>
                     <td>
                         <strong>{{ entry.betrag|floatformat:2 }} CHF</strong>
@@ -175,19 +179,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7">Keine Zeiteinträge für diesen Tag.</td>
+                    <td colspan="8">Keine Zeiteinträge für diesen Tag.</td>
                 </tr>
                 {% endfor %}
             </tbody>
             <tfoot>
                 <tr style="background: #f5f5f7; font-weight: 600;">
-                    <td colspan="4">Gesamt</td>
+                    <td colspan="5">Gesamt</td>
                     <td>{{ total_dauer|floatformat:2 }}h</td>
                     <td>{{ total_betrag|floatformat:2 }} CHF</td>
                     <td></td>
                 </tr>
                 <tr style="background: #f5f5f7;">
-                    <td colspan="4">Verrechenbar</td>
+                    <td colspan="5">Verrechenbar</td>
                     <td>{{ billable_dauer|floatformat:2 }}h</td>
                     <td colspan="2"></td>
                 </tr>
