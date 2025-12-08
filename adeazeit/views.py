@@ -429,7 +429,7 @@ class TimeEntryUpdateView(LoginRequiredMixin, UpdateView):
             return HttpResponseForbidden(f"Zeiteintrag konnte nicht geladen werden: {str(e)}")
         
         # Prüfe, ob User alle Einträge bearbeiten kann
-        if can_edit_all_entries(request.user):
+        if can_view_all_entries(request.user):
             return super().dispatch(request, *args, **kwargs)
         
         # Prüfe, ob User den eigenen Eintrag bearbeitet
