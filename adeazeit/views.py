@@ -427,8 +427,15 @@ class TimeEntryUpdateView(LoginRequiredMixin, UpdateView):
             return super().dispatch(request, *args, **kwargs)
         
         # Prüfe, ob User den eigenen Eintrag bearbeitet
+        if not obj.mitarbeiter:
+            return HttpResponseForbidden("Zeiteintrag hat keinen zugeordneten Mitarbeiter.")
+        
         accessible_employees = get_accessible_employees(request.user)
         accessible_employee_ids = list(accessible_employees.values_list('id', flat=True))
+        
+        if not accessible_employee_ids:
+            return HttpResponseForbidden("Sie haben keinen zugeordneten Mitarbeiter-Profil. Bitte kontaktieren Sie den Administrator.")
+        
         if obj.mitarbeiter.id in accessible_employee_ids:
             return super().dispatch(request, *args, **kwargs)
         
