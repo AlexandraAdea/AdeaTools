@@ -33,8 +33,6 @@
                     <a href="{% url 'adeazeit:employee-list' %}" class="top-nav-item {% if 'employee' in request.resolver_match.url_name %}active{% endif %}">Mitarbeitende</a>
                     <a href="{% url 'adeazeit:absence-list' %}" class="top-nav-item {% if 'absence' in request.resolver_match.url_name %}active{% endif %}">Abwesenheiten</a>
                     <a href="{% url 'adeazeit:servicetype-list' %}" class="top-nav-item {% if 'servicetype' in request.resolver_match.url_name %}active{% endif %}">Service-Typen</a>
-                    {% else %}
-                    <!-- Normale User sehen keine Admin-Links -->
                     {% endif %}
                 </nav>
                 <div style="display: flex; align-items: center; gap: 16px;">
