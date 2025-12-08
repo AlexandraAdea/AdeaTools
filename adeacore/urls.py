@@ -30,7 +30,7 @@ urlpatterns = [
     # Django Admin (Security by Obscurity - versteckte URL)
     path('management-console-secure/', admin.site.urls),
     # Redirect von /admin/ zu /management-console-secure/ für bessere UX
-    path('admin/', lambda request: redirect('admin:index'), name='admin-redirect'),
+    path('admin/', lambda request: redirect('/management-console-secure/'), name='admin-redirect'),
     # Admin Dashboard
     path('management-dashboard/', views.admin_dashboard, name='admin-dashboard'),
     path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
