@@ -39,6 +39,7 @@ from .mixins import (
     CanDeleteMixin,
 )
 from .permissions import (
+    can_edit_all_entries,
     can_view_all_entries,
     can_manage_employees,
     can_manage_service_types,
