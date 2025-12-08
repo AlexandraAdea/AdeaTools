@@ -294,6 +294,10 @@ class TimeEntryDayView(LoginRequiredMixin, TemplateView):
         context["billable_dauer"] = stats["billable_dauer"] or Decimal('0.00')
         context["can_edit_all"] = can_view_all_entries(self.request.user)
         
+        # Für Template: Liste der zugänglichen Mitarbeiter-IDs für Bearbeitungsprüfung
+        accessible_employee_ids = list(get_accessible_employees(self.request.user).values_list('id', flat=True))
+        context["accessible_employee_ids"] = accessible_employee_ids
+        
         return context
 
 
