@@ -50,6 +50,12 @@
                 <a href="{% url 'admin-dashboard' %}">Dashboard</a>
                 {% endblock breadcrumbs %}
             </div>
+            {% else %}
+            <div class="admin-breadcrumbs">
+                {% block breadcrumbs %}
+                <a href="{% url 'home' %}">Startseite</a>
+                {% endblock breadcrumbs %}
+            </div>
             {% endif %}
             
             <!-- Messages -->
