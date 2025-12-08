@@ -410,10 +410,20 @@ class TimeEntry(models.Model):
 
     def clean(self):
         """Validiere Zeiteintrag."""
-        if self.ende and self.start and self.ende <= self.start:
-            raise ValidationError({
-                'ende': 'Endzeit muss nach Startzeit liegen.'
-            })
+        if self.ende and self.start:
+            # Konvertiere zu Minuten für Vergleich
+            start_minutes = self.start.hour * 60 + self.start.minute
+            end_minutes = self.ende.hour * 60 + self.ende.minute
+            
+            # Wenn Endzeit vor Startzeit (über Mitternacht), addiere 24 Stunden
+            if end_minutes <= start_minutes:
+                end_minutes += 24 * 60
+            
+            # Mindestens 1 Minute Unterschied erforderlich
+            if end_minutes - start_minutes < 1:
+                raise ValidationError({
+                    'ende': 'Endzeit muss mindestens 1 Minute nach Startzeit liegen.'
+                })
         
         if self.dauer <= 0:
             raise ValidationError({
