@@ -44,19 +44,15 @@
         <!-- Main Content Area -->
         <main class="admin-main-no-sidebar">
             <!-- Breadcrumbs -->
-            {% if user.is_staff %}
             <div class="admin-breadcrumbs">
                 {% block breadcrumbs %}
+                {% if user.is_staff %}
                 <a href="{% url 'admin-dashboard' %}">Dashboard</a>
-                {% endblock breadcrumbs %}
-            </div>
-            {% else %}
-            <div class="admin-breadcrumbs">
-                {% block breadcrumbs %}
+                {% else %}
                 <a href="{% url 'home' %}">Startseite</a>
+                {% endif %}
                 {% endblock breadcrumbs %}
             </div>
-            {% endif %}
             
             <!-- Messages -->
             {% if messages %}
