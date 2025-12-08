@@ -464,18 +464,25 @@ class TimeEntryUpdateView(LoginRequiredMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         # Mitarbeiter-Info für Sidebar
         if self.object and self.object.mitarbeiter:
-            today = date.today()
-            employee = self.object.mitarbeiter
-            context["employee_info"] = {
-                "employee": employee,
-                "employment_percent": employee.employment_percent,
-                "weekly_soll_hours": employee.weekly_soll_hours,
-                "monthly_soll": WorkingTimeCalculator.monthly_soll_hours(employee, today.year, today.month),
-                "monthly_absence": WorkingTimeCalculator.monthly_absence_hours(employee, today.year, today.month),
-                "monthly_effective_soll": WorkingTimeCalculator.monthly_effective_soll_hours(employee, today.year, today.month),
-                "monthly_ist": WorkingTimeCalculator.monthly_ist_hours(employee, today.year, today.month),
-                "productivity": WorkingTimeCalculator.monthly_productivity(employee, today.year, today.month),
-            }
+            try:
+                today = date.today()
+                employee = self.object.mitarbeiter
+                context["employee_info"] = {
+                    "employee": employee,
+                    "employment_percent": employee.employment_percent,
+                    "weekly_soll_hours": employee.weekly_soll_hours,
+                    "monthly_soll": WorkingTimeCalculator.monthly_soll_hours(employee, today.year, today.month),
+                    "monthly_absence": WorkingTimeCalculator.monthly_absence_hours(employee, today.year, today.month),
+                    "monthly_effective_soll": WorkingTimeCalculator.monthly_effective_soll_hours(employee, today.year, today.month),
+                    "monthly_ist": WorkingTimeCalculator.monthly_ist_hours(employee, today.year, today.month),
+                    "productivity": WorkingTimeCalculator.monthly_productivity(employee, today.year, today.month),
+                }
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Fehler beim Laden der Mitarbeiter-Info: {e}", exc_info=True)
+                # Setze employee_info auf None, damit Template nicht crasht
+                context["employee_info"] = None
         return context
 
     def get_success_url(self):

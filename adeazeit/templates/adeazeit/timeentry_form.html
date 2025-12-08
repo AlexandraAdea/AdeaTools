@@ -3,7 +3,11 @@
 {% block title %}{% if object %}Zeiteintrag bearbeiten{% else %}Neuer Zeiteintrag{% endif %} – AdeaZeit{% endblock %}
 
 {% block breadcrumbs %}
+{% if user.is_staff %}
 <a href="{% url 'admin-dashboard' %}">Dashboard</a>
+{% else %}
+<a href="{% url 'home' %}">Startseite</a>
+{% endif %}
 <a href="{% url 'adeazeit:timeentry-day' %}">Zeiteinträge</a>
 <a href="{% url 'adeazeit:timeentry-create' %}">{% if object %}Bearbeiten{% else %}Neu{% endif %}</a>
 {% endblock %}
