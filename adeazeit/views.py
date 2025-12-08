@@ -411,7 +411,7 @@ class TimeEntryCreateView(LoginRequiredMixin, CreateView):
         return reverse("adeazeit:timeentry-day") + f"?date={self.object.datum}"
 
 
-class TimeEntryUpdateView(LoginRequiredMixin, CanEditMixin, UpdateView):
+class TimeEntryUpdateView(LoginRequiredMixin, UpdateView):
     model = TimeEntry
     form_class = TimeEntryForm
     template_name = "adeazeit/timeentry_form.html"
