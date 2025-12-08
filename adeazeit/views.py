@@ -16,7 +16,7 @@ from django.views.generic import (
     DeleteView,
     TemplateView,
 )
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseForbidden
 
 from adeacore.models import Client
 from .models import EmployeeInternal, ServiceType, ZeitProject, TimeEntry, Absence, RunningTimeEntry, Task
