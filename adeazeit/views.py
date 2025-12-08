@@ -362,6 +362,19 @@ class TimeEntryCreateView(LoginRequiredMixin, CreateView):
     model = TimeEntry
     form_class = TimeEntryForm
     template_name = "adeazeit/timeentry_form.html"
+    
+    def form_valid(self, form):
+        """Stelle sicher, dass alle Felder korrekt gespeichert werden."""
+        # Setze Standard-Datum falls nicht gesetzt
+        if not form.cleaned_data.get('datum'):
+            from datetime import date
+            form.instance.datum = date.today()
+        
+        # Stelle sicher, dass Kommentar gespeichert wird
+        if 'kommentar' in form.cleaned_data:
+            form.instance.kommentar = form.cleaned_data['kommentar']
+        
+        return super().form_valid(form)
 
     def get_initial(self):
         initial = super().get_initial()
@@ -461,6 +474,18 @@ class TimeEntryUpdateView(LoginRequiredMixin, UpdateView):
             form.fields["mitarbeiter"].queryset = get_accessible_employees(self.request.user)
         return form
 
+    def form_valid(self, form):
+        """Stelle sicher, dass alle Felder korrekt gespeichert werden."""
+        # Stelle sicher, dass Datum gespeichert wird
+        if 'datum' in form.cleaned_data and form.cleaned_data['datum']:
+            form.instance.datum = form.cleaned_data['datum']
+        
+        # Stelle sicher, dass Kommentar gespeichert wird
+        if 'kommentar' in form.cleaned_data:
+            form.instance.kommentar = form.cleaned_data['kommentar']
+        
+        return super().form_valid(form)
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # Mitarbeiter-Info für Sidebar
@@ -939,12 +964,23 @@ def stop_timer(request):
         start_time_local = timezone.localtime(timer.start_time)
         end_time_local = timezone.now()
         start_time_obj = start_time_local.time()
-        end_time_obj = end_time_local.time()
+        
+        # Runde Endzeit auf nächste Minute auf, um Konflikte zu vermeiden
+        # (z.B. wenn Timer bei 10:30:45 gestoppt wird, wird Endzeit 10:31:00)
+        from datetime import datetime, timedelta
+        end_datetime_local = datetime.combine(end_time_local.date(), end_time_local.time())
+        # Runde auf nächste Minute auf
+        seconds = end_datetime_local.second
+        if seconds > 0:
+            end_datetime_local = end_datetime_local.replace(second=0, microsecond=0) + timedelta(minutes=1)
+        else:
+            end_datetime_local = end_datetime_local.replace(microsecond=0)
+        
+        end_time_obj = end_datetime_local.time()
         
         # Wenn Endzeit vor Startzeit (z.B. über Mitternacht), berechne korrekte Endzeit
-        if end_time_obj < start_time_obj:
-            # Timer läuft über Mitternacht - berechne Endzeit basierend auf Dauer
-            from datetime import datetime, timedelta
+        if end_time_obj < start_time_obj or (end_time_obj == start_time_obj and end_datetime_local.date() == timer.datum):
+            # Timer läuft über Mitternacht oder Endzeit ist gleich Startzeit - berechne korrekte Endzeit basierend auf Dauer
             start_datetime = datetime.combine(timer.datum, start_time_obj)
             end_datetime = start_datetime + timedelta(hours=float(duration_hours))
             end_time_obj = end_datetime.time()
