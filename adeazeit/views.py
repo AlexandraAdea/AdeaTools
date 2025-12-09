@@ -1037,7 +1037,7 @@ def stop_timer(request):
 # Kundenübersicht (Client Summary)
 # ============================================================================
 
-class ClientTimeSummaryView(LoginRequiredMixin, TemplateView):
+class ClientTimeSummaryView(ManagerOrAdminRequiredMixin, TemplateView):
     """Übersicht der Zeiteinträge nach Kunde gruppiert."""
     template_name = "adeazeit/client_summary.html"
     
