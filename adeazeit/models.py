@@ -649,4 +649,9 @@ class RunningTimeEntry(models.Model):
         from decimal import Decimal
         seconds = self.get_duration_seconds()
         hours = Decimal(seconds) / Decimal(3600)
-        return hours.quantize(Decimal('0.1'))
+        # Runde auf 2 Dezimalstellen und stelle sicher, dass mindestens 0.01 Stunden (36 Sekunden)
+        rounded = hours.quantize(Decimal('0.01'))
+        # Mindestdauer: 0.01 Stunden (36 Sekunden) um Validierungsfehler zu vermeiden
+        if rounded < Decimal('0.01'):
+            return Decimal('0.01')
+        return rounded
