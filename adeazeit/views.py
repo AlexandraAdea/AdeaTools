@@ -1070,6 +1070,8 @@ class ClientTimeSummaryView(ManagerOrAdminRequiredMixin, TemplateView):
         
         context["date_from"] = date_from
         context["date_to"] = date_to
+        context["date_from_str"] = date_from_str or ""
+        context["date_to_str"] = date_to_str or ""
         
         # Filter nach Rolle
         from .permissions import get_accessible_time_entries
