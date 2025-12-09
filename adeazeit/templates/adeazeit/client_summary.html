@@ -67,7 +67,9 @@ function markAsInvoiced(clientId) {
             <label for="date_to" style="font-weight: 600;">Bis:</label>
             <input type="date" name="date_to" id="date_to" value="{{ date_to|date:'Y-m-d' }}" class="adea-input">
             <button type="submit" class="adea-button-primary">Anzeigen</button>
+            <a href="?date_from=&date_to=" class="adea-button-secondary" style="text-decoration: none;">Alle anzeigen</a>
         </form>
+        <small style="color: #6e6e73; margin-top: 8px; display: block;">Standard: Aktuelles Jahr. Verwenden Sie "Alle anzeigen" für alle Zeiteinträge.</small>
     </div>
 
     <div style="margin-top: 24px;">

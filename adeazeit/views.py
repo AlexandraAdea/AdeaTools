@@ -1052,9 +1052,13 @@ class ClientTimeSummaryView(ManagerOrAdminRequiredMixin, TemplateView):
             try:
                 date_from = datetime.strptime(date_from_str, "%Y-%m-%d").date()
             except ValueError:
-                date_from = date.today() - timedelta(days=30)
+                # Standard: Letztes Jahr
+                date_from = date.today().replace(month=1, day=1)
+                if date.today().month == 1:
+                    date_from = date_from.replace(year=date.today().year - 1)
         else:
-            date_from = date.today() - timedelta(days=30)
+            # Standard: Anfang des aktuellen Jahres
+            date_from = date.today().replace(month=1, day=1)
         
         if date_to_str:
             try:
@@ -1072,11 +1076,14 @@ class ClientTimeSummaryView(ManagerOrAdminRequiredMixin, TemplateView):
         accessible_entries = get_accessible_time_entries(self.request.user)
         
         # Filter nach Datum und nur Einträge mit Kunde
-        entries = accessible_entries.filter(
-            datum__gte=date_from,
-            datum__lte=date_to,
-            client__isnull=False
-        ).select_related("client", "mitarbeiter", "service_type").order_by("client__name", "datum")
+        # Wenn date_from_str leer ist, zeige alle Einträge (kein Datum-Filter)
+        entries_query = accessible_entries.filter(client__isnull=False)
+        if date_from_str:  # Nur filtern wenn explizit gesetzt
+            entries_query = entries_query.filter(datum__gte=date_from)
+        if date_to_str:  # Nur filtern wenn explizit gesetzt
+            entries_query = entries_query.filter(datum__lte=date_to)
+        
+        entries = entries_query.select_related("client", "mitarbeiter", "service_type").order_by("client__name", "datum")
         
         # Gruppiere nach Kunde
         from collections import defaultdict
@@ -1118,12 +1125,14 @@ class ClientTimeSummaryView(ManagerOrAdminRequiredMixin, TemplateView):
             key=lambda x: x['client'].name if x['client'] else ''
         )
         
-        # Gesamtstatistiken
-        total_stats = accessible_entries.filter(
-            datum__gte=date_from,
-            datum__lte=date_to,
-            client__isnull=False
-        ).aggregate(
+        # Gesamtstatistiken (gleiche Filter wie entries)
+        stats_query = accessible_entries.filter(client__isnull=False)
+        if date_from_str:  # Nur filtern wenn explizit gesetzt
+            stats_query = stats_query.filter(datum__gte=date_from)
+        if date_to_str:  # Nur filtern wenn explizit gesetzt
+            stats_query = stats_query.filter(datum__lte=date_to)
+        
+        total_stats = stats_query.aggregate(
             total_dauer=Sum('dauer'),
             total_betrag=Sum('betrag'),
             verrechnet_dauer=Sum('dauer', filter=Q(verrechnet=True)),
