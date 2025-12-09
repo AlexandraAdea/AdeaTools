@@ -1112,9 +1112,9 @@ class ClientTimeSummaryView(ManagerOrAdminRequiredMixin, TemplateView):
                 client_summary[client_id]['nicht_verrechnet_dauer'] += entry.dauer
                 client_summary[client_id]['nicht_verrechnet_betrag'] += entry.betrag
         
-        # Sortiere nach Kundenname
+        # Sortiere nach Kundenname und filtere None-Clients raus
         context["client_summaries"] = sorted(
-            client_summary.values(),
+            [s for s in client_summary.values() if s['client'] is not None],
             key=lambda x: x['client'].name if x['client'] else ''
         )
         
