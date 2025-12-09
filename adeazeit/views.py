@@ -1093,6 +1093,10 @@ class ClientTimeSummaryView(ManagerOrAdminRequiredMixin, TemplateView):
         })
         
         for entry in entries:
+            # Stelle sicher, dass client nicht None ist
+            if not entry.client:
+                continue
+                
             client_id = entry.client.id
             if client_id not in client_summary:
                 client_summary[client_id]['client'] = entry.client
