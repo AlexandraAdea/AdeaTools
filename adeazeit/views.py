@@ -1031,3 +1031,142 @@ def stop_timer(request):
         logger = logging.getLogger(__name__)
         logger.error(f"Fehler beim Stoppen des Timers: {e}", exc_info=True)
         return JsonResponse({"success": False, "error": str(e)})
+
+
+# ============================================================================
+# Kundenübersicht (Client Summary)
+# ============================================================================
+
+class ClientTimeSummaryView(LoginRequiredMixin, TemplateView):
+    """Übersicht der Zeiteinträge nach Kunde gruppiert."""
+    template_name = "adeazeit/client_summary.html"
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Datum-Filter aus URL
+        date_from_str = self.request.GET.get("date_from")
+        date_to_str = self.request.GET.get("date_to")
+        
+        if date_from_str:
+            try:
+                date_from = datetime.strptime(date_from_str, "%Y-%m-%d").date()
+            except ValueError:
+                date_from = date.today() - timedelta(days=30)
+        else:
+            date_from = date.today() - timedelta(days=30)
+        
+        if date_to_str:
+            try:
+                date_to = datetime.strptime(date_to_str, "%Y-%m-%d").date()
+            except ValueError:
+                date_to = date.today()
+        else:
+            date_to = date.today()
+        
+        context["date_from"] = date_from
+        context["date_to"] = date_to
+        
+        # Filter nach Rolle
+        from .permissions import get_accessible_time_entries
+        accessible_entries = get_accessible_time_entries(self.request.user)
+        
+        # Filter nach Datum und nur Einträge mit Kunde
+        entries = accessible_entries.filter(
+            datum__gte=date_from,
+            datum__lte=date_to,
+            client__isnull=False
+        ).select_related("client", "mitarbeiter", "service_type").order_by("client__name", "datum")
+        
+        # Gruppiere nach Kunde
+        from collections import defaultdict
+        
+        client_summary = defaultdict(lambda: {
+            'client': None,
+            'entries': [],
+            'total_dauer': Decimal('0.00'),
+            'total_betrag': Decimal('0.00'),
+            'verrechnet_dauer': Decimal('0.00'),
+            'verrechnet_betrag': Decimal('0.00'),
+            'nicht_verrechnet_dauer': Decimal('0.00'),
+            'nicht_verrechnet_betrag': Decimal('0.00'),
+        })
+        
+        for entry in entries:
+            client_id = entry.client.id
+            if client_id not in client_summary:
+                client_summary[client_id]['client'] = entry.client
+            
+            client_summary[client_id]['entries'].append(entry)
+            client_summary[client_id]['total_dauer'] += entry.dauer
+            client_summary[client_id]['total_betrag'] += entry.betrag
+            
+            if entry.verrechnet:
+                client_summary[client_id]['verrechnet_dauer'] += entry.dauer
+                client_summary[client_id]['verrechnet_betrag'] += entry.betrag
+            else:
+                client_summary[client_id]['nicht_verrechnet_dauer'] += entry.dauer
+                client_summary[client_id]['nicht_verrechnet_betrag'] += entry.betrag
+        
+        # Sortiere nach Kundenname
+        context["client_summaries"] = sorted(
+            client_summary.values(),
+            key=lambda x: x['client'].name if x['client'] else ''
+        )
+        
+        # Gesamtstatistiken
+        total_stats = accessible_entries.filter(
+            datum__gte=date_from,
+            datum__lte=date_to,
+            client__isnull=False
+        ).aggregate(
+            total_dauer=Sum('dauer'),
+            total_betrag=Sum('betrag'),
+            verrechnet_dauer=Sum('dauer', filter=Q(verrechnet=True)),
+            verrechnet_betrag=Sum('betrag', filter=Q(verrechnet=True))
+        )
+        
+        context["total_dauer"] = total_stats["total_dauer"] or Decimal('0.00')
+        context["total_betrag"] = total_stats["total_betrag"] or Decimal('0.00')
+        context["verrechnet_dauer"] = total_stats["verrechnet_dauer"] or Decimal('0.00')
+        context["verrechnet_betrag"] = total_stats["verrechnet_betrag"] or Decimal('0.00')
+        context["nicht_verrechnet_dauer"] = context["total_dauer"] - context["verrechnet_dauer"]
+        context["nicht_verrechnet_betrag"] = context["total_betrag"] - context["verrechnet_betrag"]
+        
+        return context
+
+
+@login_required
+@require_http_methods(["POST"])
+def mark_as_invoiced(request):
+    """Markiert Zeiteinträge als verrechnet."""
+    try:
+        data = json.loads(request.body)
+        entry_ids = data.get('entry_ids', [])
+        
+        if not entry_ids:
+            return JsonResponse({"success": False, "error": "Keine Zeiteinträge ausgewählt"})
+        
+        # Prüfe Berechtigung
+        from .permissions import get_accessible_time_entries
+        accessible_entries = get_accessible_time_entries(request.user)
+        
+        # Filter nur zugängliche Einträge
+        entries = accessible_entries.filter(pk__in=entry_ids)
+        
+        if entries.count() != len(entry_ids):
+            return JsonResponse({"success": False, "error": "Sie haben keine Berechtigung für alle ausgewählten Einträge"})
+        
+        # Markiere als verrechnet
+        updated = entries.update(verrechnet=True)
+        
+        return JsonResponse({
+            "success": True,
+            "updated": updated,
+            "message": f"{updated} Zeiteinträge wurden als verrechnet markiert"
+        })
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Fehler beim Markieren als verrechnet: {e}", exc_info=True)
+        return JsonResponse({"success": False, "error": str(e)})

@@ -130,6 +130,7 @@ class TimeEntryForm(forms.ModelForm):
             "service_type",
             "kommentar",
             "billable",
+            "verrechnet",
             "rate",
         ]
         widgets = {
@@ -142,6 +143,7 @@ class TimeEntryForm(forms.ModelForm):
             "service_type": forms.Select(attrs={"class": "adea-select"}),
             "kommentar": forms.Textarea(attrs={"class": "adea-textarea", "rows": 3}),
             "billable": forms.CheckboxInput(attrs={"class": "adea-checkbox"}),
+            "verrechnet": forms.CheckboxInput(attrs={"class": "adea-checkbox"}),
             "rate": forms.NumberInput(attrs={"class": "adea-input", "step": "0.01", "placeholder": "Wird automatisch gesetzt"}),
         }
 

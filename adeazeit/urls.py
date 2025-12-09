@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from .views import start_timer, stop_timer
+from .views import start_timer, stop_timer, mark_as_invoiced
 
 app_name = "adeazeit"
 
@@ -29,6 +29,7 @@ urlpatterns = [
     # TimeEntry
     path("zeit/tag/", views.TimeEntryDayView.as_view(), name="timeentry-day"),
     path("zeit/woche/", views.TimeEntryWeekView.as_view(), name="timeentry-week"),
+    path("zeit/kunden/", views.ClientTimeSummaryView.as_view(), name="client-summary"),
     path("zeit/neu/", views.TimeEntryCreateView.as_view(), name="timeentry-create"),
     path("zeit/<int:pk>/bearbeiten/", views.TimeEntryUpdateView.as_view(), name="timeentry-update"),
     path("zeit/<int:pk>/loeschen/", views.TimeEntryDeleteView.as_view(), name="timeentry-delete"),
@@ -41,6 +42,9 @@ urlpatterns = [
     # Timer (Live-Tracking)
     path("timer/start/", start_timer, name="start-timer"),
     path("timer/stop/", stop_timer, name="stop-timer"),
+    
+    # Verrechnung
+    path("ajax/mark-invoiced/", mark_as_invoiced, name="mark-invoiced"),
     
     # Absence
     path("abwesenheiten/", views.AbsenceListView.as_view(), name="absence-list"),

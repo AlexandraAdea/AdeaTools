@@ -380,6 +380,7 @@ class TimeEntry(models.Model):
     )
     kommentar = models.TextField("Kommentar", blank=True)
     billable = models.BooleanField("Verrechenbar", default=True)
+    verrechnet = models.BooleanField("Verrechnet", default=False, help_text="Zeit wurde bereits verrechnet/invoiced")
     rate = models.DecimalField(
         "Stundensatz",
         max_digits=10,
