@@ -990,6 +990,13 @@ def stop_timer(request):
                 # Die Dauer wird korrekt berechnet, auch wenn es über Mitternacht geht
                 pass
         
+        # Stelle sicher, dass Dauer mindestens 0.01 Stunden ist
+        if duration_hours <= 0:
+            duration_hours = Decimal('0.01')  # Mindestdauer: 36 Sekunden
+        
+        # Stelle sicher, dass Kommentar nicht verloren geht
+        kommentar = timer.beschreibung if timer.beschreibung else ''
+        
         # Erstelle TimeEntry ohne clean() zu rufen (um Validierung zu umgehen)
         time_entry = TimeEntry(
             mitarbeiter=timer.mitarbeiter,
@@ -1003,7 +1010,7 @@ def stop_timer(request):
             rate=rate,
             betrag=betrag,
             billable=timer.service_type.billable,
-            kommentar=timer.beschreibung
+            kommentar=kommentar
         )
         # Validiere manuell (ohne ende <= start Check wenn über Mitternacht)
         if time_entry.dauer <= 0:
