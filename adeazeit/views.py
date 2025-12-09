@@ -1141,6 +1141,11 @@ class ClientTimeSummaryView(ManagerOrAdminRequiredMixin, TemplateView):
 def mark_as_invoiced(request):
     """Markiert Zeiteinträge als verrechnet."""
     try:
+        # Prüfe Manager/Admin-Berechtigung
+        from .permissions import is_manager_or_admin
+        if not is_manager_or_admin(request.user):
+            return JsonResponse({"success": False, "error": "Diese Aktion erfordert Manager- oder Admin-Rechte."})
+        
         data = json.loads(request.body)
         entry_ids = data.get('entry_ids', [])
         
