@@ -93,10 +93,10 @@ function markAsInvoiced(clientId) {
 
     {% for summary in client_summaries %}
     <div style="margin-top: 32px; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <div>
-                <h2 style="margin: 0; font-size: 1.3em;">{{ summary.client.name }}</h2>
-                <div style="margin-top: 8px; display: flex; gap: 24px; font-size: 0.9em; color: #6e6e73;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; gap: 16px;">
+            <div style="flex: 1; min-width: 0;">
+                <h2 style="margin: 0; font-size: 1.3em; word-wrap: break-word; overflow-wrap: break-word;">{{ summary.client.name }}</h2>
+                <div style="margin-top: 8px; display: flex; gap: 24px; font-size: 0.9em; color: #6e6e73; flex-wrap: wrap;">
                     <span><strong>Gesamt:</strong> {{ summary.total_dauer|floatformat:2 }}h / {{ summary.total_betrag|floatformat:2 }} CHF</span>
                     <span style="color: #34c759;"><strong>Verrechnet:</strong> {{ summary.verrechnet_dauer|floatformat:2 }}h / {{ summary.verrechnet_betrag|floatformat:2 }} CHF</span>
                     <span style="color: #ff3b30;"><strong>Offen:</strong> {{ summary.nicht_verrechnet_dauer|floatformat:2 }}h / {{ summary.nicht_verrechnet_betrag|floatformat:2 }} CHF</span>
