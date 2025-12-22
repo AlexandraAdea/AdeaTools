@@ -9,18 +9,24 @@ from django.core.exceptions import ImproperlyConfigured
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-# ALLOWED_HOSTS - aus Environment-Variable
+# ALLOWED_HOSTS - aus Environment-Variable (MUSS gesetzt sein)
 ALLOWED_HOSTS_ENV = os.environ.get('DJANGO_ALLOWED_HOSTS', '')
 if ALLOWED_HOSTS_ENV:
     ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV.split(',') if host.strip()]
 else:
-    # Hardcoded Hosts für Render und Custom Domain (Fallback)
-    # Besser: DJANGO_ALLOWED_HOSTS Environment Variable setzen!
+    # Fallback nur für bekannte Domains (sollte durch Environment Variable ersetzt werden)
+    # WARNUNG: Wildcard (.adea-treuhand.ch) ist weniger sicher als explizite Liste
+    import warnings
+    warnings.warn(
+        "DJANGO_ALLOWED_HOSTS nicht gesetzt - verwende Fallback-Liste. "
+        "Bitte setze die Environment Variable auf Render für bessere Sicherheit!",
+        UserWarning
+    )
     ALLOWED_HOSTS = [
         'adeacore-web.onrender.com',
         'app.adea-treuhand.ch',
         'www.app.adea-treuhand.ch',
-        '.adea-treuhand.ch',  # Wildcard für alle Subdomains
+        # Wildcard entfernt - explizite Liste ist sicherer
     ]
 
 # Database - PostgreSQL für Render

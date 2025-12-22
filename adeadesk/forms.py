@@ -156,24 +156,68 @@ class DocumentForm(forms.ModelForm):
         }
     
     def clean_file(self):
-        """Validiert hochgeladene Datei."""
+        """Validiert hochgeladene Datei (Sicherheit: Dateityp, Größe, Sanitization)."""
         file = self.cleaned_data.get('file')
-        if file:
-            # Dateigröße prüfen (max 10 MB)
-            max_size = 10 * 1024 * 1024  # 10 MB
-            if file.size > max_size:
-                raise forms.ValidationError(f"Datei ist zu groß. Maximum: {max_size / 1024 / 1024:.0f} MB")
-            
-            # Dateityp prüfen (basierend auf Extension)
-            allowed_extensions = ['.pdf', '.doc', '.docx', '.xls', '.xlsx']
-            file_ext = os.path.splitext(file.name)[1].lower()
-            if file_ext not in allowed_extensions:
-                raise forms.ValidationError(f"Ungültiger Dateityp. Erlaubt: {', '.join(allowed_extensions)}")
-            
-            # Dateiname sanitizen (einfache Version)
-            import re
-            file.name = re.sub(r'[^a-zA-Z0-9._-]', '_', file.name)
-            
+        if not file:
+            return file
+        
+        # Dateigröße prüfen (max 10 MB)
+        max_size = 10 * 1024 * 1024  # 10 MB
+        if file.size > max_size:
+            raise forms.ValidationError(
+                f"Datei ist zu groß. Maximum: {max_size / 1024 / 1024:.0f} MB. "
+                f"Aktuelle Größe: {file.size / 1024 / 1024:.2f} MB"
+            )
+        
+        if file.size == 0:
+            raise forms.ValidationError("Datei ist leer.")
+        
+        # Dateityp prüfen (basierend auf Extension)
+        allowed_extensions = ['.pdf', '.doc', '.docx', '.xls', '.xlsx']
+        file_ext = os.path.splitext(file.name)[1].lower()
+        if file_ext not in allowed_extensions:
+            raise forms.ValidationError(
+                f"Ungültiger Dateityp '{file_ext}'. Erlaubt: {', '.join(allowed_extensions)}"
+            )
+        
+        # MIME-Type prüfen (zusätzliche Sicherheit)
+        allowed_mime_types = {
+            '.pdf': ['application/pdf'],
+            '.doc': ['application/msword'],
+            '.docx': ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+            '.xls': ['application/vnd.ms-excel'],
+            '.xlsx': ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+        }
+        
+        if file_ext in allowed_mime_types:
+            # Prüfe Content-Type (falls verfügbar)
+            if hasattr(file, 'content_type') and file.content_type:
+                if file.content_type not in allowed_mime_types[file_ext]:
+                    raise forms.ValidationError(
+                        f"Dateityp stimmt nicht überein. "
+                        f"Erwartet: {', '.join(allowed_mime_types[file_ext])}, "
+                        f"Erhalten: {file.content_type}"
+                    )
+        
+        # Dateiname sanitizen (entferne gefährliche Zeichen)
+        import re
+        from django.utils.text import get_valid_filename
+        
+        # Verwende Django's get_valid_filename für sichere Dateinamen
+        original_name = file.name
+        safe_name = get_valid_filename(original_name)
+        
+        # Zusätzlich: Entferne mehrfache Unterstriche und Punkte
+        safe_name = re.sub(r'_{2,}', '_', safe_name)
+        safe_name = re.sub(r'\.{2,}', '.', safe_name)
+        
+        # Begrenze Länge (max 255 Zeichen)
+        if len(safe_name) > 255:
+            name, ext = os.path.splitext(safe_name)
+            safe_name = name[:250] + ext
+        
+        file.name = safe_name
+        
         return file
 
 

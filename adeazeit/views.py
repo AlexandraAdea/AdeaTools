@@ -531,14 +531,47 @@ class LoadProjectsView(LoginRequiredMixin, TemplateView):
     login_url = '/admin/login/'
 
     def get(self, request, *args, **kwargs):
-        client_id = request.GET.get("client_id")
-        if client_id:
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        try:
+            client_id = request.GET.get("client_id")
+            if not client_id:
+                return JsonResponse({"projects": []})
+            
+            # Validierung: client_id muss eine Zahl sein
+            try:
+                client_id = int(client_id)
+            except (ValueError, TypeError):
+                logger.warning(f"Ungültige client_id: {request.GET.get('client_id')}")
+                return JsonResponse({"projects": []}, status=400)
+            
+            # Prüfe ob Client existiert und User Zugriff hat
+            try:
+                from adeacore.models import Client
+                client = Client.objects.get(pk=client_id)
+                
+                # Prüfe Berechtigung (User sollte Zugriff auf Client haben)
+                from .permissions import get_accessible_time_entries
+                accessible_entries = get_accessible_time_entries(request.user)
+                if not accessible_entries.filter(client=client).exists():
+                    # User hat keine Zeiteinträge für diesen Client → kein Zugriff
+                    return JsonResponse({"projects": []})
+                
+            except Client.DoesNotExist:
+                logger.warning(f"Client {client_id} nicht gefunden")
+                return JsonResponse({"projects": []})
+            
+            # Lade Projekte
             projects = ZeitProject.objects.filter(
                 client_id=client_id, aktiv=True
             ).order_by("name")
             projects_data = [{"id": p.id, "name": p.name} for p in projects]
             return JsonResponse({"projects": projects_data})
-        return JsonResponse({"projects": []})
+            
+        except Exception as e:
+            logger.error(f"Fehler beim Laden von Projekten: {e}", exc_info=True)
+            return JsonResponse({"projects": [], "error": "Fehler beim Laden der Projekte"}, status=500)
 
 
 # AJAX View für Mitarbeiter-Info
@@ -601,28 +634,39 @@ class LoadServiceTypeRateView(LoginRequiredMixin, TemplateView):
     login_url = '/admin/login/'
 
     def get(self, request, *args, **kwargs):
+        import logging
+        logger = logging.getLogger(__name__)
         from django.http import JsonResponse
         from .models import ServiceType
         
-        service_type_id = request.GET.get("service_type_id")
-        
-        if not service_type_id:
-            return JsonResponse({"success": False, "error": "Keine Service-Typ-ID angegeben"})
-        
         try:
-            service_type = ServiceType.objects.get(pk=service_type_id)
+            service_type_id = request.GET.get("service_type_id")
+            
+            if not service_type_id:
+                return JsonResponse({"success": False, "error": "Keine Service-Typ-ID angegeben"}, status=400)
+            
+            # Validierung: service_type_id muss eine Zahl sein
+            try:
+                service_type_id = int(service_type_id)
+            except (ValueError, TypeError):
+                logger.warning(f"Ungültige service_type_id: {request.GET.get('service_type_id')}")
+                return JsonResponse({"success": False, "error": "Ungültige Service-Typ-ID"}, status=400)
+            
+            try:
+                service_type = ServiceType.objects.get(pk=service_type_id)
+            except ServiceType.DoesNotExist:
+                logger.warning(f"Service-Typ {service_type_id} nicht gefunden")
+                return JsonResponse({"success": False, "error": "Service-Typ nicht gefunden"}, status=404)
+            
             return JsonResponse({
                 "success": True,
                 "standard_rate": str(service_type.standard_rate),
                 "billable": service_type.billable
             })
-        except ServiceType.DoesNotExist:
-            return JsonResponse({"success": False, "error": "Service-Typ nicht gefunden"})
+            
         except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"Fehler beim Laden des Service-Typ-Stundensatzes: {e}")
-            return JsonResponse({"success": False, "error": "Ein Fehler ist aufgetreten"})
+            logger.error(f"Fehler beim Laden des Service-Typ-Stundensatzes: {e}", exc_info=True)
+            return JsonResponse({"success": False, "error": "Ein Fehler ist aufgetreten"}, status=500)
 
 
 # ============================================================================
