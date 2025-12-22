@@ -106,9 +106,11 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Session Security (Swiss Banking Standard)
-SESSION_COOKIE_AGE = 3600  # 1 Stunde (wie in SECURITY_GUIDE.md dokumentiert)
+# Session-Timeout: 2 Stunden für produktive Arbeit (Vertec-Analog)
+# Wird automatisch verlängert durch Heartbeat während aktiver Eingabe
+SESSION_COOKIE_AGE = 7200  # 2 Stunden (angepasst für längere Eingaben)
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-SESSION_SAVE_EVERY_REQUEST = True
+SESSION_SAVE_EVERY_REQUEST = True  # Verlängert Session bei jedem Request
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Strict'  # Strenger als 'Lax' für besseren CSRF-Schutz
 CSRF_COOKIE_HTTPONLY = True

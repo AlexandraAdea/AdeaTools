@@ -88,3 +88,14 @@ def global_logout(request):
     auth_logout(request)
     return redirect('home')
 
+
+def session_heartbeat(request):
+    """Heartbeat-Endpoint um Session während aktiver Eingabe zu verlängern."""
+    if request.user.is_authenticated:
+        # Session wird automatisch verlängert durch SESSION_SAVE_EVERY_REQUEST = True
+        from django.http import JsonResponse
+        return JsonResponse({"status": "ok", "authenticated": True})
+    else:
+        from django.http import JsonResponse
+        return JsonResponse({"status": "expired", "authenticated": False}, status=401)
+

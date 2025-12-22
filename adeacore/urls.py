@@ -36,6 +36,7 @@ urlpatterns = [
     path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('global-logout/', views.global_logout, name='global-logout'),
+    path('session/heartbeat/', views.session_heartbeat, name='session-heartbeat'),
     path('desk/', include('adeadesk.urls', namespace='adeadesk')),
     path('zeit/', include('adeazeit.urls', namespace='adeazeit')),
     path('lohn/', include('adealohn.urls', namespace='adealohn')),

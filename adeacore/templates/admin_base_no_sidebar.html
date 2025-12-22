@@ -81,6 +81,152 @@
     </div>
     
     {% block scripts %}{% endblock %}
+    
+    <!-- Session Heartbeat: Verlängert Session automatisch während aktiver Eingabe -->
+    <script>
+    (function() {
+        'use strict';
+        
+        // Heartbeat alle 5 Minuten (300 Sekunden) senden
+        const HEARTBEAT_INTERVAL = 5 * 60 * 1000; // 5 Minuten in Millisekunden
+        const WARNING_TIME = 10 * 60 * 1000; // Warnung 10 Minuten vor Ablauf (2h - 10min = 110min)
+        let heartbeatInterval = null;
+        let warningShown = false;
+        
+        // Prüfe ob User eingeloggt ist
+        {% if user.is_authenticated %}
+        const isAuthenticated = true;
+        {% else %}
+        const isAuthenticated = false;
+        {% endif %}
+        
+        function sendHeartbeat() {
+            if (!isAuthenticated) {
+                return;
+            }
+            
+            fetch('{% url "session-heartbeat" %}', {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            })
+            .then(response => {
+                if (response.status === 401) {
+                    // Session abgelaufen
+                    clearInterval(heartbeatInterval);
+                    showSessionExpiredWarning();
+                } else if (response.ok) {
+                    // Session verlängert
+                    warningShown = false;
+                }
+            })
+            .catch(error => {
+                console.error('Heartbeat-Fehler:', error);
+                // Bei Fehler weiter versuchen (Netzwerk-Probleme)
+            });
+        }
+        
+        function showSessionExpiredWarning() {
+            // Zeige Warnung dass Session abgelaufen ist
+            const warningDiv = document.createElement('div');
+            warningDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #ff3b30;
+                color: white;
+                padding: 16px 24px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 10000;
+                max-width: 400px;
+                font-size: 14px;
+            `;
+            warningDiv.innerHTML = `
+                <div style="font-weight: 600; margin-bottom: 8px;">⚠️ Session abgelaufen</div>
+                <div style="margin-bottom: 12px;">Ihre Sitzung ist abgelaufen. Bitte speichern Sie Ihre Eingaben und melden Sie sich erneut an.</div>
+                <a href="{% url 'login' %}" style="color: white; text-decoration: underline; font-weight: 500;">Zur Anmeldung</a>
+            `;
+            document.body.appendChild(warningDiv);
+            
+            // Entferne Warnung nach 10 Sekunden
+            setTimeout(() => {
+                if (warningDiv.parentNode) {
+                    warningDiv.parentNode.removeChild(warningDiv);
+                }
+            }, 10000);
+        }
+        
+        function showSessionWarning() {
+            if (warningShown) {
+                return;
+            }
+            warningShown = true;
+            
+            const warningDiv = document.createElement('div');
+            warningDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #ff9500;
+                color: white;
+                padding: 16px 24px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 10000;
+                max-width: 400px;
+                font-size: 14px;
+            `;
+            warningDiv.innerHTML = `
+                <div style="font-weight: 600; margin-bottom: 8px;">⏰ Session läuft bald ab</div>
+                <div>Ihre Sitzung läuft in ca. 10 Minuten ab. Bitte speichern Sie Ihre Eingaben.</div>
+                <button onclick="this.parentElement.remove()" style="margin-top: 8px; background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 12px; border-radius: 4px; cursor: pointer;">Verstanden</button>
+            `;
+            document.body.appendChild(warningDiv);
+            
+            // Entferne Warnung nach 30 Sekunden automatisch
+            setTimeout(() => {
+                if (warningDiv.parentNode) {
+                    warningDiv.parentNode.removeChild(warningDiv);
+                }
+            }, 30000);
+        }
+        
+        // Starte Heartbeat wenn User eingeloggt ist
+        if (isAuthenticated) {
+            // Erster Heartbeat nach 1 Minute
+            setTimeout(sendHeartbeat, 60 * 1000);
+            
+            // Dann alle 5 Minuten
+            heartbeatInterval = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
+            
+            // Warnung nach 110 Minuten (10 Minuten vor Ablauf bei 2h Session)
+            setTimeout(showSessionWarning, 110 * 60 * 1000);
+            
+            // Heartbeat auch bei Tastatur-Eingaben (für längere Formulare)
+            let inputActivityTimeout = null;
+            document.addEventListener('keydown', function() {
+                clearTimeout(inputActivityTimeout);
+                inputActivityTimeout = setTimeout(sendHeartbeat, 30 * 1000); // Nach 30 Sekunden Inaktivität
+            });
+            
+            // Heartbeat auch bei Maus-Bewegungen
+            document.addEventListener('mousemove', function() {
+                clearTimeout(inputActivityTimeout);
+                inputActivityTimeout = setTimeout(sendHeartbeat, 30 * 1000);
+            });
+        }
+        
+        // Cleanup beim Verlassen der Seite
+        window.addEventListener('beforeunload', function() {
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
+            }
+        });
+    })();
+    </script>
 </body>
 </html>
 
