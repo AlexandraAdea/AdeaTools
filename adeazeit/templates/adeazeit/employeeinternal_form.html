@@ -138,6 +138,21 @@
             </div>
         </div>
 
+        <!-- Finanzen -->
+        <div style="margin-bottom: 24px;">
+            <h2 style="margin-bottom: 12px; font-size: 1.1em; color: #1d1d1f; border-bottom: 1px solid #e5e5ea; padding-bottom: 8px;">Verrechnung</h2>
+            <div>
+                <label for="{{ form.stundensatz.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px;">{{ form.stundensatz.label }}</label>
+                {{ form.stundensatz }}
+                {% if form.stundensatz.errors %}
+                <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.stundensatz.errors|striptags }}</div>
+                {% endif %}
+                {% if form.stundensatz.help_text %}
+                <small style="color:#8e8e93; font-size:0.8em; display:block; margin-top:4px;">{{ form.stundensatz.help_text }}</small>
+                {% endif %}
+            </div>
+        </div>
+
         <!-- Status & Notizen -->
         <div style="margin-bottom: 24px;">
             <h2 style="margin-bottom: 12px; font-size: 1.1em; color: #1d1d1f; border-bottom: 1px solid #e5e5ea; padding-bottom: 8px;">Status & Notizen</h2>

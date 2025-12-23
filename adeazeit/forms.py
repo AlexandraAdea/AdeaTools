@@ -28,7 +28,8 @@ class EmployeeInternalForm(forms.ModelForm):
             # Legacy-Felder aus Form entfernt (nur in Admin verfügbar)
             # "eintrittsdatum",
             # "austrittsdatum",
-            # Finanzen - stundensatz entfernt (nur in Admin verfügbar)
+            # Finanzen
+            "stundensatz",
             # Status & Notizen
             "aktiv",
             "notes",
@@ -49,7 +50,7 @@ class EmployeeInternalForm(forms.ModelForm):
             # Legacy-Felder aus Form entfernt
             # "eintrittsdatum": forms.DateInput(attrs={"class": "adea-input", "type": "date"}),
             # "austrittsdatum": forms.DateInput(attrs={"class": "adea-input", "type": "date"}),
-            # "stundensatz": forms.NumberInput(attrs={"class": "adea-input", "step": "0.01"}),  # Entfernt, da Feld nicht mehr in fields
+            "stundensatz": forms.NumberInput(attrs={"class": "adea-input", "step": "0.01"}),
             "aktiv": forms.CheckboxInput(attrs={"class": "adea-checkbox"}),
             "notes": forms.Textarea(attrs={"class": "adea-textarea", "rows": 4}),
         }
@@ -61,6 +62,7 @@ class EmployeeInternalForm(forms.ModelForm):
             "vacation_days_per_year": "z.B. 20.00 / 25.00",
             "work_canton": "Für zukünftige Feiertagsmodelle",
             "holiday_model": "Freitext",
+            "stundensatz": "Koeffizient für die Verrechnung von Services (z.B. 0.5 = 50% des Standard-Stundensatzes, 1.3 = 30% Aufschlag)",
         }
 
     def __init__(self, *args, **kwargs):
