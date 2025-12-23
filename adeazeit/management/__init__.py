@@ -1,3 +1,1 @@
-# Management commands for AdeaZeit
-
-
+# Management commands für AdeaZeit

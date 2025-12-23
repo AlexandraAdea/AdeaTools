@@ -460,17 +460,19 @@ class TimeEntry(models.Model):
         from django.db import transaction
         
         with transaction.atomic():
-            # Rate aus ServiceType übernehmen, falls nicht gesetzt
-            if not self.rate or self.rate == 0:
-                if self.service_type:
-                    self.rate = self.service_type.standard_rate
+            # WICHTIG: Für korrekte Fakturierung muss immer der aktuelle Stundensatz aus ServiceType verwendet werden
+            # Rate aus ServiceType übernehmen, falls nicht gesetzt oder 0
+            if self.service_type:
+                if not self.rate or self.rate == 0:
+                    self.rate = self.service_type.standard_rate or Decimal('0.00')
             
             # billable aus ServiceType übernehmen, falls nicht explizit gesetzt
             if not hasattr(self, '_billable_set'):
                 if self.service_type:
                     self.billable = self.service_type.billable
             
-            # Betrag berechnen (nur wenn rate gesetzt ist)
+            # Betrag IMMER neu berechnen (für korrekte Fakturierung)
+            # Verwendet den aktuellen rate und dauer
             if self.rate and self.dauer:
                 self.betrag = (self.rate * self.dauer).quantize(Decimal('0.01'))
             else:

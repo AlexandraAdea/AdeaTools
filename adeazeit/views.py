@@ -374,6 +374,10 @@ class TimeEntryCreateView(LoginRequiredMixin, CreateView):
         if 'kommentar' in form.cleaned_data:
             form.instance.kommentar = form.cleaned_data['kommentar']
         
+        # WICHTIG: Stelle sicher, dass Rate aus ServiceType übernommen wird (für korrekte Fakturierung)
+        if form.instance.service_type and (not form.instance.rate or form.instance.rate == 0):
+            form.instance.rate = form.instance.service_type.standard_rate or Decimal('0.00')
+        
         return super().form_valid(form)
 
     def get_initial(self):
@@ -483,6 +487,16 @@ class TimeEntryUpdateView(LoginRequiredMixin, UpdateView):
         # Stelle sicher, dass Kommentar gespeichert wird
         if 'kommentar' in form.cleaned_data:
             form.instance.kommentar = form.cleaned_data['kommentar']
+        
+        # WICHTIG: Stelle sicher, dass Rate aus ServiceType übernommen wird (für korrekte Fakturierung)
+        # Wenn ServiceType geändert wurde oder Rate leer ist, aktualisiere Rate
+        if form.instance.service_type:
+            # Wenn Rate nicht gesetzt oder ServiceType geändert wurde, aktualisiere Rate
+            if not form.instance.rate or form.instance.rate == 0:
+                form.instance.rate = form.instance.service_type.standard_rate or Decimal('0.00')
+            # Prüfe ob ServiceType geändert wurde (beim Update)
+            elif self.object and self.object.service_type != form.instance.service_type:
+                form.instance.rate = form.instance.service_type.standard_rate or Decimal('0.00')
         
         return super().form_valid(form)
     
