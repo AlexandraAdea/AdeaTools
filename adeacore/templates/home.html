@@ -34,6 +34,14 @@
     </a>
     {% endif %}
     
+    {% if adeazeit_is_manager %}
+    <a class="module-card" href="{% url 'adearechnung:client-summary' %}" style="background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%); border: 2px solid #ff9500;">
+        <span class="label" style="color: #ffffff; font-weight: 600;">Modul</span>
+        <span class="title" style="color: #ffffff;">💰 AdeaRechnung</span>
+        <p style="color: #ffffff;">Kundenübersicht, Fakturierung und Rechnungserstellung.</p>
+    </a>
+    {% endif %}
+    
     {% if perms.adealohn.view_payrollrecord or user.is_staff %}
     <a class="module-card" href="{% url 'adealohn:payroll-list' %}">
         <span class="label">Modul</span>

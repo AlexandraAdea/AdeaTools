@@ -39,5 +39,6 @@ urlpatterns = [
     path('session/heartbeat/', views.session_heartbeat, name='session-heartbeat'),
     path('desk/', include('adeadesk.urls', namespace='adeadesk')),
     path('zeit/', include('adeazeit.urls', namespace='adeazeit')),
+    path('rechnung/', include('adearechnung.urls', namespace='adearechnung')),
     path('lohn/', include('adealohn.urls', namespace='adealohn')),
 ]

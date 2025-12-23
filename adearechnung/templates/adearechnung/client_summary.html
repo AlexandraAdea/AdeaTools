@@ -1,0 +1,197 @@
+{% extends 'admin_base_no_sidebar.html' %}
+
+{% block breadcrumbs %}
+{% if user.is_staff %}
+<a href="{% url 'admin-dashboard' %}">Dashboard</a>
+{% else %}
+<a href="{% url 'home' %}">Startseite</a>
+{% endif %}
+<a href="{% url 'adearechnung:client-summary' %}">Fakturierung</a>
+{% endblock %}
+
+{% block title %}Fakturierung – AdeaRechnung{% endblock %}
+
+{% block head_extra %}
+<script>
+function markAsInvoiced(clientId) {
+    const checkboxes = document.querySelectorAll(`input[type="checkbox"][data-client-id="${clientId}"]:checked`);
+    const entryIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+    
+    if (entryIds.length === 0) {
+        alert('Bitte wählen Sie mindestens einen Zeiteintrag aus.');
+        return;
+    }
+    
+    if (!confirm(`Möchten Sie ${entryIds.length} Zeiteinträge als verrechnet markieren?`)) {
+        return;
+    }
+    
+    fetch('{% url "adearechnung:mark-invoiced" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ entry_ids: entryIds })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ ' + data.message);
+            window.location.reload();
+        } else {
+            alert('❌ Fehler: ' + (data.error || 'Unbekannter Fehler'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('❌ Netzwerkfehler!');
+    });
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<section class="content-card" style="max-width: 100%; width: 100%;">
+    <div class="adea-d-flex-between">
+        <div>
+            <h1 style="margin-bottom: 8px;">💰 Fakturierung</h1>
+            <p class="lead">Kundenübersicht und Rechnungserstellung</p>
+        </div>
+    </div>
+
+    <div style="margin-top: 24px;">
+        <form method="get" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <label for="date_from" style="font-weight: 600;">Von:</label>
+                <input type="date" name="date_from" id="date_from" value="{{ date_from|date:'Y-m-d' }}" class="adea-input">
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <label for="date_to" style="font-weight: 600;">Bis:</label>
+                <input type="date" name="date_to" id="date_to" value="{{ date_to|date:'Y-m-d' }}" class="adea-input">
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <label for="verrechnet" style="font-weight: 600;">Status:</label>
+                <select name="verrechnet" id="verrechnet" class="adea-select" style="min-width: 150px;">
+                    <option value="">Alle</option>
+                    <option value="offen" {% if verrechnet_filter == "offen" %}selected{% endif %}>Offen</option>
+                    <option value="verrechnet" {% if verrechnet_filter == "verrechnet" %}selected{% endif %}>Verrechnet</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; flex: 1; min-width: 200px;">
+                <label for="client_search" style="font-weight: 600;">Kunde suchen:</label>
+                <input type="text" name="client_search" id="client_search" value="{{ client_search }}" placeholder="Kundenname..." class="adea-input" style="flex: 1;">
+            </div>
+            <button type="submit" class="adea-button-primary">Anzeigen</button>
+            <a href="?" class="adea-button-secondary" style="text-decoration: none; padding: 8px 16px;">Zurücksetzen</a>
+        </form>
+        <small style="color: #6e6e73; margin-top: 8px; display: block;">
+            {% if not date_from_str and not date_to_str and not verrechnet_filter and not client_search %}
+            <strong>Alle Zeiteinträge werden angezeigt</strong> (keine Filter aktiv)
+            {% else %}
+            {% if date_from_str or date_to_str %}Datum-Filter aktiv. {% endif %}
+            {% if verrechnet_filter %}Status-Filter: {{ verrechnet_filter|capfirst }}. {% endif %}
+            {% if client_search %}Suche: "{{ client_search }}". {% endif %}
+            Verwenden Sie "Zurücksetzen" um alle Filter zu entfernen.
+            {% endif %}
+        </small>
+    </div>
+
+    <div style="margin-top: 24px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 24px;">
+            <div style="padding: 16px; background: #f5f5f7; border-radius: 8px;">
+                <div style="font-size: 0.9em; color: #6e6e73; margin-bottom: 4px;">Gesamt Zeit</div>
+                <div style="font-size: 1.5em; font-weight: 600;">{{ total_dauer|floatformat:2 }}h</div>
+            </div>
+            <div style="padding: 16px; background: #f5f5f7; border-radius: 8px;">
+                <div style="font-size: 0.9em; color: #6e6e73; margin-bottom: 4px;">Gesamt Betrag</div>
+                <div style="font-size: 1.5em; font-weight: 600;">{{ total_betrag|floatformat:2 }} CHF</div>
+            </div>
+            <div style="padding: 16px; background: #d1f2eb; border-radius: 8px;">
+                <div style="font-size: 0.9em; color: #6e6e73; margin-bottom: 4px;">Verrechnet</div>
+                <div style="font-size: 1.5em; font-weight: 600;">{{ verrechnet_dauer|floatformat:2 }}h / {{ verrechnet_betrag|floatformat:2 }} CHF</div>
+            </div>
+            <div style="padding: 16px; background: #ffe5e5; border-radius: 8px;">
+                <div style="font-size: 0.9em; color: #6e6e73; margin-bottom: 4px;">Nicht verrechnet</div>
+                <div style="font-size: 1.5em; font-weight: 600;">{{ nicht_verrechnet_dauer|floatformat:2 }}h / {{ nicht_verrechnet_betrag|floatformat:2 }} CHF</div>
+            </div>
+        </div>
+    </div>
+
+    {% for summary in client_summaries %}
+    <div style="margin-top: 32px; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; gap: 16px;">
+            <div style="flex: 1; min-width: 0;">
+                <h2 style="margin: 0; font-size: 1.3em; word-wrap: break-word; overflow-wrap: break-word;">{{ summary.client.name }}</h2>
+                <div style="margin-top: 8px; display: flex; gap: 24px; font-size: 0.9em; color: #6e6e73; flex-wrap: wrap;">
+                    <span><strong>Gesamt:</strong> {{ summary.total_dauer|floatformat:2 }}h / {{ summary.total_betrag|floatformat:2 }} CHF</span>
+                    <span style="color: #34c759;"><strong>Verrechnet:</strong> {{ summary.verrechnet_dauer|floatformat:2 }}h / {{ summary.verrechnet_betrag|floatformat:2 }} CHF</span>
+                    <span style="color: #ff3b30;"><strong>Offen:</strong> {{ summary.nicht_verrechnet_dauer|floatformat:2 }}h / {{ summary.nicht_verrechnet_betrag|floatformat:2 }} CHF</span>
+                </div>
+            </div>
+            {% if summary.nicht_verrechnet_dauer > 0 %}
+            <button onclick="markAsInvoiced({{ summary.client.id }})" class="adea-button-primary" style="background: #34c759;">
+                Als verrechnet markieren
+            </button>
+            {% endif %}
+        </div>
+
+        <div class="adea-table-wrapper" style="margin-top: 16px; overflow-x: auto;">
+            <table class="adea-table" style="min-width: 1200px;">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;"><input type="checkbox" onchange="document.querySelectorAll('input[data-client-id={{ summary.client.id }}]').forEach(cb => cb.checked = this.checked)"></th>
+                        <th style="width: 100px;">Datum</th>
+                        <th style="width: 150px;">Mitarbeiterin</th>
+                        <th style="width: 100px;">Service-Typ</th>
+                        <th style="width: 300px;">Kommentar</th>
+                        <th style="width: 80px;">Dauer</th>
+                        <th style="width: 100px;">Betrag</th>
+                        <th style="width: 100px;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in summary.entries %}
+                    <tr>
+                        <td>
+                            {% if not entry.verrechnet %}
+                            <input type="checkbox" data-client-id="{{ summary.client.id }}" value="{{ entry.pk }}">
+                            {% endif %}
+                        </td>
+                        <td>{{ entry.datum|date:"d.m.Y" }}</td>
+                        <td><strong>{{ entry.mitarbeiter.name }}</strong></td>
+                        <td>{{ entry.service_type.code }}</td>
+                        <td style="max-width: 300px; word-wrap: break-word; white-space: normal; line-height: 1.4;">
+                            {% if entry.kommentar %}
+                            <div style="max-height: 100px; overflow-y: auto; padding-right: 8px;">{{ entry.kommentar }}</div>
+                            {% else %}
+                            <span style="color: #8e8e93;">–</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ entry.dauer|floatformat:2 }}h</td>
+                        <td>{{ entry.betrag|floatformat:2 }} CHF</td>
+                        <td>
+                            {% if entry.verrechnet %}
+                            <span style="color: #34c759; font-weight: 600;">✓ Verrechnet</span>
+                            {% else %}
+                            <span style="color: #ff3b30;">Offen</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8">Keine Zeiteinträge für diesen Kunden.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% empty %}
+    <div style="margin-top: 32px; padding: 40px; text-align: center; color: #6e6e73;">
+        <p>Keine Zeiteinträge mit Kunde im ausgewählten Zeitraum gefunden.</p>
+    </div>
+    {% endfor %}
+</section>
+{% endblock %}
+

@@ -29,7 +29,7 @@
                     {% endif %}
                     <a href="{% url 'adeazeit:timeentry-day' %}" class="top-nav-item {% if 'timeentry' in request.resolver_match.url_name %}active{% endif %}">Zeiteinträge</a>
                     {% if adeazeit_is_manager %}
-                    <a href="{% url 'adeazeit:client-summary' %}" class="top-nav-item {% if 'client-summary' in request.resolver_match.url_name %}active{% endif %}">Kundenübersicht</a>
+                    <a href="{% url 'adearechnung:client-summary' %}" class="top-nav-item {% if 'adearechnung' in request.resolver_match.app_name %}active{% endif %}">Fakturierung</a>
                     {% endif %}
                     <a href="{% url 'adeazeit:task-list' %}" class="top-nav-item {% if 'task' in request.resolver_match.url_name %}active{% endif %}">Aufgaben</a>
                     {% if user.is_staff %}

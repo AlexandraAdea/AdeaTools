@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     # AdeaTools Module
     'adeadesk',
     'adeazeit',
+    'adearechnung',  # Fakturierung und Rechnungserstellung (Vertec-Stil)
     'adealohn',
 ]
 
