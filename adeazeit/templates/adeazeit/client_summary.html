@@ -62,18 +62,37 @@ function markAsInvoiced(clientId) {
 
     <div style="margin-top: 24px;">
         <form method="get" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-            <label for="date_from" style="font-weight: 600;">Von:</label>
-            <input type="date" name="date_from" id="date_from" value="{{ date_from|date:'Y-m-d' }}" class="adea-input">
-            <label for="date_to" style="font-weight: 600;">Bis:</label>
-            <input type="date" name="date_to" id="date_to" value="{{ date_to|date:'Y-m-d' }}" class="adea-input">
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <label for="date_from" style="font-weight: 600;">Von:</label>
+                <input type="date" name="date_from" id="date_from" value="{{ date_from|date:'Y-m-d' }}" class="adea-input">
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <label for="date_to" style="font-weight: 600;">Bis:</label>
+                <input type="date" name="date_to" id="date_to" value="{{ date_to|date:'Y-m-d' }}" class="adea-input">
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <label for="verrechnet" style="font-weight: 600;">Status:</label>
+                <select name="verrechnet" id="verrechnet" class="adea-select" style="min-width: 150px;">
+                    <option value="">Alle</option>
+                    <option value="offen" {% if verrechnet_filter == "offen" %}selected{% endif %}>Offen</option>
+                    <option value="verrechnet" {% if verrechnet_filter == "verrechnet" %}selected{% endif %}>Verrechnet</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; flex: 1; min-width: 200px;">
+                <label for="client_search" style="font-weight: 600;">Kunde suchen:</label>
+                <input type="text" name="client_search" id="client_search" value="{{ client_search }}" placeholder="Kundenname..." class="adea-input" style="flex: 1;">
+            </div>
             <button type="submit" class="adea-button-primary">Anzeigen</button>
-            <a href="?" class="adea-button-secondary" style="text-decoration: none; padding: 8px 16px;">Alle anzeigen</a>
+            <a href="?" class="adea-button-secondary" style="text-decoration: none; padding: 8px 16px;">Zurücksetzen</a>
         </form>
         <small style="color: #6e6e73; margin-top: 8px; display: block;">
-            {% if not date_from_str and not date_to_str %}
-            <strong>Alle Zeiteinträge werden angezeigt</strong> (kein Datum-Filter)
+            {% if not date_from_str and not date_to_str and not verrechnet_filter and not client_search %}
+            <strong>Alle Zeiteinträge werden angezeigt</strong> (keine Filter aktiv)
             {% else %}
-            Standard: Aktuelles Jahr. Verwenden Sie "Alle anzeigen" für alle Zeiteinträge.
+            {% if date_from_str or date_to_str %}Datum-Filter aktiv. {% endif %}
+            {% if verrechnet_filter %}Status-Filter: {{ verrechnet_filter|capfirst }}. {% endif %}
+            {% if client_search %}Suche: "{{ client_search }}". {% endif %}
+            Verwenden Sie "Zurücksetzen" um alle Filter zu entfernen.
             {% endif %}
         </small>
     </div>

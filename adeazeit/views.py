@@ -1133,6 +1133,12 @@ class ClientTimeSummaryView(ManagerOrAdminRequiredMixin, TemplateView):
         date_from_str = self.request.GET.get("date_from")
         date_to_str = self.request.GET.get("date_to")
         
+        # Filter nach Verrechnungsstatus
+        verrechnet_filter = self.request.GET.get("verrechnet", "")  # "offen", "verrechnet", oder "" (alle)
+        
+        # Suche nach Kundenname
+        client_search = self.request.GET.get("client_search", "").strip()
+        
         if date_from_str:
             try:
                 date_from = datetime.strptime(date_from_str, "%Y-%m-%d").date()
@@ -1157,6 +1163,8 @@ class ClientTimeSummaryView(ManagerOrAdminRequiredMixin, TemplateView):
         context["date_to"] = date_to
         context["date_from_str"] = date_from_str or ""
         context["date_to_str"] = date_to_str or ""
+        context["verrechnet_filter"] = verrechnet_filter
+        context["client_search"] = client_search
         
         # Filter nach Rolle
         from .permissions import get_accessible_time_entries
@@ -1169,6 +1177,17 @@ class ClientTimeSummaryView(ManagerOrAdminRequiredMixin, TemplateView):
             entries_query = entries_query.filter(datum__gte=date_from)
         if date_to_str:  # Nur filtern wenn explizit gesetzt
             entries_query = entries_query.filter(datum__lte=date_to)
+        
+        # Filter nach Verrechnungsstatus
+        if verrechnet_filter == "offen":
+            entries_query = entries_query.filter(verrechnet=False)
+        elif verrechnet_filter == "verrechnet":
+            entries_query = entries_query.filter(verrechnet=True)
+        # Wenn leer, zeige alle
+        
+        # Suche nach Kundenname
+        if client_search:
+            entries_query = entries_query.filter(client__name__icontains=client_search)
         
         entries = entries_query.select_related("client", "mitarbeiter", "service_type").order_by("client__name", "datum")
         
