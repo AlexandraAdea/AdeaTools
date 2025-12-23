@@ -34,8 +34,8 @@ class Command(BaseCommand):
         
         self.stdout.write(self.style.SUCCESS('Aktualisiere Stundensätze für Zeiteinträge...'))
         
-        # Finde alle Zeiteinträge mit ServiceType
-        entries = TimeEntry.objects.select_related('service_type').all()
+        # Finde alle Zeiteinträge mit ServiceType und Mitarbeiter
+        entries = TimeEntry.objects.select_related('service_type', 'mitarbeiter').all()
         
         updated_count = 0
         skipped_count = 0
@@ -43,35 +43,36 @@ class Command(BaseCommand):
         
         with transaction.atomic():
             for entry in entries:
-                if not entry.service_type:
+                if not entry.service_type or not entry.mitarbeiter:
                     skipped_count += 1
                     continue
                 
                 current_rate = entry.rate or Decimal('0.00')
-                standard_rate = entry.service_type.standard_rate or Decimal('0.00')
+                base_rate = entry.service_type.standard_rate or Decimal('0.00')
+                
+                # Berechne korrekte Rate mit Koeffizient
+                if entry.mitarbeiter.stundensatz and entry.mitarbeiter.stundensatz > 0:
+                    correct_rate = (base_rate * entry.mitarbeiter.stundensatz).quantize(Decimal('0.01'))
+                else:
+                    correct_rate = base_rate
                 
                 # Prüfe ob Update nötig ist
                 needs_update = False
                 if force:
                     # Force: Aktualisiere alle
                     needs_update = True
-                elif not entry.rate or entry.rate == 0:
-                    # Rate nicht gesetzt oder 0
-                    needs_update = True
-                elif current_rate != standard_rate:
-                    # Rate weicht vom Standard ab (möglicherweise veraltet)
-                    # Aktualisiere nur wenn rate gleich dem alten Standard war
-                    # (d.h. automatisch gesetzt, nicht manuell)
+                elif current_rate != correct_rate:
+                    # Rate weicht von der korrekten Rate ab (inkl. Koeffizient)
                     needs_update = True
                 
                 if needs_update:
                     old_rate = entry.rate
                     old_betrag = entry.betrag
                     
-                    # Aktualisiere Rate und Betrag
-                    entry.rate = standard_rate
+                    # Aktualisiere Rate und Betrag (mit Koeffizient)
+                    entry.rate = correct_rate
                     if entry.dauer:
-                        entry.betrag = (standard_rate * entry.dauer).quantize(Decimal('0.01'))
+                        entry.betrag = (correct_rate * entry.dauer).quantize(Decimal('0.01'))
                     else:
                         entry.betrag = Decimal('0.00')
                     
@@ -80,9 +81,10 @@ class Command(BaseCommand):
                             entry.save(update_fields=['rate', 'betrag'])
                             updated_count += 1
                             if updated_count <= 10:  # Zeige erste 10 Updates
+                                koeffizient_info = f" (Koeffizient: {entry.mitarbeiter.stundensatz})" if entry.mitarbeiter.stundensatz and entry.mitarbeiter.stundensatz > 0 else ""
                                 self.stdout.write(
                                     f'  ✓ Aktualisiert: {entry.datum} - {entry.mitarbeiter.name} - '
-                                    f'{entry.service_type.code} - Rate: {old_rate} → {standard_rate} CHF, '
+                                    f'{entry.service_type.code} - Rate: {old_rate} → {correct_rate} CHF{koeffizient_info}, '
                                     f'Betrag: {old_betrag} → {entry.betrag} CHF'
                                 )
                         except Exception as e:
@@ -94,9 +96,10 @@ class Command(BaseCommand):
                             )
                     else:
                         updated_count += 1
+                        koeffizient_info = f" (Koeffizient: {entry.mitarbeiter.stundensatz})" if entry.mitarbeiter.stundensatz and entry.mitarbeiter.stundensatz > 0 else ""
                         self.stdout.write(
                             f'  [DRY-RUN] Würde aktualisieren: {entry.datum} - {entry.mitarbeiter.name} - '
-                            f'{entry.service_type.code} - Rate: {current_rate} → {standard_rate} CHF'
+                            f'{entry.service_type.code} - Rate: {current_rate} → {correct_rate} CHF{koeffizient_info}'
                         )
                 else:
                     skipped_count += 1
