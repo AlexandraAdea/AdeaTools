@@ -14,9 +14,14 @@
             <h1 style="margin-bottom: 8px;">Interne Mitarbeitende</h1>
             <p class="lead">Verwalte interne Mitarbeitende für Zeiterfassung.</p>
         </div>
-        {% if adeazeit_can_manage_employees %}
-        <a class="adea-button-primary" href="{% url 'adeazeit:employee-create' %}">+ Neue Mitarbeiterin / Neuer Mitarbeiter</a>
-        {% endif %}
+        <div style="display: flex; gap: 12px;">
+            <a href="{% url 'adeazeit:employee-monthly-stats' %}" class="adea-button-primary" style="background: #007aff;">
+                📊 Monatsstatistik
+            </a>
+            {% if adeazeit_can_manage_employees %}
+            <a class="adea-button-primary" href="{% url 'adeazeit:employee-create' %}">+ Neue Mitarbeiterin / Neuer Mitarbeiter</a>
+            {% endif %}
+        </div>
     </div>
 
     <form method="get" class="adea-search-form" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 20px;">

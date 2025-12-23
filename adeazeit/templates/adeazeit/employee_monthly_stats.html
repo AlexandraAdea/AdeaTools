@@ -1,0 +1,108 @@
+{% extends 'admin_base_no_sidebar.html' %}
+
+{% block breadcrumbs %}
+{% if user.is_staff %}
+<a href="{% url 'admin-dashboard' %}">Dashboard</a>
+{% else %}
+<a href="{% url 'home' %}">Startseite</a>
+{% endif %}
+<a href="{% url 'adeazeit:employee-list' %}">Mitarbeitende</a>
+<a href="{% url 'adeazeit:employee-monthly-stats' %}">Monatsstatistik</a>
+{% endblock %}
+
+{% block title %}Mitarbeiter Monatsstatistik – AdeaZeit{% endblock %}
+
+{% block content %}
+<section class="content-card" style="max-width: 100%; width: 100%;">
+    <div class="adea-d-flex-between">
+        <div>
+            <h1 style="margin-bottom: 8px;">📊 Mitarbeiter Monatsstatistik</h1>
+            <p class="lead">Übersicht aller Mitarbeiter mit Stunden und Produktivität</p>
+        </div>
+    </div>
+
+    <div style="margin-top: 24px;">
+        <form method="get" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <label for="month" style="font-weight: 600;">Monat:</label>
+                <select name="month" id="month" class="adea-select">
+                    {% for m in "123456789101112"|make_list %}
+                    <option value="{{ m }}" {% if selected_month == m|add:"0" %}selected{% endif %}>{{ m|add:"0" }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <label for="year" style="font-weight: 600;">Jahr:</label>
+                <input type="number" name="year" id="year" value="{{ selected_year }}" min="2020" max="2030" class="adea-input" style="width: 100px;">
+            </div>
+            <button type="submit" class="adea-button-primary">Anzeigen</button>
+        </form>
+        <small style="color: #6e6e73; margin-top: 8px; display: block;">
+            <strong>{{ month_name }}</strong>
+        </small>
+    </div>
+
+    <div style="margin-top: 24px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+            <div style="padding: 16px; background: #f5f5f7; border-radius: 8px;">
+                <div style="font-size: 0.9em; color: #6e6e73; margin-bottom: 4px;">Gesamt Sollzeit</div>
+                <div style="font-size: 1.5em; font-weight: 600;">{{ total_soll|floatformat:2 }}h</div>
+            </div>
+            <div style="padding: 16px; background: #f5f5f7; border-radius: 8px;">
+                <div style="font-size: 0.9em; color: #6e6e73; margin-bottom: 4px;">Gesamt Istzeit</div>
+                <div style="font-size: 1.5em; font-weight: 600;">{{ total_ist|floatformat:2 }}h</div>
+            </div>
+            <div style="padding: 16px; background: #f5f5f7; border-radius: 8px;">
+                <div style="font-size: 0.9em; color: #6e6e73; margin-bottom: 4px;">Gesamt Abwesenheiten</div>
+                <div style="font-size: 1.5em; font-weight: 600;">{{ total_absence|floatformat:2 }}h</div>
+            </div>
+            <div style="padding: 16px; background: {% if overall_productivity >= 100 %}#d1f2eb{% else %}#ffe5e5{% endif %}; border-radius: 8px;">
+                <div style="font-size: 0.9em; color: #6e6e73; margin-bottom: 4px;">Gesamt Produktivität</div>
+                <div style="font-size: 1.5em; font-weight: 600; color: {% if overall_productivity >= 100 %}#34c759{% else %}#ff3b30{% endif %};">{{ overall_productivity|floatformat:2 }}%</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="adea-table-wrapper" style="margin-top: 24px; overflow-x: auto;">
+        <table class="adea-table" style="min-width: 1000px;">
+            <thead>
+                <tr>
+                    <th>Mitarbeiterin</th>
+                    <th>Beschäftigungsgrad</th>
+                    <th>Wöchentliche Sollzeit</th>
+                    <th>Monatliche Sollzeit</th>
+                    <th>Abwesenheiten</th>
+                    <th>Effektive Sollzeit</th>
+                    <th>Istzeit</th>
+                    <th>Produktivität</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stat in employee_stats %}
+                <tr>
+                    <td><strong>{{ stat.employee.name }}</strong>{% if stat.employee.function_title %} - {{ stat.employee.function_title }}{% endif %}</td>
+                    <td>{{ stat.employment_percent|floatformat:2 }}%</td>
+                    <td>{{ stat.weekly_soll_hours|floatformat:2 }}h</td>
+                    <td>{{ stat.monthly_soll|floatformat:2 }}h</td>
+                    <td>{{ stat.monthly_absence|floatformat:2 }}h</td>
+                    <td>{{ stat.monthly_effective_soll|floatformat:2 }}h</td>
+                    <td><strong>{{ stat.monthly_ist|floatformat:2 }}h</strong></td>
+                    <td>
+                        <span style="font-weight: 600; color: {% if stat.productivity >= 100 %}#34c759{% else %}#ff9500{% endif %};">
+                            {{ stat.productivity|floatformat:2 }}%
+                        </span>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align: center; padding: 40px;">
+                        <p style="color: #6e6e73;">Keine Mitarbeitenden gefunden.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
+

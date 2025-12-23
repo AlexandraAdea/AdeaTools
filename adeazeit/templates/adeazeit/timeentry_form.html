@@ -108,8 +108,15 @@ function loadEmployeeInfo(employeeId) {
     const year = today.getFullYear();
     const month = today.getMonth() + 1;
     
-    fetch(`{% url 'adeazeit:load-employee-info' %}?employee_id=${employeeId}&year=${year}&month=${month}`)
-        .then(response => response.json())
+    // Cache-Busting: Füge Timestamp hinzu, um sicherzustellen, dass Daten aktualisiert werden
+    const timestamp = new Date().getTime();
+    fetch(`{% url 'adeazeit:load-employee-info' %}?employee_id=${employeeId}&year=${year}&month=${month}&_=${timestamp}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 sidebar.style.display = 'block';
@@ -126,6 +133,7 @@ function loadEmployeeInfo(employeeId) {
                 prodElement.style.color = productivity >= 100 ? '#34c759' : '#ff9500';
             } else {
                 sidebar.style.display = 'none';
+                console.error('Fehler beim Laden der Mitarbeiter-Info:', data.error);
             }
         })
         .catch(error => {

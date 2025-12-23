@@ -10,6 +10,7 @@ urlpatterns = [
     
     # EmployeeInternal
     path("mitarbeitende/", views.EmployeeInternalListView.as_view(), name="employee-list"),
+    path("mitarbeitende/monatsstatistik/", views.EmployeeMonthlyStatsView.as_view(), name="employee-monthly-stats"),
     path("mitarbeitende/neu/", views.EmployeeInternalCreateView.as_view(), name="employee-create"),
     path("mitarbeitende/<int:pk>/bearbeiten/", views.EmployeeInternalUpdateView.as_view(), name="employee-update"),
     path("mitarbeitende/<int:pk>/loeschen/", views.EmployeeInternalDeleteView.as_view(), name="employee-delete"),
