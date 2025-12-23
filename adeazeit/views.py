@@ -1238,6 +1238,16 @@ class ClientTimeSummaryView(ManagerOrAdminRequiredMixin, TemplateView):
         if date_to_str:  # Nur filtern wenn explizit gesetzt
             stats_query = stats_query.filter(datum__lte=date_to)
         
+        # Filter nach Verrechnungsstatus für Statistiken
+        if verrechnet_filter == "offen":
+            stats_query = stats_query.filter(verrechnet=False)
+        elif verrechnet_filter == "verrechnet":
+            stats_query = stats_query.filter(verrechnet=True)
+        
+        # Suche nach Kundenname für Statistiken
+        if client_search:
+            stats_query = stats_query.filter(client__name__icontains=client_search)
+        
         total_stats = stats_query.aggregate(
             total_dauer=Sum('dauer'),
             total_betrag=Sum('betrag'),
