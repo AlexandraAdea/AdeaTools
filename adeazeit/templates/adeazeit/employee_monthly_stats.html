@@ -26,9 +26,18 @@
             <div style="display: flex; gap: 8px; align-items: center;">
                 <label for="month" style="font-weight: 600;">Monat:</label>
                 <select name="month" id="month" class="adea-select">
-                    {% for m in "123456789101112"|make_list %}
-                    <option value="{{ m }}" {% if selected_month == m|add:"0" %}selected{% endif %}>{{ m|add:"0" }}</option>
-                    {% endfor %}
+                    <option value="1" {% if selected_month == 1 %}selected{% endif %}>1</option>
+                    <option value="2" {% if selected_month == 2 %}selected{% endif %}>2</option>
+                    <option value="3" {% if selected_month == 3 %}selected{% endif %}>3</option>
+                    <option value="4" {% if selected_month == 4 %}selected{% endif %}>4</option>
+                    <option value="5" {% if selected_month == 5 %}selected{% endif %}>5</option>
+                    <option value="6" {% if selected_month == 6 %}selected{% endif %}>6</option>
+                    <option value="7" {% if selected_month == 7 %}selected{% endif %}>7</option>
+                    <option value="8" {% if selected_month == 8 %}selected{% endif %}>8</option>
+                    <option value="9" {% if selected_month == 9 %}selected{% endif %}>9</option>
+                    <option value="10" {% if selected_month == 10 %}selected{% endif %}>10</option>
+                    <option value="11" {% if selected_month == 11 %}selected{% endif %}>11</option>
+                    <option value="12" {% if selected_month == 12 %}selected{% endif %}>12</option>
                 </select>
             </div>
             <div style="display: flex; gap: 8px; align-items: center;">
