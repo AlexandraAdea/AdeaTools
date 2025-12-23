@@ -375,8 +375,13 @@ class TimeEntryCreateView(LoginRequiredMixin, CreateView):
             form.instance.kommentar = form.cleaned_data['kommentar']
         
         # WICHTIG: Stelle sicher, dass Rate aus ServiceType übernommen wird (für korrekte Fakturierung)
+        # Wende Koeffizient des Mitarbeiters an (z.B. 0.5 = 50% des Standard-Stundensatzes)
         if form.instance.service_type and (not form.instance.rate or form.instance.rate == 0):
-            form.instance.rate = form.instance.service_type.standard_rate or Decimal('0.00')
+            base_rate = form.instance.service_type.standard_rate or Decimal('0.00')
+            if form.instance.mitarbeiter and form.instance.mitarbeiter.stundensatz and form.instance.mitarbeiter.stundensatz > 0:
+                form.instance.rate = (base_rate * form.instance.mitarbeiter.stundensatz).quantize(Decimal('0.01'))
+            else:
+                form.instance.rate = base_rate
         
         return super().form_valid(form)
 
@@ -489,14 +494,21 @@ class TimeEntryUpdateView(LoginRequiredMixin, UpdateView):
             form.instance.kommentar = form.cleaned_data['kommentar']
         
         # WICHTIG: Stelle sicher, dass Rate aus ServiceType übernommen wird (für korrekte Fakturierung)
-        # Wenn ServiceType geändert wurde oder Rate leer ist, aktualisiere Rate
+        # Wende Koeffizient des Mitarbeiters an (z.B. 0.5 = 50% des Standard-Stundensatzes)
         if form.instance.service_type:
+            base_rate = form.instance.service_type.standard_rate or Decimal('0.00')
             # Wenn Rate nicht gesetzt oder ServiceType geändert wurde, aktualisiere Rate
             if not form.instance.rate or form.instance.rate == 0:
-                form.instance.rate = form.instance.service_type.standard_rate or Decimal('0.00')
+                if form.instance.mitarbeiter and form.instance.mitarbeiter.stundensatz and form.instance.mitarbeiter.stundensatz > 0:
+                    form.instance.rate = (base_rate * form.instance.mitarbeiter.stundensatz).quantize(Decimal('0.01'))
+                else:
+                    form.instance.rate = base_rate
             # Prüfe ob ServiceType geändert wurde (beim Update)
             elif self.object and self.object.service_type != form.instance.service_type:
-                form.instance.rate = form.instance.service_type.standard_rate or Decimal('0.00')
+                if form.instance.mitarbeiter and form.instance.mitarbeiter.stundensatz and form.instance.mitarbeiter.stundensatz > 0:
+                    form.instance.rate = (base_rate * form.instance.mitarbeiter.stundensatz).quantize(Decimal('0.01'))
+                else:
+                    form.instance.rate = base_rate
         
         return super().form_valid(form)
     
@@ -1015,7 +1027,12 @@ def stop_timer(request):
         duration_hours = timer.get_duration_hours()
         
         # Erstelle Zeiteintrag
-        rate = timer.service_type.standard_rate if timer.service_type.standard_rate else Decimal('0.00')
+        # WICHTIG: Koeffizient des Mitarbeiters anwenden (z.B. 0.5 = 50% des Standard-Stundensatzes)
+        base_rate = timer.service_type.standard_rate if timer.service_type.standard_rate else Decimal('0.00')
+        if timer.mitarbeiter and timer.mitarbeiter.stundensatz and timer.mitarbeiter.stundensatz > 0:
+            rate = (base_rate * timer.mitarbeiter.stundensatz).quantize(Decimal('0.01'))
+        else:
+            rate = base_rate
         betrag = duration_hours * rate
         
         # Berechne Start- und Endzeit

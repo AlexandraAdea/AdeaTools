@@ -464,7 +464,12 @@ class TimeEntry(models.Model):
             # Rate aus ServiceType übernehmen, falls nicht gesetzt oder 0
             if self.service_type:
                 if not self.rate or self.rate == 0:
-                    self.rate = self.service_type.standard_rate or Decimal('0.00')
+                    base_rate = self.service_type.standard_rate or Decimal('0.00')
+                    # WICHTIG: Koeffizient des Mitarbeiters anwenden (z.B. 0.5 = 50% des Standard-Stundensatzes)
+                    if self.mitarbeiter and self.mitarbeiter.stundensatz and self.mitarbeiter.stundensatz > 0:
+                        self.rate = (base_rate * self.mitarbeiter.stundensatz).quantize(Decimal('0.01'))
+                    else:
+                        self.rate = base_rate
             
             # billable aus ServiceType übernehmen, falls nicht explizit gesetzt
             if not hasattr(self, '_billable_set'):
