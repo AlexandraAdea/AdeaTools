@@ -171,3 +171,4 @@ class Meta:
 **Status:** ✅ **Gut vorangekommen**  
 **Nächste Review:** Nach Implementierung der Indizes
 
+

@@ -118,7 +118,7 @@ function markAsInvoiced(clientId) {
         </div>
 
         <div class="adea-table-wrapper" style="margin-top: 16px; overflow-x: auto;">
-            <table class="adea-table" style="min-width: 1000px;">
+            <table class="adea-table" style="min-width: 1200px;">
                 <thead>
                     <tr>
                         <th style="width: 50px;"><input type="checkbox" onchange="document.querySelectorAll('input[data-client-id={{ summary.client.id }}]').forEach(cb => cb.checked = this.checked)"></th>
@@ -142,8 +142,12 @@ function markAsInvoiced(clientId) {
                         <td>{{ entry.datum|date:"d.m.Y" }}</td>
                         <td><strong>{{ entry.mitarbeiter.name }}</strong></td>
                         <td>{{ entry.service_type.code }}</td>
-                        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ entry.kommentar|default:'' }}">
-                            {{ entry.kommentar|default:"–"|truncatewords:10 }}
+                        <td style="max-width: 300px; word-wrap: break-word; white-space: normal; line-height: 1.4;">
+                            {% if entry.kommentar %}
+                            <div style="max-height: 100px; overflow-y: auto; padding-right: 8px;">{{ entry.kommentar }}</div>
+                            {% else %}
+                            <span style="color: #8e8e93;">–</span>
+                            {% endif %}
                         </td>
                         <td>{{ entry.dauer|floatformat:2 }}h</td>
                         <td>{{ entry.betrag|floatformat:2 }} CHF</td>

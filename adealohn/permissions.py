@@ -21,3 +21,4 @@ def can_access_adelohn(user):
     # z.B. per Group oder Permission
     return False
 
+
