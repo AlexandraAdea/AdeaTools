@@ -90,6 +90,80 @@ class EmployeeInternalListView(ManagerOrAdminRequiredMixin, EmployeeFilterMixin,
         return context
 
 
+class EmployeeMonthlyStatsView(ManagerOrAdminRequiredMixin, TemplateView):
+    """Übersicht aller Mitarbeiter mit Monatsstunden, Produktivität und Statistiken."""
+    template_name = "adeazeit/employee_monthly_stats.html"
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Datum-Filter aus URL
+        year = self.request.GET.get("year")
+        month = self.request.GET.get("month")
+        
+        today = date.today()
+        if year and month:
+            try:
+                year = int(year)
+                month = int(month)
+                if not (1 <= month <= 12):
+                    raise ValueError("Monat muss zwischen 1 und 12 sein")
+            except (ValueError, TypeError):
+                year = today.year
+                month = today.month
+        else:
+            year = today.year
+            month = today.month
+        
+        context["selected_year"] = year
+        context["selected_month"] = month
+        context["month_name"] = date(year, month, 1).strftime("%B %Y")
+        
+        # Filter: Nur aktive Mitarbeitende (nach Rolle)
+        accessible_employees = get_accessible_employees(self.request.user)
+        employees = accessible_employees.filter(
+            aktiv=True
+        ).filter(
+            Q(employment_end__isnull=True) | Q(employment_end__gte=today)
+        ).order_by("name")
+        
+        # Berechne Statistiken für jeden Mitarbeiter
+        employee_stats = []
+        for employee in employees:
+            monthly_soll = WorkingTimeCalculator.monthly_soll_hours(employee, year, month)
+            monthly_absence = WorkingTimeCalculator.monthly_absence_hours(employee, year, month)
+            monthly_effective_soll = WorkingTimeCalculator.monthly_effective_soll_hours(employee, year, month)
+            monthly_ist = WorkingTimeCalculator.monthly_ist_hours(employee, year, month)
+            productivity = WorkingTimeCalculator.monthly_productivity(employee, year, month)
+            
+            employee_stats.append({
+                "employee": employee,
+                "monthly_soll": monthly_soll,
+                "monthly_absence": monthly_absence,
+                "monthly_effective_soll": monthly_effective_soll,
+                "monthly_ist": monthly_ist,
+                "productivity": productivity,
+                "employment_percent": employee.employment_percent,
+                "weekly_soll_hours": employee.weekly_soll_hours,
+            })
+        
+        context["employee_stats"] = employee_stats
+        
+        # Gesamtstatistiken
+        total_soll = sum(s["monthly_soll"] for s in employee_stats)
+        total_ist = sum(s["monthly_ist"] for s in employee_stats)
+        total_absence = sum(s["monthly_absence"] for s in employee_stats)
+        total_effective_soll = sum(s["monthly_effective_soll"] for s in employee_stats)
+        
+        context["total_soll"] = total_soll
+        context["total_ist"] = total_ist
+        context["total_absence"] = total_absence
+        context["total_effective_soll"] = total_effective_soll
+        context["overall_productivity"] = (total_ist / total_effective_soll * Decimal('100.00')).quantize(Decimal('0.01')) if total_effective_soll > 0 else Decimal('0.00')
+        
+        return context
+
+
 class EmployeeInternalCreateView(ManagerOrAdminRequiredMixin, CreateView):
     model = EmployeeInternal
     form_class = EmployeeInternalForm
