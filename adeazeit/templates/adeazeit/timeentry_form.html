@@ -56,6 +56,7 @@ function calculateDuration() {
 function loadServiceTypeRate(serviceTypeId) {
     const rateInput = document.getElementById('id_rate');
     const billableInput = document.getElementById('id_billable');
+    const employeeSelect = document.getElementById('id_mitarbeiter');
     
     if (!serviceTypeId || serviceTypeId === '' || serviceTypeId === 'null') {
         return;
@@ -65,7 +66,12 @@ function loadServiceTypeRate(serviceTypeId) {
         return;
     }
     
-    const url = `{% url 'adeazeit:load-service-type-rate' %}?service_type_id=${serviceTypeId}`;
+    // Hole Mitarbeiter-ID für Koeffizient-Berechnung
+    const employeeId = employeeSelect ? employeeSelect.value : null;
+    let url = `{% url 'adeazeit:load-service-type-rate' %}?service_type_id=${serviceTypeId}`;
+    if (employeeId) {
+        url += `&employee_id=${employeeId}`;
+    }
     
     fetch(url)
         .then(response => {
@@ -76,8 +82,8 @@ function loadServiceTypeRate(serviceTypeId) {
         })
         .then(data => {
             if (data.success) {
-                // Aktualisiere Stundensatz immer, wenn Service-Typ geändert wird
-                const newRate = parseFloat(data.standard_rate).toFixed(2);
+                // WICHTIG: Verwende final_rate (mit Koeffizient angewendet) statt standard_rate
+                const newRate = parseFloat(data.final_rate || data.standard_rate).toFixed(2);
                 rateInput.value = newRate;
                 
                 // Aktualisiere Verrechenbar-Checkbox

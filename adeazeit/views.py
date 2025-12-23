@@ -493,22 +493,16 @@ class TimeEntryUpdateView(LoginRequiredMixin, UpdateView):
         if 'kommentar' in form.cleaned_data:
             form.instance.kommentar = form.cleaned_data['kommentar']
         
-        # WICHTIG: Stelle sicher, dass Rate aus ServiceType übernommen wird (für korrekte Fakturierung)
-        # Wende Koeffizient des Mitarbeiters an (z.B. 0.5 = 50% des Standard-Stundensatzes)
+        # WICHTIG: Stelle sicher, dass Rate IMMER aus ServiceType übernommen wird (für korrekte Fakturierung)
+        # Wende Koeffizient des Mitarbeiters IMMER an (z.B. 0.5 = 50% des Standard-Stundensatzes)
+        # Auch bei bestehenden Einträgen muss die Rate neu berechnet werden, damit Koeffizient-Änderungen wirksam werden
         if form.instance.service_type:
             base_rate = form.instance.service_type.standard_rate or Decimal('0.00')
-            # Wenn Rate nicht gesetzt oder ServiceType geändert wurde, aktualisiere Rate
-            if not form.instance.rate or form.instance.rate == 0:
-                if form.instance.mitarbeiter and form.instance.mitarbeiter.stundensatz and form.instance.mitarbeiter.stundensatz > 0:
-                    form.instance.rate = (base_rate * form.instance.mitarbeiter.stundensatz).quantize(Decimal('0.01'))
-                else:
-                    form.instance.rate = base_rate
-            # Prüfe ob ServiceType geändert wurde (beim Update)
-            elif self.object and self.object.service_type != form.instance.service_type:
-                if form.instance.mitarbeiter and form.instance.mitarbeiter.stundensatz and form.instance.mitarbeiter.stundensatz > 0:
-                    form.instance.rate = (base_rate * form.instance.mitarbeiter.stundensatz).quantize(Decimal('0.01'))
-                else:
-                    form.instance.rate = base_rate
+            # IMMER Rate neu berechnen mit Koeffizient (auch wenn bereits gesetzt)
+            if form.instance.mitarbeiter and form.instance.mitarbeiter.stundensatz and form.instance.mitarbeiter.stundensatz > 0:
+                form.instance.rate = (base_rate * form.instance.mitarbeiter.stundensatz).quantize(Decimal('0.01'))
+            else:
+                form.instance.rate = base_rate
         
         return super().form_valid(form)
     
@@ -656,17 +650,18 @@ class LoadEmployeeInfoView(LoginRequiredMixin, TemplateView):
 
 # AJAX View für Service-Typ Standard-Stundensatz
 class LoadServiceTypeRateView(LoginRequiredMixin, TemplateView):
-    """AJAX-View zum Laden des Standard-Stundensatzes eines Service-Typs."""
+    """AJAX-View zum Laden des Standard-Stundensatzes eines Service-Typs mit Koeffizient."""
     login_url = '/admin/login/'
 
     def get(self, request, *args, **kwargs):
         import logging
         logger = logging.getLogger(__name__)
         from django.http import JsonResponse
-        from .models import ServiceType
+        from .models import ServiceType, EmployeeInternal
         
         try:
             service_type_id = request.GET.get("service_type_id")
+            employee_id = request.GET.get("employee_id")  # Optional: Mitarbeiter-ID für Koeffizient
             
             if not service_type_id:
                 return JsonResponse({"success": False, "error": "Keine Service-Typ-ID angegeben"}, status=400)
@@ -684,9 +679,24 @@ class LoadServiceTypeRateView(LoginRequiredMixin, TemplateView):
                 logger.warning(f"Service-Typ {service_type_id} nicht gefunden")
                 return JsonResponse({"success": False, "error": "Service-Typ nicht gefunden"}, status=404)
             
+            base_rate = service_type.standard_rate or Decimal('0.00')
+            final_rate = base_rate
+            
+            # WICHTIG: Koeffizient des Mitarbeiters anwenden, falls angegeben
+            if employee_id:
+                try:
+                    employee_id = int(employee_id)
+                    employee = EmployeeInternal.objects.get(pk=employee_id)
+                    if employee.stundensatz and employee.stundensatz > 0:
+                        final_rate = (base_rate * employee.stundensatz).quantize(Decimal('0.01'))
+                except (ValueError, TypeError, EmployeeInternal.DoesNotExist):
+                    # Wenn Mitarbeiter nicht gefunden, verwende Standard-Rate
+                    pass
+            
             return JsonResponse({
                 "success": True,
                 "standard_rate": str(service_type.standard_rate),
+                "final_rate": str(final_rate),  # Rate mit Koeffizient angewendet
                 "billable": service_type.billable
             })
             
