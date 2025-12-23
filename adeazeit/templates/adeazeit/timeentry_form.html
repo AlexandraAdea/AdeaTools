@@ -220,6 +220,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (employeeSelect) {
         employeeSelect.addEventListener('change', function() {
             loadEmployeeInfo(this.value);
+            // WICHTIG: Rate neu berechnen wenn Mitarbeiter geändert wird (Koeffizient könnte sich geändert haben)
+            const serviceTypeSelect = document.getElementById('id_service_type');
+            if (serviceTypeSelect && serviceTypeSelect.value) {
+                loadServiceTypeRate(serviceTypeSelect.value);
+            }
         });
         // Initial load if employee is preselected
         if (employeeSelect.value) {
