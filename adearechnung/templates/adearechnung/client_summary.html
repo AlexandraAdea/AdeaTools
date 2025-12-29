@@ -12,114 +12,6 @@
 {% block title %}Fakturierung – AdeaRechnung{% endblock %}
 
 {% block head_extra %}
-<script>
-function markAsInvoiced(clientId) {
-    const checkboxes = document.querySelectorAll(`input[type="checkbox"][data-client-id="${clientId}"]:checked`);
-    const entryIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
-    
-    if (entryIds.length === 0) {
-        alert('Bitte wählen Sie mindestens einen Zeiteintrag aus.');
-        return;
-    }
-    
-    if (!confirm(`Möchten Sie ${entryIds.length} Zeiteinträge als verrechnet markieren?`)) {
-        return;
-    }
-    
-    fetch('{% url "adearechnung:mark-invoiced" %}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-        },
-        body: JSON.stringify({ entry_ids: entryIds })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('✅ ' + data.message);
-            window.location.reload();
-        } else {
-            alert('❌ Fehler: ' + (data.error || 'Unbekannter Fehler'));
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('❌ Netzwerkfehler!');
-    });
-}
-
-function createInvoice(clientId) {
-    const checkboxes = document.querySelectorAll(`input.entry-checkbox[data-client-id="${clientId}"]:checked`);
-    const entryIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
-    
-    if (entryIds.length === 0) {
-        alert('Bitte wählen Sie mindestens einen Zeiteintrag aus.');
-        return;
-    }
-    
-    if (!confirm(`Möchten Sie eine Rechnung für ${entryIds.length} Zeiteinträge erstellen?`)) {
-        return;
-    }
-    
-    // Erstelle ein Formular und sende es
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '{% url "adearechnung:create-invoice" %}';
-    
-    const csrfInput = document.createElement('input');
-    csrfInput.type = 'hidden';
-    csrfInput.name = 'csrfmiddlewaretoken';
-    csrfInput.value = '{{ csrf_token }}';
-    form.appendChild(csrfInput);
-    
-    const clientInput = document.createElement('input');
-    clientInput.type = 'hidden';
-    clientInput.name = 'client_id';
-    clientInput.value = clientId;
-    form.appendChild(clientInput);
-    
-    const entriesInput = document.createElement('input');
-    entriesInput.type = 'hidden';
-    entriesInput.name = 'selected_entries';
-    entriesInput.value = entryIds.join(',');
-    form.appendChild(entriesInput);
-    
-    document.body.appendChild(form);
-    form.submit();
-}
-
-// Überwache Checkboxen für Rechnungserstellung
-document.addEventListener('DOMContentLoaded', function() {
-    const checkboxes = document.querySelectorAll('.entry-checkbox');
-    
-    checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            const clientId = this.dataset.clientId;
-            const createBtn = document.getElementById('createInvoiceBtn_' + clientId);
-            
-            if (createBtn) {
-                const checkedBoxes = document.querySelectorAll(`input.entry-checkbox[data-client-id="${clientId}"]:checked`);
-                createBtn.disabled = checkedBoxes.length === 0;
-            }
-        });
-    });
-    
-    // Initialisiere Button-Status
-    document.querySelectorAll('[id^="createInvoiceBtn_"]').forEach(btn => {
-        const clientId = btn.id.replace('createInvoiceBtn_', '');
-        updateCreateInvoiceButton(clientId);
-    });
-});
-
-function updateCreateInvoiceButton(clientId) {
-    const createBtn = document.getElementById('createInvoiceBtn_' + clientId);
-    if (createBtn) {
-        const checkedBoxes = document.querySelectorAll(`input.entry-checkbox[data-client-id="${clientId}"]:checked`);
-        createBtn.disabled = checkedBoxes.length === 0;
-    }
-}
-</script>
 {% endblock %}
 
 {% block content %}
@@ -269,6 +161,110 @@ function updateCreateInvoiceButton(clientId) {
     </div>
     {% endfor %}
 </section>
+
+<script>
+function markAsInvoiced(clientId) {
+    const checkboxes = document.querySelectorAll(`input[type="checkbox"][data-client-id="${clientId}"]:checked`);
+    const entryIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+    
+    if (entryIds.length === 0) {
+        alert('Bitte wählen Sie mindestens einen Zeiteintrag aus.');
+        return;
+    }
+    
+    if (!confirm(`Möchten Sie ${entryIds.length} Zeiteinträge als verrechnet markieren?`)) {
+        return;
+    }
+    
+    fetch('{% url "adearechnung:mark-invoiced" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ entry_ids: entryIds })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ ' + data.message);
+            window.location.reload();
+        } else {
+            alert('❌ Fehler: ' + (data.error || 'Unbekannter Fehler'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('❌ Netzwerkfehler!');
+    });
+}
+
+function createInvoice(clientId) {
+    const checkboxes = document.querySelectorAll(`input.entry-checkbox[data-client-id="${clientId}"]:checked`);
+    const entryIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+    
+    if (entryIds.length === 0) {
+        alert('Bitte wählen Sie mindestens einen Zeiteintrag aus.');
+        return;
+    }
+    
+    if (!confirm(`Möchten Sie eine Rechnung für ${entryIds.length} Zeiteinträge erstellen?`)) {
+        return;
+    }
+    
+    // Erstelle ein Formular und sende es
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{% url "adearechnung:create-invoice" %}';
+    
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'csrfmiddlewaretoken';
+    csrfInput.value = '{{ csrf_token }}';
+    form.appendChild(csrfInput);
+    
+    const clientInput = document.createElement('input');
+    clientInput.type = 'hidden';
+    clientInput.name = 'client_id';
+    clientInput.value = clientId;
+    form.appendChild(clientInput);
+    
+    const entriesInput = document.createElement('input');
+    entriesInput.type = 'hidden';
+    entriesInput.name = 'selected_entries';
+    entriesInput.value = entryIds.join(',');
+    form.appendChild(entriesInput);
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function updateCreateInvoiceButton(clientId) {
+    const createBtn = document.getElementById('createInvoiceBtn_' + clientId);
+    if (createBtn) {
+        const checkedBoxes = document.querySelectorAll(`input.entry-checkbox[data-client-id="${clientId}"]:checked`);
+        createBtn.disabled = checkedBoxes.length === 0;
+    }
+}
+
+// Überwache Checkboxen für Rechnungserstellung
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.entry-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const clientId = this.dataset.clientId;
+            updateCreateInvoiceButton(clientId);
+        });
+    });
+    
+    // Initialisiere Button-Status für alle Kunden
+    document.querySelectorAll('[id^="createInvoiceBtn_"]').forEach(btn => {
+        const clientId = btn.id.replace('createInvoiceBtn_', '');
+        updateCreateInvoiceButton(clientId);
+    });
+});
+</script>
 {% endblock %}
 
 
