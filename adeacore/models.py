@@ -926,7 +926,28 @@ class Invoice(models.Model):
         "Betrag",
         max_digits=10,
         decimal_places=2,
-        help_text="Rechnungsbetrag in CHF",
+        help_text="Rechnungsbetrag in CHF (Bruttobetrag)",
+    )
+    net_amount = models.DecimalField(
+        "Nettobetrag",
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Nettobetrag ohne MWST",
+    )
+    vat_amount = models.DecimalField(
+        "MWST-Betrag",
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="MWST-Betrag",
+    )
+    vat_rate = models.DecimalField(
+        "MWST-Satz (%)",
+        max_digits=5,
+        decimal_places=2,
+        default=7.7,
+        help_text="MWST-Satz (z.B. 7.7)",
     )
     paid_amount = models.DecimalField(
         "Bezahlter Betrag",
@@ -1074,4 +1095,176 @@ class Document(models.Model):
                 return f"{self.file_size:.1f} {unit}"
             self.file_size /= 1024.0
         return f"{self.file_size:.1f} TB"
+
+
+class CompanyData(models.Model):
+    """
+    Firmendaten für Adea Treuhand (Singleton).
+    Wird für Rechnungen verwendet.
+    """
+    # Firmenname
+    company_name = models.CharField(
+        "Firmenname",
+        max_length=255,
+        default="Adea Treuhand",
+        help_text="Vollständiger Firmenname"
+    )
+    
+    # Adresse
+    street = models.CharField("Strasse", max_length=255, blank=True)
+    house_number = models.CharField("Hausnummer", max_length=50, blank=True)
+    zipcode = models.CharField("PLZ", max_length=20, blank=True)
+    city = models.CharField("Ort", max_length=255, blank=True)
+    country = models.CharField("Land", max_length=100, default="Schweiz")
+    
+    # Kontakt
+    email = models.EmailField("E-Mail", blank=True)
+    phone = models.CharField("Telefon", max_length=50, blank=True)
+    website = models.URLField("Website", blank=True)
+    
+    # MWST & Bankdaten
+    mwst_nr = EncryptedCharField(
+        "MWST-Nummer (UID MWST)",
+        max_length=500,
+        blank=True,
+        help_text="Format: CHE-123.456.789 MWST"
+    )
+    iban = EncryptedCharField(
+        "IBAN",
+        max_length=100,
+        blank=True,
+        help_text="IBAN für QR-Rechnung"
+    )
+    bank_name = models.CharField("Bank", max_length=255, blank=True)
+    
+    # Zusätzliche Angaben
+    notes = models.TextField("Notizen", blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Firmendaten"
+        verbose_name_plural = "Firmendaten"
+    
+    def __str__(self):
+        return self.company_name
+    
+    def save(self, *args, **kwargs):
+        """Stellt sicher, dass nur ein Eintrag existiert (Singleton)."""
+        self.pk = 1
+        super().save(*args, **kwargs)
+    
+    @classmethod
+    def get_instance(cls):
+        """Gibt die Firmendaten zurück (erstellt falls nicht vorhanden)."""
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj
+    
+    @property
+    def full_address(self):
+        """Gibt die vollständige Adresse zurück."""
+        parts = []
+        if self.street:
+            parts.append(self.street)
+        if self.house_number:
+            parts.append(self.house_number)
+        if self.zipcode or self.city:
+            parts.append(f"{self.zipcode} {self.city}".strip())
+        if self.country:
+            parts.append(self.country)
+        return ", ".join(parts) if parts else ""
+
+
+class InvoiceItem(models.Model):
+    """
+    Rechnungsposition (Zeiteintrag → Rechnungsposition).
+    """
+    invoice = models.ForeignKey(
+        Invoice,
+        on_delete=models.CASCADE,
+        related_name="items",
+        verbose_name="Rechnung"
+    )
+    time_entry = models.ForeignKey(
+        "adeazeit.TimeEntry",
+        on_delete=models.PROTECT,
+        related_name="invoice_items",
+        verbose_name="Zeiteintrag",
+        null=True,
+        blank=True,
+        help_text="Verknüpfung zum ursprünglichen Zeiteintrag"
+    )
+    
+    # Leistungsbeschreibung
+    description = models.TextField(
+        "Beschreibung",
+        help_text="Leistungsbeschreibung (aus Kommentar)"
+    )
+    service_type_code = models.CharField(
+        "Service-Typ",
+        max_length=50,
+        help_text="Service-Typ Code (z.B. STEU, BUCH)"
+    )
+    employee_name = models.CharField(
+        "Mitarbeiterin",
+        max_length=255,
+        help_text="Name der Mitarbeiterin"
+    )
+    service_date = models.DateField(
+        "Leistungsdatum",
+        help_text="Datum der Leistungserbringung"
+    )
+    
+    # Preise
+    quantity = models.DecimalField(
+        "Anzahl (Stunden)",
+        max_digits=5,
+        decimal_places=2,
+        help_text="Anzahl Stunden"
+    )
+    unit_price = models.DecimalField(
+        "Einzelpreis (Stundensatz)",
+        max_digits=10,
+        decimal_places=2,
+        help_text="Stundensatz in CHF"
+    )
+    net_amount = models.DecimalField(
+        "Nettobetrag",
+        max_digits=10,
+        decimal_places=2,
+        help_text="Nettobetrag (ohne MWST)"
+    )
+    
+    # MWST
+    vat_rate = models.DecimalField(
+        "MWST-Satz (%)",
+        max_digits=5,
+        decimal_places=2,
+        default=0,
+        help_text="MWST-Satz (z.B. 7.7)"
+    )
+    vat_amount = models.DecimalField(
+        "MWST-Betrag",
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="MWST-Betrag"
+    )
+    gross_amount = models.DecimalField(
+        "Bruttobetrag",
+        max_digits=10,
+        decimal_places=2,
+        help_text="Bruttobetrag (mit MWST)"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ["service_date", "id"]
+        verbose_name = "Rechnungsposition"
+        verbose_name_plural = "Rechnungspositionen"
+    
+    def __str__(self):
+        return f"{self.service_type_code} - {self.service_date} ({self.gross_amount} CHF)"
 

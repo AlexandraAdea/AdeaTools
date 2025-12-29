@@ -13,6 +13,18 @@ urlpatterns = [
     
     # Verrechnung markieren
     path("mark-invoiced/", mark_as_invoiced, name="mark-invoiced"),
+    
+    # Rechnungserstellung
+    path("create-invoice/", views.CreateInvoiceView.as_view(), name="create-invoice"),
+    
+    # Rechnungsliste
+    path("invoices/", views.InvoiceListView.as_view(), name="invoice-list"),
+    
+    # Rechnungsdetail
+    path("invoices/<int:pk>/", views.InvoiceDetailView.as_view(), name="invoice-detail"),
+    
+    # PDF-Export
+    path("invoices/<int:pk>/pdf/", views.InvoicePDFView.as_view(), name="invoice-pdf"),
 ]
 
 

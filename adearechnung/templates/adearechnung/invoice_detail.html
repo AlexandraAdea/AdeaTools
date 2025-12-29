@@ -1,0 +1,155 @@
+{% extends 'admin_base_no_sidebar.html' %}
+
+{% block title %}Rechnung {{ invoice.invoice_number }} – AdeaRechnung{% endblock %}
+
+{% block breadcrumbs %}
+<a href="{% url 'admin-dashboard' %}">Dashboard</a>
+<a href="{% url 'adearechnung:client-summary' %}">AdeaRechnung</a>
+<a href="{% url 'adearechnung:invoice-list' %}">Rechnungen</a>
+<a href="{% url 'adearechnung:invoice-detail' invoice.pk %}">Rechnung {{ invoice.invoice_number }}</a>
+{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <div>
+            <h1 style="margin-bottom: 4px;">Rechnung {{ invoice.invoice_number }}</h1>
+            <p class="lead" style="margin: 0;">Kunde: {{ invoice.client.name }}</p>
+        </div>
+        <div>
+            <a href="{% url 'adearechnung:invoice-pdf' invoice.pk %}" class="adea-button-primary" style="text-decoration: none; padding: 10px 20px;">PDF herunterladen</a>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <div style="padding: 16px; background: #f5f5f7; border-radius: 8px;">
+            <div style="font-size: 0.9em; color: #6e6e73; margin-bottom: 4px;">Rechnungsdatum</div>
+            <div style="font-size: 1.2em; font-weight: 600;">{{ invoice.invoice_date|date:"d.m.Y" }}</div>
+        </div>
+        <div style="padding: 16px; background: #f5f5f7; border-radius: 8px;">
+            <div style="font-size: 0.9em; color: #6e6e73; margin-bottom: 4px;">Fälligkeitsdatum</div>
+            <div style="font-size: 1.2em; font-weight: 600;">{{ invoice.due_date|date:"d.m.Y" }}</div>
+        </div>
+        <div style="padding: 16px; background: #f5f5f7; border-radius: 8px;">
+            <div style="font-size: 0.9em; color: #6e6e73; margin-bottom: 4px;">Status</div>
+            <div style="font-size: 1.2em; font-weight: 600;">
+                <span style="padding: 4px 8px; border-radius: 4px; font-size: 0.9em;
+                    {% if invoice.payment_status == 'BEZAHLT' %}background: #d1f2eb; color: #006644;
+                    {% elif invoice.payment_status == 'OFFEN' %}background: #fff3cd; color: #856404;
+                    {% elif invoice.payment_status == 'UEBERFAELLIG' %}background: #f8d7da; color: #721c24;
+                    {% else %}background: #e2e3e5; color: #383d41;{% endif %}">
+                    {{ invoice.get_payment_status_display }}
+                </span>
+            </div>
+        </div>
+        <div style="padding: 16px; background: #d1f2eb; border-radius: 8px;">
+            <div style="font-size: 0.9em; color: #6e6e73; margin-bottom: 4px;">Gesamtbetrag</div>
+            <div style="font-size: 1.5em; font-weight: 600; color: #006644;">{{ invoice.amount|floatformat:2 }} CHF</div>
+        </div>
+    </div>
+
+    <div style="margin-bottom: 24px;">
+        <h2 style="margin-bottom: 12px; font-size: 1.1em; color: #1d1d1f; border-bottom: 1px solid #e5e5ea; padding-bottom: 8px;">Rechnungsempfänger</h2>
+        <div style="padding: 16px; background: #fafafa; border-radius: 8px;">
+            <div style="font-weight: 600; margin-bottom: 8px;">{{ invoice.client.name }}</div>
+            {% if invoice.client.street %}
+            <div>{{ invoice.client.street }} {{ invoice.client.house_number }}</div>
+            {% endif %}
+            {% if invoice.client.zipcode or invoice.client.city %}
+            <div>{{ invoice.client.zipcode }} {{ invoice.client.city }}</div>
+            {% endif %}
+            {% if invoice.client.mwst_nr %}
+            <div style="margin-top: 8px; color: #6e6e73; font-size: 0.9em;">MWST-Nr.: {{ invoice.client.mwst_nr }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div style="margin-bottom: 24px;">
+        <h2 style="margin-bottom: 12px; font-size: 1.1em; color: #1d1d1f; border-bottom: 1px solid #e5e5ea; padding-bottom: 8px;">Leistungen</h2>
+        <div class="adea-table-wrapper">
+            <table class="adea-table">
+                <thead>
+                    <tr>
+                        <th>Datum</th>
+                        <th>Service</th>
+                        <th>Beschreibung</th>
+                        <th>Mitarbeiterin</th>
+                        <th>Stunden</th>
+                        <th>Stundensatz</th>
+                        <th>Betrag</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in invoice.items.all %}
+                    <tr>
+                        <td>{{ item.service_date|date:"d.m.Y" }}</td>
+                        <td>{{ item.service_type_code }}</td>
+                        <td style="max-width: 300px; word-wrap: break-word; white-space: normal;">
+                            {{ item.description }}
+                        </td>
+                        <td>{{ item.employee_name }}</td>
+                        <td>{{ item.quantity|floatformat:2 }}</td>
+                        <td>{{ item.unit_price|floatformat:2 }} CHF</td>
+                        <td><strong>{{ item.gross_amount|floatformat:2 }} CHF</strong></td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7">Keine Positionen gefunden.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div style="margin-bottom: 24px;">
+        <h2 style="margin-bottom: 12px; font-size: 1.1em; color: #1d1d1f; border-bottom: 1px solid #e5e5ea; padding-bottom: 8px;">Zusammenfassung</h2>
+        <div style="max-width: 400px; margin-left: auto;">
+            <table class="adea-table">
+                <tbody>
+                    <tr>
+                        <td><strong>Nettobetrag:</strong></td>
+                        <td style="text-align: right;">{{ invoice.net_amount|floatformat:2 }} CHF</td>
+                    </tr>
+                    {% if invoice.vat_rate > 0 %}
+                    <tr>
+                        <td><strong>MWST ({{ invoice.vat_rate }}%):</strong></td>
+                        <td style="text-align: right;">{{ invoice.vat_amount|floatformat:2 }} CHF</td>
+                    </tr>
+                    {% endif %}
+                    <tr style="background: #f5f5f7; font-size: 1.1em;">
+                        <td><strong>Gesamtbetrag:</strong></td>
+                        <td style="text-align: right;"><strong>{{ invoice.amount|floatformat:2 }} CHF</strong></td>
+                    </tr>
+                    {% if invoice.paid_amount > 0 %}
+                    <tr>
+                        <td>Bezahlt:</td>
+                        <td style="text-align: right;">{{ invoice.paid_amount|floatformat:2 }} CHF</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Offen:</strong></td>
+                        <td style="text-align: right;"><strong>{{ invoice.remaining_amount|floatformat:2 }} CHF</strong></td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if company_data.iban %}
+    <div style="margin-bottom: 24px;">
+        <h2 style="margin-bottom: 12px; font-size: 1.1em; color: #1d1d1f; border-bottom: 1px solid #e5e5ea; padding-bottom: 8px;">Zahlungsinformationen</h2>
+        <div style="padding: 16px; background: #fafafa; border-radius: 8px;">
+            <div style="margin-bottom: 8px;"><strong>IBAN:</strong> {{ company_data.iban }}</div>
+            <div style="margin-bottom: 8px;"><strong>Betrag:</strong> {{ invoice.amount|floatformat:2 }} CHF</div>
+            <div><strong>Referenz:</strong> {{ invoice.invoice_number }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e5ea;">
+        <a href="{% url 'adearechnung:invoice-list' %}" class="adea-button-secondary" style="text-decoration: none; padding: 10px 20px;">Zurück zur Liste</a>
+    </div>
+</section>
+{% endblock %}
+

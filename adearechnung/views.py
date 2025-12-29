@@ -4,12 +4,20 @@ Views für AdeaRechnung - Fakturierung und Rechnungserstellung.
 Diese Views nutzen die Funktionalität aus AdeaZeit, um Code-Duplikation zu vermeiden.
 Die Kundenübersicht wird hier als eigenständiges Modul präsentiert (Vertec-Stil).
 """
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, ListView, DetailView
+from django.views import View
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import JsonResponse, HttpResponse
+from django.shortcuts import get_object_or_404
+from django.urls import reverse
 from adeazeit.mixins import ManagerOrAdminRequiredMixin
 from adeazeit.views import mark_as_invoiced
+from adeacore.models import Invoice, Client
+from adearechnung.services import InvoiceService
 from datetime import datetime, date
 from decimal import Decimal
 from django.db.models import Sum, Q
+import json
 
 
 class ClientTimeSummaryView(ManagerOrAdminRequiredMixin, TemplateView):
@@ -153,4 +161,125 @@ class ClientTimeSummaryView(ManagerOrAdminRequiredMixin, TemplateView):
         context["nicht_verrechnet_betrag"] = context["total_betrag"] - context["verrechnet_betrag"]
         
         return context
+
+
+class CreateInvoiceView(ManagerOrAdminRequiredMixin, View):
+    """Erstellt eine Rechnung aus ausgewählten Zeiteinträgen."""
+    
+    def post(self, request):
+        from django.contrib import messages
+        from django.shortcuts import redirect
+        
+        try:
+            # Unterstütze sowohl JSON als auch Form-Daten
+            if request.content_type == 'application/json':
+                data = json.loads(request.body)
+                time_entry_ids = data.get('entry_ids', [])
+                client_id = data.get('client_id')
+            else:
+                # Form-Daten
+                selected_entries_str = request.POST.get('selected_entries', '')
+                time_entry_ids = [int(eid) for eid in selected_entries_str.split(',') if eid.isdigit()]
+                client_id = request.POST.get('client_id')
+            
+            if not time_entry_ids:
+                if request.content_type == 'application/json':
+                    return JsonResponse({'success': False, 'error': 'Keine Zeiteinträge ausgewählt.'})
+                else:
+                    messages.error(request, 'Keine Zeiteinträge ausgewählt.')
+                    return redirect('adearechnung:client-summary')
+            
+            if not client_id:
+                if request.content_type == 'application/json':
+                    return JsonResponse({'success': False, 'error': 'Kein Kunde angegeben.'})
+                else:
+                    messages.error(request, 'Kein Kunde angegeben.')
+                    return redirect('adearechnung:client-summary')
+            
+            client = get_object_or_404(Client, pk=client_id)
+            
+            # Erstelle Rechnung
+            invoice = InvoiceService.create_invoice_from_time_entries(
+                time_entry_ids=time_entry_ids,
+                client=client,
+                created_by=request.user
+            )
+            
+            if request.content_type == 'application/json':
+                return JsonResponse({
+                    'success': True,
+                    'message': f'Rechnung {invoice.invoice_number} erfolgreich erstellt.',
+                    'invoice_id': invoice.id,
+                    'invoice_number': invoice.invoice_number,
+                    'invoice_url': reverse('adearechnung:invoice-detail', args=[invoice.id])
+                })
+            else:
+                messages.success(request, f'Rechnung {invoice.invoice_number} erfolgreich erstellt.')
+                return redirect('adearechnung:invoice-detail', pk=invoice.id)
+            
+        except ValueError as e:
+            if request.content_type == 'application/json':
+                return JsonResponse({'success': False, 'error': str(e)})
+            else:
+                messages.error(request, f'Fehler: {str(e)}')
+                return redirect('adearechnung:client-summary')
+        except Exception as e:
+            if request.content_type == 'application/json':
+                return JsonResponse({'success': False, 'error': f'Fehler: {str(e)}'})
+            else:
+                messages.error(request, f'Ein unerwarteter Fehler ist aufgetreten: {str(e)}')
+                return redirect('adearechnung:client-summary')
+
+
+class InvoiceListView(ManagerOrAdminRequiredMixin, ListView):
+    """Liste aller Rechnungen."""
+    model = Invoice
+    template_name = "adearechnung/invoice_list.html"
+    context_object_name = "invoices"
+    paginate_by = 50
+    
+    def get_queryset(self):
+        queryset = Invoice.objects.select_related('client', 'created_by').prefetch_related('items')
+        
+        # Filter nach Client
+        client_id = self.request.GET.get('client_id')
+        if client_id:
+            queryset = queryset.filter(client_id=client_id)
+        
+        # Filter nach Status
+        status = self.request.GET.get('status')
+        if status:
+            queryset = queryset.filter(payment_status=status)
+        
+        return queryset.order_by('-invoice_date', '-created_at')
+
+
+class InvoiceDetailView(ManagerOrAdminRequiredMixin, DetailView):
+    """Detail-Ansicht einer Rechnung."""
+    model = Invoice
+    template_name = "adearechnung/invoice_detail.html"
+    context_object_name = "invoice"
+    
+    def get_queryset(self):
+        return Invoice.objects.select_related('client', 'created_by').prefetch_related('items__time_entry')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from adeacore.models import CompanyData
+        context['company_data'] = CompanyData.get_instance()
+        return context
+
+
+class InvoicePDFView(ManagerOrAdminRequiredMixin, DetailView):
+    """PDF-Export einer Rechnung."""
+    model = Invoice
+    
+    def get(self, request, *args, **kwargs):
+        invoice = self.get_object()
+        from adearechnung.pdf_generator import InvoicePDFGenerator
+        
+        pdf_generator = InvoicePDFGenerator()
+        pdf_response = pdf_generator.generate_pdf(invoice)
+        
+        return pdf_response
 

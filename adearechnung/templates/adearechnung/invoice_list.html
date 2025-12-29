@@ -1,0 +1,90 @@
+{% extends 'admin_base_no_sidebar.html' %}
+
+{% block title %}Rechnungen – AdeaRechnung{% endblock %}
+
+{% block breadcrumbs %}
+<a href="{% url 'admin-dashboard' %}">Dashboard</a>
+<a href="{% url 'adearechnung:client-summary' %}">AdeaRechnung</a>
+<a href="{% url 'adearechnung:invoice-list' %}">Rechnungen</a>
+{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <h1 style="margin-bottom: 8px;">Rechnungen</h1>
+    <p class="lead">Übersicht aller erstellten Rechnungen.</p>
+
+    <div style="margin-top: 24px;">
+        <form method="get" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <label for="status" style="font-weight: 600;">Status:</label>
+                <select name="status" id="status" class="adea-select">
+                    <option value="">Alle</option>
+                    <option value="OFFEN" {% if request.GET.status == "OFFEN" %}selected{% endif %}>Offen</option>
+                    <option value="TEILWEISE" {% if request.GET.status == "TEILWEISE" %}selected{% endif %}>Teilweise bezahlt</option>
+                    <option value="BEZAHLT" {% if request.GET.status == "BEZAHLT" %}selected{% endif %}>Bezahlt</option>
+                    <option value="UEBERFAELLIG" {% if request.GET.status == "UEBERFAELLIG" %}selected{% endif %}>Überfällig</option>
+                </select>
+            </div>
+            <button type="submit" class="adea-button-primary">Anzeigen</button>
+            <a href="{% url 'adearechnung:invoice-list' %}" class="adea-button-secondary" style="text-decoration: none; padding: 8px 16px;">Zurücksetzen</a>
+        </form>
+    </div>
+
+    <div class="adea-table-wrapper" style="margin-top: 24px;">
+        <table class="adea-table">
+            <thead>
+                <tr>
+                    <th>Rechnungsnummer</th>
+                    <th>Kunde</th>
+                    <th>Rechnungsdatum</th>
+                    <th>Fälligkeitsdatum</th>
+                    <th>Betrag</th>
+                    <th>Status</th>
+                    <th>Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in invoices %}
+                <tr>
+                    <td><strong>{{ invoice.invoice_number }}</strong></td>
+                    <td>{{ invoice.client.name }}</td>
+                    <td>{{ invoice.invoice_date|date:"d.m.Y" }}</td>
+                    <td>{{ invoice.due_date|date:"d.m.Y" }}</td>
+                    <td>{{ invoice.amount|floatformat:2 }} CHF</td>
+                    <td>
+                        <span style="padding: 4px 8px; border-radius: 4px; font-size: 0.9em; font-weight: 600;
+                            {% if invoice.payment_status == 'BEZAHLT' %}background: #d1f2eb; color: #006644;
+                            {% elif invoice.payment_status == 'OFFEN' %}background: #fff3cd; color: #856404;
+                            {% elif invoice.payment_status == 'UEBERFAELLIG' %}background: #f8d7da; color: #721c24;
+                            {% else %}background: #e2e3e5; color: #383d41;{% endif %}">
+                            {{ invoice.get_payment_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'adearechnung:invoice-detail' invoice.pk %}" class="adea-button-secondary" style="text-decoration: none; padding: 6px 12px; font-size: 0.9em;">Details</a>
+                        <a href="{% url 'adearechnung:invoice-pdf' invoice.pk %}" class="adea-button-primary" style="text-decoration: none; padding: 6px 12px; font-size: 0.9em; margin-left: 8px;">PDF</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">Keine Rechnungen gefunden.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div style="margin-top: 24px; display: flex; justify-content: center; gap: 8px;">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" class="adea-button-secondary" style="text-decoration: none; padding: 8px 16px;">Zurück</a>
+        {% endif %}
+        <span style="padding: 8px 16px; color: #6e6e73;">Seite {{ page_obj.number }} von {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" class="adea-button-secondary" style="text-decoration: none; padding: 8px 16px;">Weiter</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
+

@@ -48,6 +48,77 @@ function markAsInvoiced(clientId) {
         alert('❌ Netzwerkfehler!');
     });
 }
+
+function createInvoice(clientId) {
+    const checkboxes = document.querySelectorAll(`input.entry-checkbox[data-client-id="${clientId}"]:checked`);
+    const entryIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+    
+    if (entryIds.length === 0) {
+        alert('Bitte wählen Sie mindestens einen Zeiteintrag aus.');
+        return;
+    }
+    
+    if (!confirm(`Möchten Sie eine Rechnung für ${entryIds.length} Zeiteinträge erstellen?`)) {
+        return;
+    }
+    
+    // Erstelle ein Formular und sende es
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{% url "adearechnung:create-invoice" %}';
+    
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'csrfmiddlewaretoken';
+    csrfInput.value = '{{ csrf_token }}';
+    form.appendChild(csrfInput);
+    
+    const clientInput = document.createElement('input');
+    clientInput.type = 'hidden';
+    clientInput.name = 'client_id';
+    clientInput.value = clientId;
+    form.appendChild(clientInput);
+    
+    const entriesInput = document.createElement('input');
+    entriesInput.type = 'hidden';
+    entriesInput.name = 'selected_entries';
+    entriesInput.value = entryIds.join(',');
+    form.appendChild(entriesInput);
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+
+// Überwache Checkboxen für Rechnungserstellung
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.entry-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const clientId = this.dataset.clientId;
+            const createBtn = document.getElementById('createInvoiceBtn_' + clientId);
+            
+            if (createBtn) {
+                const checkedBoxes = document.querySelectorAll(`input.entry-checkbox[data-client-id="${clientId}"]:checked`);
+                createBtn.disabled = checkedBoxes.length === 0;
+            }
+        });
+    });
+    
+    // Initialisiere Button-Status
+    document.querySelectorAll('[id^="createInvoiceBtn_"]').forEach(btn => {
+        const clientId = btn.id.replace('createInvoiceBtn_', '');
+        updateCreateInvoiceButton(clientId);
+    });
+});
+
+function updateCreateInvoiceButton(clientId) {
+    const createBtn = document.getElementById('createInvoiceBtn_' + clientId);
+    if (createBtn) {
+        const checkedBoxes = document.querySelectorAll(`input.entry-checkbox[data-client-id="${clientId}"]:checked`);
+        createBtn.disabled = checkedBoxes.length === 0;
+    }
+}
 </script>
 {% endblock %}
 
@@ -130,9 +201,14 @@ function markAsInvoiced(clientId) {
                 </div>
             </div>
             {% if summary.nicht_verrechnet_dauer > 0 %}
-            <button onclick="markAsInvoiced({{ summary.client.id }})" class="adea-button-primary" style="background: #34c759;">
-                Als verrechnet markieren
-            </button>
+            <div style="display: flex; gap: 8px;">
+                <button onclick="markAsInvoiced({{ summary.client.id }})" class="adea-button-secondary">
+                    Als verrechnet markieren
+                </button>
+                <button onclick="createInvoice({{ summary.client.id }})" class="adea-button-primary" id="createInvoiceBtn_{{ summary.client.id }}" disabled>
+                    <i class="fas fa-file-invoice" style="margin-right: 8px;"></i> Rechnung erstellen
+                </button>
+            </div>
             {% endif %}
         </div>
 
@@ -140,7 +216,7 @@ function markAsInvoiced(clientId) {
             <table class="adea-table" style="min-width: 1200px;">
                 <thead>
                     <tr>
-                        <th style="width: 50px;"><input type="checkbox" onchange="document.querySelectorAll('input[data-client-id={{ summary.client.id }}]').forEach(cb => cb.checked = this.checked)"></th>
+                        <th style="width: 50px;"><input type="checkbox" class="select-all-checkbox" data-client-id="{{ summary.client.id }}" onchange="document.querySelectorAll('input.entry-checkbox[data-client-id={{ summary.client.id }}]').forEach(cb => cb.checked = this.checked); updateCreateInvoiceButton({{ summary.client.id }});"></th>
                         <th style="width: 100px;">Datum</th>
                         <th style="width: 150px;">Mitarbeiterin</th>
                         <th style="width: 100px;">Service-Typ</th>
@@ -155,7 +231,7 @@ function markAsInvoiced(clientId) {
                     <tr>
                         <td>
                             {% if not entry.verrechnet %}
-                            <input type="checkbox" data-client-id="{{ summary.client.id }}" value="{{ entry.pk }}">
+                            <input type="checkbox" class="entry-checkbox" data-client-id="{{ summary.client.id }}" value="{{ entry.pk }}" data-entry-id="{{ entry.pk }}">
                             {% endif %}
                         </td>
                         <td>{{ entry.datum|date:"d.m.Y" }}</td>

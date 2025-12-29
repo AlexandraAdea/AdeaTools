@@ -342,3 +342,114 @@ class PayrollRecordAdmin(admin.ModelAdmin):
         "net_salary",
     )
 
+
+@admin.register(models.CompanyData)
+class CompanyDataAdmin(admin.ModelAdmin):
+    """Admin für Firmendaten (Singleton)."""
+    list_display = ("company_name", "city", "mwst_nr", "email")
+    fieldsets = (
+        (
+            "Firmendaten",
+            {
+                "fields": ("company_name",),
+                "description": "Name der Firma (Adea Treuhand).",
+            },
+        ),
+        (
+            "Adresse",
+            {
+                "fields": ("street", "house_number", "zipcode", "city", "country"),
+            },
+        ),
+        (
+            "Kontakt",
+            {
+                "fields": ("email", "phone", "website"),
+            },
+        ),
+        (
+            "Rechnungsdaten",
+            {
+                "fields": ("mwst_nr", "iban"),
+                "description": "MWST-Nummer im Format 'CHE-XXX.XXX.XXX MWST' und IBAN für QR-Rechnungen.",
+            },
+        ),
+    )
+    
+    def has_add_permission(self, request):
+        """Verhindert das Hinzufügen mehrerer Instanzen."""
+        if models.CompanyData.objects.exists():
+            return False
+        return super().has_add_permission(request)
+    
+    def has_delete_permission(self, request, obj=None):
+        """Verhindert das Löschen der Firmendaten."""
+        return False
+    
+    def changelist_view(self, request, extra_context=None):
+        """Leitet zur Bearbeitungsseite weiter, wenn nur eine Instanz existiert."""
+        instance = models.CompanyData.get_instance()
+        if instance:
+            return self.change_view(request, str(instance.pk), extra_context)
+        return super().changelist_view(request, extra_context)
+
+
+class InvoiceItemInline(admin.TabularInline):
+    """Inline für Rechnungspositionen."""
+    model = models.InvoiceItem
+    extra = 0
+    fields = ("service_date", "service_type_code", "employee_name", "description", "quantity", "unit_price", "net_amount", "vat_rate", "vat_amount", "gross_amount")
+    readonly_fields = ("service_date", "service_type_code", "employee_name", "description", "quantity", "unit_price", "net_amount", "vat_rate", "vat_amount", "gross_amount")
+    can_delete = False
+
+
+@admin.register(models.Invoice)
+class InvoiceAdmin(admin.ModelAdmin):
+    """Admin für Rechnungen."""
+    list_display = ("invoice_number", "client", "invoice_date", "due_date", "amount", "payment_status", "created_at")
+    list_filter = ("payment_status", "invoice_date", "due_date")
+    search_fields = ("invoice_number", "client__name")
+    autocomplete_fields = ("client", "created_by")
+    readonly_fields = ("invoice_number", "created_at", "updated_at", "remaining_amount")
+    inlines = [InvoiceItemInline]
+    fieldsets = (
+        (
+            "Grunddaten",
+            {
+                "fields": ("client", "invoice_number", "invoice_date", "due_date"),
+            },
+        ),
+        (
+            "Beträge",
+            {
+                "fields": ("net_amount", "vat_rate", "vat_amount", "amount", "paid_amount", "remaining_amount"),
+            },
+        ),
+        (
+            "Zahlungsstatus",
+            {
+                "fields": ("payment_status", "payment_date"),
+            },
+        ),
+        (
+            "Beschreibung",
+            {
+                "fields": ("description",),
+            },
+        ),
+        (
+            "Metadaten",
+            {
+                "fields": ("created_by", "created_at", "updated_at"),
+                "classes": ("collapse",),
+            },
+        ),
+    )
+    
+    def remaining_amount(self, obj):
+        """Berechnet den offenen Betrag."""
+        if obj:
+            return obj.amount - obj.paid_amount
+        return None
+    remaining_amount.short_description = "Offener Betrag"
+
