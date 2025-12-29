@@ -46,7 +46,7 @@ class ClientForm(forms.ModelForm):
             "mwst_nr": forms.TextInput(attrs={"class": "adea-input"}),
             "rechnungs_email": forms.EmailInput(attrs={"class": "adea-input"}),
             "zahlungsziel_tage": forms.NumberInput(attrs={"class": "adea-input", "min": 0}),
-            "geburtsdatum": forms.DateInput(attrs={"class": "adea-input", "type": "date"}),
+            "geburtsdatum": forms.DateInput(attrs={"class": "adea-input", "type": "date"}, format="%Y-%m-%d"),
             "steuerkanton": forms.TextInput(attrs={"class": "adea-input"}),
             "interne_notizen": forms.Textarea(attrs={"class": "adea-textarea", "rows": 4}),
         }
