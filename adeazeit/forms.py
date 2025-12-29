@@ -45,8 +45,8 @@ class EmployeeInternalForm(forms.ModelForm):
             "vacation_days_per_year": forms.NumberInput(attrs={"class": "adea-input", "step": "0.01"}),
             "work_canton": forms.TextInput(attrs={"class": "adea-input"}),
             "holiday_model": forms.TextInput(attrs={"class": "adea-input"}),
-            "employment_start": forms.DateInput(attrs={"class": "adea-input", "type": "date"}),
-            "employment_end": forms.DateInput(attrs={"class": "adea-input", "type": "date"}),
+            "employment_start": forms.DateInput(attrs={"class": "adea-input", "type": "date"}, format="%Y-%m-%d"),
+            "employment_end": forms.DateInput(attrs={"class": "adea-input", "type": "date"}, format="%Y-%m-%d"),
             # Legacy-Felder aus Form entfernt
             # "eintrittsdatum": forms.DateInput(attrs={"class": "adea-input", "type": "date"}),
             # "austrittsdatum": forms.DateInput(attrs={"class": "adea-input", "type": "date"}),
@@ -138,7 +138,7 @@ class TimeEntryForm(forms.ModelForm):
         widgets = {
             "mitarbeiter": forms.Select(attrs={"class": "adea-select"}),
             "client": forms.Select(attrs={"class": "adea-select"}),
-            "datum": forms.DateInput(attrs={"class": "adea-input", "type": "date"}),
+            "datum": forms.DateInput(attrs={"class": "adea-input", "type": "date"}, format="%Y-%m-%d"),
             "start": forms.TimeInput(attrs={"class": "adea-input", "type": "time"}),
             "ende": forms.TimeInput(attrs={"class": "adea-input", "type": "time"}),
             "dauer": forms.NumberInput(attrs={"class": "adea-input", "step": "0.01", "readonly": True}),
@@ -210,7 +210,7 @@ class TaskForm(forms.ModelForm):
             "beschreibung": forms.Textarea(attrs={"class": "adea-textarea", "rows": 4}),
             "status": forms.Select(attrs={"class": "adea-select"}),
             "prioritaet": forms.Select(attrs={"class": "adea-select"}),
-            "fälligkeitsdatum": forms.DateInput(attrs={"class": "adea-input", "type": "date"}),
+            "fälligkeitsdatum": forms.DateInput(attrs={"class": "adea-input", "type": "date"}, format="%Y-%m-%d"),
             "notizen": forms.Textarea(attrs={"class": "adea-textarea", "rows": 3}),
             "client": forms.Select(attrs={"class": "adea-select"}),
             "mitarbeiter": forms.Select(attrs={"class": "adea-select"}),

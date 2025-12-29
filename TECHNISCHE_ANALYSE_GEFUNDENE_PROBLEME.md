@@ -297,3 +297,5 @@ total_hours = TimeEntry.objects.filter(...).aggregate(Sum('dauer'))  # ← Gleic
 - Keine kritischen Sicherheitslücken mehr vorhanden
 
 
+
+
