@@ -171,8 +171,8 @@ class AbsenceForm(forms.ModelForm):
         widgets = {
             "employee": forms.Select(attrs={"class": "adea-select"}),
             "absence_type": forms.Select(attrs={"class": "adea-select"}),
-            "date_from": forms.DateInput(attrs={"class": "adea-input", "type": "date"}),
-            "date_to": forms.DateInput(attrs={"class": "adea-input", "type": "date"}),
+            "date_from": forms.DateInput(attrs={"class": "adea-input", "type": "date"}, format="%Y-%m-%d"),
+            "date_to": forms.DateInput(attrs={"class": "adea-input", "type": "date"}, format="%Y-%m-%d"),
             "full_day": forms.CheckboxInput(attrs={"class": "adea-checkbox"}),
             "hours": forms.NumberInput(attrs={"class": "adea-input", "step": "0.01"}),
             "comment": forms.Textarea(attrs={"class": "adea-textarea", "rows": 3}),
