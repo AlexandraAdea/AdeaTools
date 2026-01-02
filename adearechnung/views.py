@@ -89,12 +89,18 @@ class ClientTimeSummaryView(ManagerOrAdminRequiredMixin, TemplateView):
         
         entries = entries_query.select_related("client", "mitarbeiter", "service_type").order_by("client__name", "datum")
         
-        # Gruppiere nach Kunde
+        # Gruppiere nach Kunde und dann nach Service-Typ
         from collections import defaultdict
         
         client_summary = defaultdict(lambda: {
             'client': None,
             'entries': [],
+            'service_groups': defaultdict(lambda: {
+                'service_type': None,
+                'entries': [],
+                'total_dauer': Decimal('0.00'),
+                'total_betrag': Decimal('0.00'),
+            }),
             'total_dauer': Decimal('0.00'),
             'total_betrag': Decimal('0.00'),
             'verrechnet_dauer': Decimal('0.00'),
@@ -112,6 +118,16 @@ class ClientTimeSummaryView(ManagerOrAdminRequiredMixin, TemplateView):
             if client_id not in client_summary:
                 client_summary[client_id]['client'] = entry.client
             
+            # Gruppiere nach Service-Typ
+            service_type_id = entry.service_type.id if entry.service_type else None
+            if service_type_id:
+                if client_summary[client_id]['service_groups'][service_type_id]['service_type'] is None:
+                    client_summary[client_id]['service_groups'][service_type_id]['service_type'] = entry.service_type
+                
+                client_summary[client_id]['service_groups'][service_type_id]['entries'].append(entry)
+                client_summary[client_id]['service_groups'][service_type_id]['total_dauer'] += entry.dauer
+                client_summary[client_id]['service_groups'][service_type_id]['total_betrag'] += entry.betrag
+            
             client_summary[client_id]['entries'].append(entry)
             client_summary[client_id]['total_dauer'] += entry.dauer
             client_summary[client_id]['total_betrag'] += entry.betrag
@@ -122,6 +138,15 @@ class ClientTimeSummaryView(ManagerOrAdminRequiredMixin, TemplateView):
             else:
                 client_summary[client_id]['nicht_verrechnet_dauer'] += entry.dauer
                 client_summary[client_id]['nicht_verrechnet_betrag'] += entry.betrag
+        
+        # Konvertiere service_groups von defaultdict zu dict und sortiere nach Service-Typ Code
+        for client_id, summary in client_summary.items():
+            summary['service_groups'] = dict(summary['service_groups'])
+            # Sortiere Service-Gruppen nach Code
+            summary['service_groups'] = dict(sorted(
+                summary['service_groups'].items(),
+                key=lambda x: x[1]['service_type'].code if x[1]['service_type'] else ''
+            ))
         
         # Sortiere nach Kundenname und filtere None-Clients raus
         context["client_summaries"] = sorted(

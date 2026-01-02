@@ -119,7 +119,22 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for entry in summary.entries %}
+                    {% for service_type_id, service_group in summary.service_groups.items %}
+                    <!-- Service-Typ Gruppenkopf -->
+                    <tr style="background-color: #f5f5f7; font-weight: 600;">
+                        <td colspan="5" style="padding: 12px 16px;">
+                            <strong>{{ service_group.service_type.code }} - {{ service_group.service_type.name }}</strong>
+                        </td>
+                        <td style="padding: 12px 16px; color: #1d1d1f;">
+                            <strong>{{ service_group.total_dauer|floatformat:2 }}h</strong>
+                        </td>
+                        <td style="padding: 12px 16px; color: #1d1d1f;">
+                            <strong>{{ service_group.total_betrag|floatformat:2 }} CHF</strong>
+                        </td>
+                        <td style="padding: 12px 16px;"></td>
+                    </tr>
+                    <!-- Zeiteinträge dieser Service-Gruppe -->
+                    {% for entry in service_group.entries %}
                     <tr>
                         <td>
                             {% if not entry.verrechnet %}
@@ -146,6 +161,7 @@
                             {% endif %}
                         </td>
                     </tr>
+                    {% endfor %}
                     {% empty %}
                     <tr>
                         <td colspan="8">Keine Zeiteinträge für diesen Kunden.</td>
