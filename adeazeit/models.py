@@ -290,6 +290,7 @@ class Task(models.Model):
     )
     erstellt_am = models.DateTimeField("Erstellt am", auto_now_add=True)
     erledigt_am = models.DateTimeField("Erledigt am", null=True, blank=True)
+    archiviert = models.BooleanField("Archiviert", default=False, help_text="Erledigte Aufgaben werden nach 7 Tagen automatisch archiviert")
     updated_at = models.DateTimeField("Aktualisiert am", auto_now=True)
     
     class Meta:

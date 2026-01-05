@@ -926,6 +926,16 @@ class TaskListView(LoginRequiredMixin, ListView):
                 # User ohne UserProfile sehen keine Tasks
                 queryset = queryset.none()
         
+        # Archivierte Aufgaben standardmäßig ausblenden
+        show_archived = self.request.GET.get('show_archived', '').lower() == 'true'
+        if not show_archived:
+            queryset = queryset.filter(archiviert=False)
+        
+        # Erledigte Aufgaben standardmäßig ausblenden (außer wenn explizit angefordert)
+        show_completed = self.request.GET.get('show_completed', '').lower() == 'true'
+        if not show_completed:
+            queryset = queryset.exclude(status='ERLEDIGT')
+        
         # Filter nach Status
         status_filter = self.request.GET.get('status')
         if status_filter:
@@ -942,6 +952,8 @@ class TaskListView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         context['status_filter'] = self.request.GET.get('status', '')
         context['prioritaet_filter'] = self.request.GET.get('prioritaet', '')
+        context['show_completed'] = self.request.GET.get('show_completed', '').lower() == 'true'
+        context['show_archived'] = self.request.GET.get('show_archived', '').lower() == 'true'
         return context
 
 
@@ -1038,6 +1050,33 @@ class TaskDeleteView(LoginRequiredMixin, DeleteView):
         return queryset
 
 
+class TaskArchiveListView(LoginRequiredMixin, ListView):
+    """Archiv-Ansicht für archivierte Aufgaben."""
+    model = Task
+    template_name = "adeazeit/task_archive.html"
+    context_object_name = "tasks"
+    paginate_by = 20
+    
+    def get_queryset(self):
+        queryset = super().get_queryset().filter(archiviert=True)
+        # Admin/Manager sehen alle Tasks
+        if can_view_all_entries(self.request.user) or self.request.user.is_staff:
+            pass
+        else:
+            # Mitarbeiter sehen nur eigene Tasks
+            try:
+                from .models import UserProfile
+                user_profile = UserProfile.objects.get(user=self.request.user)
+                if user_profile.employee:
+                    queryset = queryset.filter(mitarbeiter=user_profile.employee)
+                else:
+                    queryset = queryset.none()
+            except UserProfile.DoesNotExist:
+                queryset = queryset.none()
+        
+        return queryset.order_by('-erledigt_am', '-erstellt_am')
+
+
 # ============================================================================
 # Timer Views (Live-Tracking)
 # ============================================================================
@@ -1046,6 +1085,38 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 import json
+
+
+@login_required
+@require_http_methods(["POST"])
+def mark_task_completed(request, task_id):
+    """Markiert eine Aufgabe als erledigt (AJAX)."""
+    try:
+        task = get_object_or_404(Task, pk=task_id)
+        
+        # Berechtigung prüfen
+        if not can_view_all_entries(request.user):
+            try:
+                from .models import UserProfile
+                user_profile = UserProfile.objects.get(user=request.user)
+                if user_profile.employee and task.mitarbeiter != user_profile.employee:
+                    return JsonResponse({"success": False, "error": "Keine Berechtigung"})
+            except UserProfile.DoesNotExist:
+                return JsonResponse({"success": False, "error": "Keine Berechtigung"})
+        
+        # Markiere als erledigt
+        task.status = 'ERLEDIGT'
+        if not task.erledigt_am:
+            task.erledigt_am = timezone.now()
+        task.save()
+        
+        return JsonResponse({
+            "success": True,
+            "message": "Aufgabe als erledigt markiert",
+            "task_id": task.id
+        })
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
 
 @login_required
 @require_http_methods(["POST"])

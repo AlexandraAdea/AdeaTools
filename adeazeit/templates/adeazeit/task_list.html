@@ -22,7 +22,7 @@
     </div>
 
     <!-- Filterleiste -->
-    <form method="get" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px; align-items: end;">
+    <form method="get" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 12px; margin-bottom: 20px; align-items: end;">
         <div>
             <label for="status" style="display:block; font-weight:600; margin-bottom:6px;">Status</label>
             <select name="status" id="status" class="adea-select">
@@ -47,6 +47,13 @@
             <a href="{% url 'adeazeit:task-list' %}" class="adea-button-primary" style="background:#e5e5ea; color:#1d1d1f; box-shadow:none; margin-left:8px;">Zurücksetzen</a>
             {% endif %}
         </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" name="show_completed" value="true" {% if show_completed %}checked{% endif %} onchange="this.form.submit();" style="width: 18px; height: 18px; cursor: pointer;">
+                <span style="font-weight: 500;">Erledigte anzeigen</span>
+            </label>
+            <a href="{% url 'adeazeit:task-archive' %}" style="color: #6e6e73; text-decoration: none; font-size: 0.9em;">📦 Archiv anzeigen</a>
+        </div>
     </form>
 
     <!-- Aufgaben-Liste -->
@@ -54,6 +61,7 @@
         <table class="adea-table">
             <thead>
                 <tr>
+                    <th style="width: 50px;"></th>
                     <th>Titel</th>
                     <th>Mitarbeiterin</th>
                     <th>Mandant</th>
@@ -65,15 +73,26 @@
             </thead>
             <tbody>
                 {% for task in tasks %}
-                <tr style="{% if task.is_overdue %}background: #ffebee;{% endif %}">
-                    <td>
-                        <strong>{{ task.titel }}</strong>
-                        {% if task.beschreibung %}
-                        <br><small style="color: #8e8e93;">{{ task.beschreibung|truncatewords:10 }}</small>
+                <tr style="{% if task.is_overdue %}background: #ffebee;{% endif %}{% if task.status == 'ERLEDIGT' %} opacity: 0.6;{% endif %}" class="{% if task.status == 'ERLEDIGT' %}task-completed{% endif %}">
+                    <td style="text-align: center;">
+                        {% if task.status != 'ERLEDIGT' %}
+                        <input type="checkbox" 
+                               class="task-complete-checkbox" 
+                               data-task-id="{{ task.pk }}"
+                               style="width: 20px; height: 20px; cursor: pointer;"
+                               title="Als erledigt markieren">
+                        {% else %}
+                        <span style="color: #34c759; font-size: 1.2em;">✓</span>
                         {% endif %}
                     </td>
-                    <td>{{ task.mitarbeiter.name }}</td>
-                    <td>{{ task.client.name|default:"–" }}</td>
+                    <td>
+                        <strong {% if task.status == 'ERLEDIGT' %}style="text-decoration: line-through;"{% endif %}>{{ task.titel }}</strong>
+                        {% if task.beschreibung %}
+                        <br><small style="color: #8e8e93; {% if task.status == 'ERLEDIGT' %}text-decoration: line-through;{% endif %}">{{ task.beschreibung|truncatewords:10 }}</small>
+                        {% endif %}
+                    </td>
+                    <td {% if task.status == 'ERLEDIGT' %}style="text-decoration: line-through;"{% endif %}>{{ task.mitarbeiter.name }}</td>
+                    <td {% if task.status == 'ERLEDIGT' %}style="text-decoration: line-through;"{% endif %}>{{ task.client.name|default:"–" }}</td>
                     <td>
                         <span style="{% if task.status == 'ERLEDIGT' %}background: #e8f5e9; color: #388e3c;{% elif task.status == 'IN_ARBEIT' %}background: #fff3e0; color: #f57c00;{% else %}background: #e3f2fd; color: #1976d2;{% endif %} padding: 2px 8px; border-radius: 4px; font-size: 0.85em;">
                             {{ task.get_status_display }}
@@ -84,7 +103,7 @@
                             {{ task.get_prioritaet_display }}
                         </span>
                     </td>
-                    <td>
+                    <td {% if task.status == 'ERLEDIGT' %}style="text-decoration: line-through;"{% endif %}>
                         {% if task.fälligkeitsdatum %}
                             {% if task.is_overdue %}
                             <span style="color: #d32f2f; font-weight: 600;">⚠️ {{ task.fälligkeitsdatum|date:"d.m.Y" }}</span>
@@ -102,7 +121,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" style="text-align: center; padding: 40px; color: #8e8e93;">
+                    <td colspan="8" style="text-align: center; padding: 40px; color: #8e8e93;">
                         Keine Aufgaben gefunden.
                     </td>
                 </tr>
@@ -123,7 +142,58 @@
     </div>
     {% endif %}
 </section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.task-complete-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                const taskId = this.dataset.taskId;
+                const row = this.closest('tr');
+                
+                // AJAX-Request
+                fetch(`{% url 'adeazeit:task-mark-completed' 0 %}`.replace('0', taskId), {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Seite neu laden um durchgestrichene Darstellung zu zeigen
+                        window.location.reload();
+                    } else {
+                        alert('Fehler: ' + (data.error || 'Unbekannter Fehler'));
+                        this.checked = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Netzwerkfehler beim Markieren der Aufgabe.');
+                    this.checked = false;
+                });
+            }
+        });
+    });
+});
+</script>
+
+<style>
+.task-completed {
+    text-decoration: line-through;
+}
+.task-completed td {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+</style>
 {% endblock %}
+
+
 
 
 

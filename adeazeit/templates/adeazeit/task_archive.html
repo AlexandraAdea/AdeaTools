@@ -1,0 +1,99 @@
+{% extends 'admin_base_no_sidebar.html' %}
+
+{% block title %}Aufgaben-Archiv – AdeaZeit{% endblock %}
+
+{% block breadcrumbs %}
+{% if user.is_staff %}
+<a href="{% url 'admin-dashboard' %}">Dashboard</a>
+{% else %}
+<a href="{% url 'home' %}">Startseite</a>
+{% endif %}
+<a href="{% url 'adeazeit:task-list' %}">Aufgaben</a>
+<a href="{% url 'adeazeit:task-archive' %}">Archiv</a>
+{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <div class="adea-d-flex-between">
+        <div>
+            <h1 style="margin-bottom: 8px;">Aufgaben-Archiv</h1>
+            <p class="lead">Archivierte Aufgaben (erledigt vor mehr als 7 Tagen)</p>
+        </div>
+        <a class="adea-button-secondary" href="{% url 'adeazeit:task-list' %}">← Zurück zu Aufgaben</a>
+    </div>
+
+    <!-- Aufgaben-Liste -->
+    <div class="adea-table-wrapper" style="margin-top: 20px;">
+        <table class="adea-table">
+            <thead>
+                <tr>
+                    <th>Titel</th>
+                    <th>Mitarbeiterin</th>
+                    <th>Mandant</th>
+                    <th>Status</th>
+                    <th>Priorität</th>
+                    <th>Erledigt am</th>
+                    <th>Fälligkeitsdatum</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks %}
+                <tr style="opacity: 0.6;">
+                    <td>
+                        <strong style="text-decoration: line-through;">{{ task.titel }}</strong>
+                        {% if task.beschreibung %}
+                        <br><small style="color: #8e8e93; text-decoration: line-through;">{{ task.beschreibung|truncatewords:10 }}</small>
+                        {% endif %}
+                    </td>
+                    <td style="text-decoration: line-through;">{{ task.mitarbeiter.name }}</td>
+                    <td style="text-decoration: line-through;">{{ task.client.name|default:"–" }}</td>
+                    <td>
+                        <span style="background: #e8f5e9; color: #388e3c; padding: 2px 8px; border-radius: 4px; font-size: 0.85em;">
+                            {{ task.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <span style="{% if task.prioritaet == 'HOCH' %}background: #ffebee; color: #d32f2f;{% elif task.prioritaet == 'MITTEL' %}background: #fff3e0; color: #f57c00;{% else %}background: #e8f5e9; color: #388e3c;{% endif %} padding: 2px 8px; border-radius: 4px; font-size: 0.85em;">
+                            {{ task.get_prioritaet_display }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if task.erledigt_am %}
+                        {{ task.erledigt_am|date:"d.m.Y H:i" }}
+                        {% else %}
+                        –
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if task.fälligkeitsdatum %}
+                        {{ task.fälligkeitsdatum|date:"d.m.Y" }}
+                        {% else %}
+                        –
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 40px; color: #8e8e93;">
+                        Keine archivierten Aufgaben gefunden.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="adea-pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}">Zurück</a>
+        {% endif %}
+        <span>Seite {{ page_obj.number }} von {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}">Weiter</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
+
