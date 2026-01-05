@@ -14,7 +14,7 @@ services:
 cronJobs:
   - name: archive-completed-tasks
     schedule: "0 2 * * *"  # Täglich um 02:00 UTC (03:00 MEZ im Winter, 04:00 MESZ im Sommer)
-    command: cd AdeaCore && python manage.py archive_completed_tasks
+    command: python manage.py archive_completed_tasks
     env: python
     envVars:
       - key: PYTHON_VERSION
