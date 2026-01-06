@@ -3,6 +3,7 @@ Permission-Mixins für AdeaZeit Views.
 """
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseForbidden
+from django.shortcuts import render
 from django.contrib.auth.mixins import LoginRequiredMixin
 from .permissions import (
     is_admin,
@@ -19,6 +20,11 @@ from .permissions import (
 )
 
 
+def render_forbidden(request, error_message="Sie haben keine Berechtigung für diese Aktion."):
+    """Rendert eine benutzerfreundliche 403-Fehlerseite mit Navigation."""
+    return render(request, '403_forbidden.html', {'error_message': error_message}, status=403)
+
+
 class RoleRequiredMixin(LoginRequiredMixin):
     """
     Basis-Mixin für Rollenprüfung.
@@ -33,7 +39,7 @@ class RoleRequiredMixin(LoginRequiredMixin):
         if self.required_role:
             from .permissions import has_role
             if not has_role(request.user, self.required_role):
-                return HttpResponseForbidden("Sie haben keine Berechtigung für diese Aktion.")
+                return render_forbidden(request, "Sie haben keine Berechtigung für diese Aktion.")
         
         return super().dispatch(request, *args, **kwargs)
 
@@ -46,7 +52,7 @@ class AdminRequiredMixin(RoleRequiredMixin):
             return self.handle_no_permission()
         
         if not is_admin(request.user):
-            return HttpResponseForbidden("Diese Aktion erfordert Admin-Rechte.")
+            return render_forbidden(request, "Diese Aktion erfordert Admin-Rechte.")
         
         return super().dispatch(request, *args, **kwargs)
 
@@ -59,7 +65,7 @@ class ManagerOrAdminRequiredMixin(RoleRequiredMixin):
             return self.handle_no_permission()
         
         if not is_manager_or_admin(request.user):
-            return HttpResponseForbidden("Diese Aktion erfordert Manager- oder Admin-Rechte.")
+            return render_forbidden(request, "Diese Aktion erfordert Manager- oder Admin-Rechte.")
         
         return super().dispatch(request, *args, **kwargs)
 
@@ -128,7 +134,7 @@ class CanEditMixin:
             if obj.mitarbeiter.user == request.user:
                 return super().dispatch(request, *args, **kwargs)
         
-        return HttpResponseForbidden("Sie können nur eigene Einträge bearbeiten.")
+        return render_forbidden(request, "Sie können nur eigene Einträge bearbeiten.")
 
 
 class CanDeleteMixin:
@@ -142,7 +148,7 @@ class CanDeleteMixin:
         
         # Nur Admins können löschen
         if not can_delete_entries(request.user):
-            return HttpResponseForbidden("Nur Administratoren können Einträge löschen.")
+            return render_forbidden(request, "Nur Administratoren können Einträge löschen.")
         
         return super().dispatch(request, *args, **kwargs)
 

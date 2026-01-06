@@ -17,6 +17,8 @@ from django.views.generic import (
     TemplateView,
 )
 from django.http import JsonResponse, HttpResponseForbidden
+from django.shortcuts import render
+from .mixins import render_forbidden
 
 from adeacore.models import Client
 from .models import EmployeeInternal, ServiceType, ZeitProject, TimeEntry, Absence, RunningTimeEntry, Task
@@ -523,7 +525,7 @@ class TimeEntryUpdateView(LoginRequiredMixin, UpdateView):
             import logging
             logger = logging.getLogger(__name__)
             logger.error(f"Fehler beim Laden des Zeiteintrags: {e}", exc_info=True)
-            return HttpResponseForbidden(f"Zeiteintrag konnte nicht geladen werden: {str(e)}")
+            return render_forbidden(request, f"Zeiteintrag konnte nicht geladen werden: {str(e)}")
         
         # Prüfe, ob User alle Einträge bearbeiten kann
         if can_view_all_entries(request.user):
@@ -531,7 +533,7 @@ class TimeEntryUpdateView(LoginRequiredMixin, UpdateView):
         
         # Prüfe, ob User den eigenen Eintrag bearbeitet
         if not obj.mitarbeiter:
-            return HttpResponseForbidden("Zeiteintrag hat keinen zugeordneten Mitarbeiter.")
+            return render_forbidden(request, "Zeiteintrag hat keinen zugeordneten Mitarbeiter.")
         
         try:
             accessible_employees = get_accessible_employees(request.user)
@@ -540,15 +542,15 @@ class TimeEntryUpdateView(LoginRequiredMixin, UpdateView):
             import logging
             logger = logging.getLogger(__name__)
             logger.error(f"Fehler beim Laden der zugänglichen Mitarbeiter: {e}", exc_info=True)
-            return HttpResponseForbidden(f"Fehler beim Prüfen der Berechtigungen: {str(e)}")
+            return render_forbidden(request, f"Fehler beim Prüfen der Berechtigungen: {str(e)}")
         
         if not accessible_employee_ids:
-            return HttpResponseForbidden("Sie haben keinen zugeordneten Mitarbeiter-Profil. Bitte kontaktieren Sie den Administrator.")
+            return render_forbidden(request, "Sie haben keinen zugeordneten Mitarbeiter-Profil. Bitte kontaktieren Sie den Administrator.")
         
         if obj.mitarbeiter.id in accessible_employee_ids:
             return super().dispatch(request, *args, **kwargs)
         
-        return HttpResponseForbidden("Sie können nur eigene Zeiteinträge bearbeiten.")
+        return render_forbidden(request, "Sie können nur eigene Zeiteinträge bearbeiten.")
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
@@ -876,8 +878,7 @@ class AbsenceUpdateView(LoginRequiredMixin, CanEditMixin, UpdateView):
         if obj.employee in accessible_employees:
             return super().dispatch(request, *args, **kwargs)
         
-        from django.http import HttpResponseForbidden
-        return HttpResponseForbidden("Sie können nur eigene Abwesenheiten bearbeiten.")
+        return render_forbidden(request, "Sie können nur eigene Abwesenheiten bearbeiten.")
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)

@@ -1,0 +1,36 @@
+{% extends 'admin_base_no_sidebar.html' %}
+
+{% block title %}Zugriff verweigert – AdeaTools{% endblock %}
+
+{% block breadcrumbs %}
+{% if user.is_staff %}
+<a href="{% url 'admin-dashboard' %}">Dashboard</a>
+{% else %}
+<a href="{% url 'home' %}">Startseite</a>
+{% endif %}
+<span>Zugriff verweigert</span>
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 80px auto; text-align: center; padding: 40px;">
+    <div style="font-size: 4em; margin-bottom: 24px;">🔒</div>
+    <h1 style="font-size: 2em; margin-bottom: 16px; color: #1d1d1f;">Zugriff verweigert</h1>
+    <p style="font-size: 1.1em; color: #6e6e73; margin-bottom: 32px; line-height: 1.6;">
+        {{ error_message|default:"Sie haben keine Berechtigung für diese Aktion." }}
+    </p>
+    <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+        <a href="{% url 'home' %}" style="display: inline-block; padding: 12px 24px; background: #0071e3; color: white; text-decoration: none; border-radius: 8px; font-weight: 500; transition: background 0.2s;">
+            Zur Startseite
+        </a>
+        {% if user.is_staff %}
+        <a href="{% url 'admin-dashboard' %}" style="display: inline-block; padding: 12px 24px; background: #f5f5f7; color: #1d1d1f; text-decoration: none; border-radius: 8px; font-weight: 500; transition: background 0.2s;">
+            Zum Dashboard
+        </a>
+        {% endif %}
+        <a href="{% url 'adeazeit:timeentry-day' %}" style="display: inline-block; padding: 12px 24px; background: #f5f5f7; color: #1d1d1f; text-decoration: none; border-radius: 8px; font-weight: 500; transition: background 0.2s;">
+            Zu Zeiteinträgen
+        </a>
+    </div>
+</div>
+{% endblock %}
+
