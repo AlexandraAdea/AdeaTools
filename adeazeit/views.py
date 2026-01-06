@@ -1466,6 +1466,7 @@ class ServiceTypeStatsView(ManagerOrAdminRequiredMixin, TemplateView):
         # Datum-Filter aus URL
         year = self.request.GET.get("year")
         month = self.request.GET.get("month")
+        employee_id = self.request.GET.get("employee")
         
         if year and month:
             try:
@@ -1499,6 +1500,7 @@ class ServiceTypeStatsView(ManagerOrAdminRequiredMixin, TemplateView):
         
         context["selected_year"] = year
         context["selected_month"] = month
+        context["selected_employee_id"] = employee_id
         
         # Hole alle Service-Typen
         service_types = ServiceType.objects.all().order_by("code")
@@ -1515,6 +1517,13 @@ class ServiceTypeStatsView(ManagerOrAdminRequiredMixin, TemplateView):
                 datum__gte=start_date,
                 datum__lt=end_date
             )
+            
+            # Filter nach Mitarbeiter, falls ausgewählt
+            if employee_id:
+                try:
+                    entries = entries.filter(mitarbeiter_id=int(employee_id))
+                except (ValueError, TypeError):
+                    pass
             
             # Aggregiere Stunden und Betrag
             hours = entries.aggregate(total=Sum('dauer'))['total'] or Decimal('0.00')
@@ -1547,5 +1556,16 @@ class ServiceTypeStatsView(ManagerOrAdminRequiredMixin, TemplateView):
         # Jahre für Dropdown (letzte 5 Jahre + aktuelles Jahr)
         today = date.today()
         context["years"] = list(range(today.year - 4, today.year + 2))
+        
+        # Mitarbeiter für Dropdown
+        from .permissions import get_accessible_employees
+        context["employees"] = get_accessible_employees(self.request.user).order_by("name")
+        if employee_id:
+            try:
+                context["selected_employee"] = EmployeeInternal.objects.get(pk=int(employee_id))
+            except (ValueError, TypeError, EmployeeInternal.DoesNotExist):
+                context["selected_employee"] = None
+        else:
+            context["selected_employee"] = None
         
         return context

@@ -41,6 +41,15 @@
                 </select>
             </div>
             <div>
+                <label style="display: block; margin-bottom: 4px; font-size: 0.9em; color: #6e6e73;">Mitarbeiter:</label>
+                <select name="employee" style="padding: 8px 12px; border: 1px solid #d2d2d7; border-radius: 6px; font-size: 0.95em; min-width: 200px;">
+                    <option value="">Alle Mitarbeitende</option>
+                    {% for emp in employees %}
+                    <option value="{{ emp.id }}" {% if emp.id|stringformat:"s" == selected_employee_id %}selected{% endif %}>{{ emp.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
                 <button type="submit" style="padding: 8px 20px; background: #0071e3; color: white; border: none; border-radius: 6px; font-size: 0.95em; cursor: pointer;">
                     Filtern
                 </button>
@@ -52,6 +61,11 @@
                 </label>
             </div>
         </form>
+        {% if selected_employee %}
+        <div style="margin-top: 12px; padding: 8px 12px; background: #e8f4fd; border-radius: 6px; font-size: 0.9em; color: #1d1d1f;">
+            📊 Gefiltert nach: <strong>{{ selected_employee.name }}</strong>
+        </div>
+        {% endif %}
     </div>
     
     <!-- Statistiken -->
