@@ -163,6 +163,26 @@ class TimeEntryForm(forms.ModelForm):
         # Mandant ist optional für interne Arbeiten
         self.fields["client"].required = False
 
+    def clean(self):
+        """Validiere Formular-Daten."""
+        cleaned_data = super().clean()
+        start = cleaned_data.get("start")
+        ende = cleaned_data.get("ende")
+        
+        # Wenn Startzeit ausgefüllt ist, muss auch Endzeit ausgefüllt sein
+        if start and not ende:
+            raise forms.ValidationError({
+                "ende": "Bitte geben Sie die Endzeit ein, wenn Sie eine Startzeit angegeben haben."
+            })
+        
+        # Wenn Endzeit ausgefüllt ist, muss auch Startzeit ausgefüllt sein
+        if ende and not start:
+            raise forms.ValidationError({
+                "start": "Bitte geben Sie die Startzeit ein, wenn Sie eine Endzeit angegeben haben."
+            })
+        
+        return cleaned_data
+
 
 class AbsenceForm(forms.ModelForm):
     class Meta:

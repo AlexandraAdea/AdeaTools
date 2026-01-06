@@ -412,6 +412,18 @@ class TimeEntry(models.Model):
 
     def clean(self):
         """Validiere Zeiteintrag."""
+        # Prüfe, ob Startzeit ohne Endzeit ausgefüllt ist
+        if self.start and not self.ende:
+            raise ValidationError({
+                'ende': 'Bitte geben Sie die Endzeit ein, wenn Sie eine Startzeit angegeben haben.'
+            })
+        
+        # Prüfe, ob Endzeit ohne Startzeit ausgefüllt ist
+        if self.ende and not self.start:
+            raise ValidationError({
+                'start': 'Bitte geben Sie die Startzeit ein, wenn Sie eine Endzeit angegeben haben.'
+            })
+        
         if self.ende and self.start:
             # Konvertiere zu Minuten für Vergleich
             start_minutes = self.start.hour * 60 + self.start.minute
@@ -427,7 +439,8 @@ class TimeEntry(models.Model):
                     'ende': 'Endzeit muss mindestens 1 Minute nach Startzeit liegen.'
                 })
         
-        if self.dauer <= 0:
+        # Prüfe Dauer nur, wenn sie gesetzt ist (kann bei neuen Einträgen noch fehlen)
+        if hasattr(self, 'dauer') and self.dauer is not None and self.dauer <= 0:
             raise ValidationError({
                 'dauer': 'Dauer muss größer als 0 sein.'
             })
@@ -459,8 +472,23 @@ class TimeEntry(models.Model):
     def save(self, *args, **kwargs):
         """Automatische Berechnung von Rate und Betrag."""
         from django.db import transaction
+        from datetime import datetime, timedelta
         
         with transaction.atomic():
+            # Berechne Dauer automatisch aus Start- und Endzeit, falls beide vorhanden sind
+            if self.start and self.ende:
+                # Konvertiere zu Minuten für Vergleich
+                start_minutes = self.start.hour * 60 + self.start.minute
+                end_minutes = self.ende.hour * 60 + self.ende.minute
+                
+                # Wenn Endzeit vor Startzeit (über Mitternacht), addiere 24 Stunden
+                if end_minutes <= start_minutes:
+                    end_minutes += 24 * 60
+                
+                # Berechne Dauer in Stunden
+                diff_minutes = end_minutes - start_minutes
+                self.dauer = Decimal(str(diff_minutes / 60)).quantize(Decimal('0.01'))
+            
             # WICHTIG: Für korrekte Fakturierung muss IMMER der aktuelle Stundensatz aus ServiceType verwendet werden
             # UND der Koeffizient des Mitarbeiters angewendet werden
             if self.service_type:
