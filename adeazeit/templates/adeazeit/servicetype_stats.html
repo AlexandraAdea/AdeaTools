@@ -50,6 +50,22 @@
                 </select>
             </div>
             <div>
+                <label style="display: block; margin-bottom: 4px; font-size: 0.9em; color: #6e6e73;">Verrechenbarkeit:</label>
+                <select name="billable" style="padding: 8px 12px; border: 1px solid #d2d2d7; border-radius: 6px; font-size: 0.95em;">
+                    <option value="all" {% if selected_billable == "all" %}selected{% endif %}>Alle</option>
+                    <option value="yes" {% if selected_billable == "yes" %}selected{% endif %}>Nur verrechenbare</option>
+                    <option value="no" {% if selected_billable == "no" %}selected{% endif %}>Nur interne Leistungen</option>
+                </select>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 4px; font-size: 0.9em; color: #6e6e73;">Verrechnungsstatus:</label>
+                <select name="invoiced" style="padding: 8px 12px; border: 1px solid #d2d2d7; border-radius: 6px; font-size: 0.95em;">
+                    <option value="all" {% if selected_invoiced == "all" %}selected{% endif %}>Alle</option>
+                    <option value="no" {% if selected_invoiced == "no" %}selected{% endif %}>Nur noch nicht verrechnete</option>
+                    <option value="yes" {% if selected_invoiced == "yes" %}selected{% endif %}>Nur bereits verrechnete</option>
+                </select>
+            </div>
+            <div>
                 <button type="submit" style="padding: 8px 20px; background: #0071e3; color: white; border: none; border-radius: 6px; font-size: 0.95em; cursor: pointer;">
                     Filtern
                 </button>
@@ -61,9 +77,14 @@
                 </label>
             </div>
         </form>
-        {% if selected_employee %}
+        {% if selected_employee or selected_billable != "all" or selected_invoiced != "all" %}
         <div style="margin-top: 12px; padding: 8px 12px; background: #e8f4fd; border-radius: 6px; font-size: 0.9em; color: #1d1d1f;">
-            📊 Gefiltert nach: <strong>{{ selected_employee.name }}</strong>
+            📊 Aktive Filter:
+            {% if selected_employee %}<strong>{{ selected_employee.name }}</strong>{% endif %}
+            {% if selected_billable == "yes" %}<span style="margin-left: 8px;">• Nur verrechenbare</span>{% endif %}
+            {% if selected_billable == "no" %}<span style="margin-left: 8px;">• Nur interne Leistungen</span>{% endif %}
+            {% if selected_invoiced == "no" %}<span style="margin-left: 8px;">• Noch nicht verrechnet</span>{% endif %}
+            {% if selected_invoiced == "yes" %}<span style="margin-left: 8px;">• Bereits verrechnet</span>{% endif %}
         </div>
         {% endif %}
     </div>

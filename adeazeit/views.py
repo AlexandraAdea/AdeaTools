@@ -1467,6 +1467,8 @@ class ServiceTypeStatsView(ManagerOrAdminRequiredMixin, TemplateView):
         year = self.request.GET.get("year")
         month = self.request.GET.get("month")
         employee_id = self.request.GET.get("employee")
+        billable_filter = self.request.GET.get("billable")  # "all", "yes", "no"
+        invoiced_filter = self.request.GET.get("invoiced")  # "all", "yes", "no"
         
         if year and month:
             try:
@@ -1501,6 +1503,8 @@ class ServiceTypeStatsView(ManagerOrAdminRequiredMixin, TemplateView):
         context["selected_year"] = year
         context["selected_month"] = month
         context["selected_employee_id"] = employee_id
+        context["selected_billable"] = billable_filter or "all"
+        context["selected_invoiced"] = invoiced_filter or "all"
         
         # Hole alle Service-Typen
         service_types = ServiceType.objects.all().order_by("code")
@@ -1524,6 +1528,18 @@ class ServiceTypeStatsView(ManagerOrAdminRequiredMixin, TemplateView):
                     entries = entries.filter(mitarbeiter_id=int(employee_id))
                 except (ValueError, TypeError):
                     pass
+            
+            # Filter nach Verrechenbarkeit
+            if billable_filter == "yes":
+                entries = entries.filter(billable=True)
+            elif billable_filter == "no":
+                entries = entries.filter(billable=False)
+            
+            # Filter nach Verrechnungsstatus
+            if invoiced_filter == "yes":
+                entries = entries.filter(verrechnet=True)
+            elif invoiced_filter == "no":
+                entries = entries.filter(verrechnet=False)
             
             # Aggregiere Stunden und Betrag
             hours = entries.aggregate(total=Sum('dauer'))['total'] or Decimal('0.00')
