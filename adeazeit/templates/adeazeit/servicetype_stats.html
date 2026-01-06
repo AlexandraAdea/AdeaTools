@@ -1,0 +1,105 @@
+{% extends 'admin_base_no_sidebar.html' %}
+
+{% block title %}Service-Typ Statistiken – AdeaZeit{% endblock %}
+
+{% block breadcrumbs %}
+{% if user.is_staff %}
+<a href="{% url 'admin-dashboard' %}">Dashboard</a>
+{% else %}
+<a href="{% url 'home' %}">Startseite</a>
+{% endif %}
+<a href="{% url 'adeazeit:servicetype-list' %}">Service-Typen</a>
+<span>Statistiken</span>
+{% endblock %}
+
+{% block content %}
+<div class="admin-content-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h1>Service-Typ Statistiken</h1>
+        <a href="{% url 'adeazeit:servicetype-list' %}" style="padding: 8px 16px; background: #f5f5f7; color: #1d1d1f; text-decoration: none; border-radius: 6px; font-size: 0.9em;">
+            ← Zurück zur Liste
+        </a>
+    </div>
+    
+    <!-- Filter -->
+    <div style="background: #f5f5f7; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+        <form method="get" style="display: flex; gap: 16px; align-items: end; flex-wrap: wrap;">
+            <div>
+                <label style="display: block; margin-bottom: 4px; font-size: 0.9em; color: #6e6e73;">Monat:</label>
+                <select name="month" style="padding: 8px 12px; border: 1px solid #d2d2d7; border-radius: 6px; font-size: 0.95em;">
+                    {% for month_num, month_name in months %}
+                    <option value="{{ month_num }}" {% if month_num == selected_month %}selected{% endif %}>{{ month_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 4px; font-size: 0.9em; color: #6e6e73;">Jahr:</label>
+                <select name="year" style="padding: 8px 12px; border: 1px solid #d2d2d7; border-radius: 6px; font-size: 0.95em;">
+                    {% for y in years %}
+                    <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <button type="submit" style="padding: 8px 20px; background: #0071e3; color: white; border: none; border-radius: 6px; font-size: 0.95em; cursor: pointer;">
+                    Filtern
+                </button>
+            </div>
+            <div>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" name="show_all" value="1" {% if request.GET.show_all == "1" %}checked{% endif %} style="cursor: pointer;">
+                    <span style="font-size: 0.9em; color: #6e6e73;">Alle Service-Typen anzeigen</span>
+                </label>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Statistiken -->
+    {% if stats %}
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #f5f5f7; border-bottom: 2px solid #d2d2d7;">
+                    <th style="padding: 12px; text-align: left; font-weight: 600;">Service-Typ</th>
+                    <th style="padding: 12px; text-align: right; font-weight: 600;">Anzahl Einträge</th>
+                    <th style="padding: 12px; text-align: right; font-weight: 600;">Stunden</th>
+                    <th style="padding: 12px; text-align: right; font-weight: 600;">Durchschnitts-Satz</th>
+                    <th style="padding: 12px; text-align: right; font-weight: 600;">Gesamtbetrag</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stat in stats %}
+                <tr style="border-bottom: 1px solid #e5e5e7;">
+                    <td style="padding: 12px;">
+                        <strong>{{ stat.service_type.code }}</strong> – {{ stat.service_type.name }}
+                        {% if not stat.service_type.billable %}
+                        <span style="color: #6e6e73; font-size: 0.85em;">(nicht verrechenbar)</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 12px; text-align: right;">{{ stat.count }}</td>
+                    <td style="padding: 12px; text-align: right;">{{ stat.hours|floatformat:2 }} h</td>
+                    <td style="padding: 12px; text-align: right;">{{ stat.avg_rate|floatformat:2 }} CHF/h</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 600;">{{ stat.amount|floatformat:2 }} CHF</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot style="background: #f5f5f7; font-weight: 600;">
+                <tr>
+                    <td style="padding: 12px;"><strong>Gesamt</strong></td>
+                    <td style="padding: 12px; text-align: right;">{{ stats|length }}</td>
+                    <td style="padding: 12px; text-align: right;">{{ total_hours|floatformat:2 }} h</td>
+                    <td style="padding: 12px; text-align: right;">—</td>
+                    <td style="padding: 12px; text-align: right;">{{ total_amount|floatformat:2 }} CHF</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 60px 20px; color: #6e6e73;">
+        <p style="font-size: 1.1em; margin-bottom: 8px;">Keine Daten gefunden</p>
+        <p style="font-size: 0.9em;">Für den ausgewählten Zeitraum wurden keine Zeiteinträge gefunden.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

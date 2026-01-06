@@ -17,6 +17,7 @@ urlpatterns = [
     
     # ServiceType
     path("service-typen/", views.ServiceTypeListView.as_view(), name="servicetype-list"),
+    path("service-typen/statistik/", views.ServiceTypeStatsView.as_view(), name="servicetype-stats"),
     path("service-typen/neu/", views.ServiceTypeCreateView.as_view(), name="servicetype-create"),
     path("service-typen/<int:pk>/bearbeiten/", views.ServiceTypeUpdateView.as_view(), name="servicetype-update"),
     path("service-typen/<int:pk>/loeschen/", views.ServiceTypeDeleteView.as_view(), name="servicetype-delete"),

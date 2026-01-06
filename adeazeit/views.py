@@ -1450,3 +1450,102 @@ def mark_as_invoiced(request):
         logger = logging.getLogger(__name__)
         logger.error(f"Fehler beim Markieren als verrechnet: {e}", exc_info=True)
         return JsonResponse({"success": False, "error": str(e)})
+
+
+# ============================================================================
+# ServiceType Statistics View
+# ============================================================================
+
+class ServiceTypeStatsView(ManagerOrAdminRequiredMixin, TemplateView):
+    """Statistiken nach Service-Typ - zeigt aufgewendete Zeit pro Service-Typ."""
+    template_name = "adeazeit/servicetype_stats.html"
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Datum-Filter aus URL
+        year = self.request.GET.get("year")
+        month = self.request.GET.get("month")
+        
+        if year and month:
+            try:
+                year = int(year)
+                month = int(month)
+                start_date = date(year, month, 1)
+                if month == 12:
+                    end_date = date(year + 1, 1, 1)
+                else:
+                    end_date = date(year, month + 1, 1)
+            except (ValueError, TypeError):
+                # Fallback: aktueller Monat
+                today = date.today()
+                year = today.year
+                month = today.month
+                start_date = date(year, month, 1)
+                if month == 12:
+                    end_date = date(year + 1, 1, 1)
+                else:
+                    end_date = date(year, month + 1, 1)
+        else:
+            # Standard: aktueller Monat
+            today = date.today()
+            year = today.year
+            month = today.month
+            start_date = date(year, month, 1)
+            if month == 12:
+                end_date = date(year + 1, 1, 1)
+            else:
+                end_date = date(year, month + 1, 1)
+        
+        context["selected_year"] = year
+        context["selected_month"] = month
+        
+        # Hole alle Service-Typen
+        service_types = ServiceType.objects.all().order_by("code")
+        
+        # Berechne Statistiken für jeden Service-Typ
+        stats = []
+        total_hours = Decimal('0.00')
+        total_amount = Decimal('0.00')
+        
+        for service_type in service_types:
+            # Zeiteinträge für diesen Service-Typ im Zeitraum
+            entries = TimeEntry.objects.filter(
+                service_type=service_type,
+                datum__gte=start_date,
+                datum__lt=end_date
+            )
+            
+            # Aggregiere Stunden und Betrag
+            hours = entries.aggregate(total=Sum('dauer'))['total'] or Decimal('0.00')
+            amount = entries.aggregate(total=Sum('betrag'))['total'] or Decimal('0.00')
+            count = entries.count()
+            
+            # Nur Service-Typen mit Einträgen anzeigen (oder alle, wenn Filter aktiv)
+            if hours > 0 or self.request.GET.get("show_all") == "1":
+                stats.append({
+                    "service_type": service_type,
+                    "hours": hours,
+                    "amount": amount,
+                    "count": count,
+                    "avg_rate": (amount / hours).quantize(Decimal('0.01')) if hours > 0 else Decimal('0.00'),
+                })
+                total_hours += hours
+                total_amount += amount
+        
+        context["stats"] = stats
+        context["total_hours"] = total_hours
+        context["total_amount"] = total_amount
+        
+        # Monatsliste für Dropdown
+        context["months"] = [
+            (1, "Januar"), (2, "Februar"), (3, "März"), (4, "April"),
+            (5, "Mai"), (6, "Juni"), (7, "Juli"), (8, "August"),
+            (9, "September"), (10, "Oktober"), (11, "November"), (12, "Dezember")
+        ]
+        
+        # Jahre für Dropdown (letzte 5 Jahre + aktuelles Jahr)
+        today = date.today()
+        context["years"] = list(range(today.year - 4, today.year + 2))
+        
+        return context
