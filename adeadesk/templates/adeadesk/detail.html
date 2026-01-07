@@ -3,22 +3,22 @@
 {% block title %}{{ client.name }} – AdeaDesk{% endblock %}
 
 {% block content %}
-<section class="content-card" style="max-width: 1200px; margin: 0 auto;">
-    <div class="adea-d-flex-between">
+<section class="content-card" style="max-width: 1200px; margin: 0 auto; padding: 16px 20px;">
+    <div class="adea-d-flex-between" style="margin-bottom: 16px;">
         <div>
-            <h1>{{ client.name }}</h1>
-            <p class="lead">Mandantendaten im Überblick. Änderungen wirken systemweit in AdeaSuite.</p>
+            <h1 style="margin: 0 0 4px 0; font-size: 1.8em;">{{ client.name }}</h1>
+            <p class="lead" style="margin: 0; font-size: 0.9em; color: #6e6e73;">Mandantendaten im Überblick. Änderungen wirken systemweit in AdeaSuite.</p>
         </div>
-        <div style="display:flex; gap:12px; flex-wrap:wrap;">
-            <a class="adea-button-primary" href="{% url 'adeadesk:client-update' client.pk %}">Bearbeiten</a>
-            <a class="adea-button-primary" style="background:#ff5f57;" href="{% url 'adeadesk:client-delete' client.pk %}">Löschen</a>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <a class="adea-button-primary" href="{% url 'adeadesk:client-update' client.pk %}" style="padding: 8px 16px; font-size: 0.9em;">Bearbeiten</a>
+            <a class="adea-button-primary" style="background:#ff5f57; padding: 8px 16px; font-size: 0.9em;" href="{% url 'adeadesk:client-delete' client.pk %}">Löschen</a>
         </div>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 24px; max-width: 1200px;">
-        <div class="feature-item">
-            <h2>Grunddaten</h2>
-            <ul>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-bottom: 20px;">
+        <div class="feature-item" style="padding: 12px;">
+            <h2 style="margin: 0 0 8px 0; font-size: 1.1em;">Grunddaten</h2>
+            <ul style="margin: 0; padding-left: 20px;">
                 <li><strong>Typ:</strong> 
                     {% if client.client_type == 'FIRMA' %}
                     <span style="background: #e8f5e9; color: #388e3c; padding: 2px 8px; border-radius: 4px; font-size: 0.9em;">
@@ -33,9 +33,9 @@
                 <li><strong>Seit:</strong> {{ client.created_at|date:"d.m.Y" }}</li>
             </ul>
         </div>
-        <div class="feature-item">
-            <h2>Kontakt</h2>
-            <ul>
+        <div class="feature-item" style="padding: 12px;">
+            <h2 style="margin: 0 0 8px 0; font-size: 1.1em;">Kontakt</h2>
+            <ul style="margin: 0; padding-left: 20px;">
                 <li><strong>E-Mail:</strong> {{ client.email|default:"–" }}</li>
                 <li><strong>Telefon:</strong> {{ client.phone|default:"–" }}</li>
                 {% if client.client_type == "FIRMA" and client.kontaktperson_name %}
@@ -43,9 +43,9 @@
                 {% endif %}
             </ul>
         </div>
-        <div class="feature-item">
-            <h2>Adresse</h2>
-            <ul>
+        <div class="feature-item" style="padding: 12px;">
+            <h2 style="margin: 0 0 8px 0; font-size: 1.1em;">Adresse</h2>
+            <ul style="margin: 0; padding-left: 20px;">
                 {% if client.street or client.house_number %}
                 <li>{{ client.street }} {{ client.house_number }}</li>
                 {% endif %}
@@ -58,9 +58,9 @@
             </ul>
         </div>
         {% if client.client_type == "FIRMA" %}
-        <div class="feature-item">
-            <h2>MWST & Rechnungsdaten</h2>
-            <ul>
+        <div class="feature-item" style="padding: 12px;">
+            <h2 style="margin: 0 0 8px 0; font-size: 1.1em;">MWST & Rechnungsdaten</h2>
+            <ul style="margin: 0; padding-left: 20px;">
                 <li><strong>MWST-pflichtig:</strong> {% if client.mwst_pflichtig %}Ja{% else %}Nein{% endif %}</li>
                 {% if client.mwst_nr %}
                 <li><strong>MWST-Nr / UID:</strong> {{ client.mwst_nr }}</li>
@@ -71,9 +71,9 @@
                 <li><strong>Zahlungsziel:</strong> {{ client.zahlungsziel_tage }} Tage</li>
             </ul>
         </div>
-        <div class="feature-item">
-            <h2>Module</h2>
-            <ul>
+        <div class="feature-item" style="padding: 12px;">
+            <h2 style="margin: 0 0 8px 0; font-size: 1.1em;">Module</h2>
+            <ul style="margin: 0; padding-left: 20px;">
                 <li>
                     <strong>AdeaLohn:</strong> 
                     {% if client.lohn_aktiv %}
@@ -86,9 +86,9 @@
         </div>
         {% endif %}
         {% if client.client_type == "PRIVAT" %}
-        <div class="feature-item">
-            <h2>Steuerdaten</h2>
-            <ul>
+        <div class="feature-item" style="padding: 12px;">
+            <h2 style="margin: 0 0 8px 0; font-size: 1.1em;">Steuerdaten</h2>
+            <ul style="margin: 0; padding-left: 20px;">
                 {% if client.geburtsdatum %}
                 <li><strong>Geburtsdatum:</strong> {{ client.geburtsdatum|date:"d.m.Y" }}</li>
                 {% endif %}
@@ -101,9 +101,9 @@
             </ul>
         </div>
         {% endif %}
-        <div class="feature-item">
-            <h2>Weitere Daten</h2>
-            <ul>
+        <div class="feature-item" style="padding: 12px;">
+            <h2 style="margin: 0 0 8px 0; font-size: 1.1em;">Weitere Daten</h2>
+            <ul style="margin: 0; padding-left: 20px;">
                 {% if client.interne_notizen %}
                 <li><strong>Interne Notizen:</strong><br>{{ client.interne_notizen|linebreaks }}</li>
                 {% endif %}
@@ -115,33 +115,33 @@
     </div>
 
     <!-- CRM Features: Tab-basiertes Layout für bessere UX -->
-    <div style="margin-top: 32px;">
+    <div style="margin-top: 20px;">
         <!-- Tab-Navigation -->
-        <div style="display: flex; gap: 4px; border-bottom: 2px solid #e5e5ea; margin-bottom: 24px;">
-            <a href="#termine" onclick="showTab('termine'); return false;" id="tab-termine" style="padding: 12px 20px; background: #007aff; color: white; text-decoration: none; border-radius: 8px 8px 0 0; font-weight: 600; font-size: 0.95em;">
-                📅 Termine {% if events %}<span style="background: rgba(255,255,255,0.3); padding: 2px 8px; border-radius: 12px; font-size: 0.85em;">{{ events|length }}</span>{% endif %}
+        <div style="display: flex; gap: 4px; border-bottom: 2px solid #e5e5ea; margin-bottom: 16px;">
+            <a href="#termine" onclick="showTab('termine'); return false;" id="tab-termine" style="padding: 10px 16px; background: #007aff; color: white; text-decoration: none; border-radius: 8px 8px 0 0; font-weight: 600; font-size: 0.9em;">
+                📅 Termine {% if events %}<span style="background: rgba(255,255,255,0.3); padding: 2px 6px; border-radius: 10px; font-size: 0.8em;">{{ events|length }}</span>{% endif %}
             </a>
-            <a href="#dokumente" onclick="showTab('dokumente'); return false;" id="tab-dokumente" style="padding: 12px 20px; background: #f5f5f7; color: #1d1d1f; text-decoration: none; border-radius: 8px 8px 0 0; font-weight: 600; font-size: 0.95em;">
-                📄 Dokumente {% if documents %}<span style="background: rgba(0,0,0,0.1); padding: 2px 8px; border-radius: 12px; font-size: 0.85em;">{{ documents|length }}</span>{% endif %}
+            <a href="#dokumente" onclick="showTab('dokumente'); return false;" id="tab-dokumente" style="padding: 10px 16px; background: #f5f5f7; color: #1d1d1f; text-decoration: none; border-radius: 8px 8px 0 0; font-weight: 600; font-size: 0.9em;">
+                📄 Dokumente {% if documents %}<span style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 10px; font-size: 0.8em;">{{ documents|length }}</span>{% endif %}
             </a>
-            <a href="#notizen" onclick="showTab('notizen'); return false;" id="tab-notizen" style="padding: 12px 20px; background: #f5f5f7; color: #1d1d1f; text-decoration: none; border-radius: 8px 8px 0 0; font-weight: 600; font-size: 0.95em;">
-                📝 Notizen {% if notes %}<span style="background: rgba(0,0,0,0.1); padding: 2px 8px; border-radius: 12px; font-size: 0.85em;">{{ notes|length }}</span>{% endif %}
+            <a href="#notizen" onclick="showTab('notizen'); return false;" id="tab-notizen" style="padding: 10px 16px; background: #f5f5f7; color: #1d1d1f; text-decoration: none; border-radius: 8px 8px 0 0; font-weight: 600; font-size: 0.9em;">
+                📝 Notizen {% if notes %}<span style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 10px; font-size: 0.8em;">{{ notes|length }}</span>{% endif %}
             </a>
-            <a href="#aufgaben" onclick="showTab('aufgaben'); return false;" id="tab-aufgaben" style="padding: 12px 20px; background: #f5f5f7; color: #1d1d1f; text-decoration: none; border-radius: 8px 8px 0 0; font-weight: 600; font-size: 0.95em;">
-                ✅ Aufgaben {% if tasks %}<span style="background: rgba(0,0,0,0.1); padding: 2px 8px; border-radius: 12px; font-size: 0.85em;">{{ tasks|length }}</span>{% endif %}
+            <a href="#aufgaben" onclick="showTab('aufgaben'); return false;" id="tab-aufgaben" style="padding: 10px 16px; background: #f5f5f7; color: #1d1d1f; text-decoration: none; border-radius: 8px 8px 0 0; font-weight: 600; font-size: 0.9em;">
+                ✅ Aufgaben {% if tasks %}<span style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 10px; font-size: 0.8em;">{{ tasks|length }}</span>{% endif %}
             </a>
         </div>
 
         <!-- Tab-Inhalte -->
-        <section class="content-card" id="content-termine" style="display: block;">
-            <div class="adea-d-flex-between" style="margin-bottom: 20px;">
-                <h2 style="margin: 0; font-size: 1.3em;">Termine</h2>
-                <a href="{% url 'adeadesk:event-create' client.pk %}" class="adea-button-primary" style="padding: 10px 20px; font-size: 0.95em;">+ Neuer Termin</a>
+        <section class="content-card" id="content-termine" style="display: block; padding: 16px;">
+            <div class="adea-d-flex-between" style="margin-bottom: 16px;">
+                <h2 style="margin: 0; font-size: 1.2em;">Termine</h2>
+                <a href="{% url 'adeadesk:event-create' client.pk %}" class="adea-button-primary" style="padding: 8px 16px; font-size: 0.9em;">+ Neuer Termin</a>
             </div>
             {% if events %}
-            <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; flex-direction: column; gap: 10px;">
                 {% for event in events %}
-                <div style="padding: 16px; background: #f5f5f7; border-radius: 8px; border-left: 4px solid {% if event.is_overdue %}#ff5f57{% else %}#34c759{% endif %};">
+                <div style="padding: 12px; background: #f5f5f7; border-radius: 8px; border-left: 4px solid {% if event.is_overdue %}#ff5f57{% else %}#34c759{% endif %};">
                     <div style="display: flex; justify-content: space-between; align-items: start;">
                         <div style="flex: 1;">
                             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
@@ -170,23 +170,23 @@
                 {% endfor %}
             </div>
             {% else %}
-            <div style="text-align: center; padding: 60px 20px; color: #8e8e93;">
-                <div style="font-size: 3em; margin-bottom: 16px;">📅</div>
-                <p style="font-size: 1.1em; margin-bottom: 8px; font-weight: 600;">Keine Termine vorhanden</p>
-                <p style="font-size: 0.9em;">Erstellen Sie einen neuen Termin, um zu beginnen.</p>
+            <div style="text-align: center; padding: 40px 20px; color: #8e8e93;">
+                <div style="font-size: 2.5em; margin-bottom: 12px;">📅</div>
+                <p style="font-size: 1em; margin-bottom: 6px; font-weight: 600;">Keine Termine vorhanden</p>
+                <p style="font-size: 0.85em;">Erstellen Sie einen neuen Termin, um zu beginnen.</p>
             </div>
             {% endif %}
         </section>
 
-        <section class="content-card" id="content-dokumente" style="display: none;">
-            <div class="adea-d-flex-between" style="margin-bottom: 20px;">
-                <h2 style="margin: 0; font-size: 1.3em;">Dokumente</h2>
-                <a href="{% url 'adeadesk:document-create' client.pk %}" class="adea-button-primary" style="padding: 10px 20px; font-size: 0.95em;">+ Dokument hochladen</a>
+        <section class="content-card" id="content-dokumente" style="display: none; padding: 16px;">
+            <div class="adea-d-flex-between" style="margin-bottom: 16px;">
+                <h2 style="margin: 0; font-size: 1.2em;">Dokumente</h2>
+                <a href="{% url 'adeadesk:document-create' client.pk %}" class="adea-button-primary" style="padding: 8px 16px; font-size: 0.9em;">+ Dokument hochladen</a>
             </div>
             {% if documents %}
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">
                 {% for document in documents %}
-                <div style="padding: 16px; background: #f5f5f7; border-radius: 8px; border: 1px solid #e5e5ea;">
+                <div style="padding: 12px; background: #f5f5f7; border-radius: 8px; border: 1px solid #e5e5ea;">
                     <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
                         <div style="flex: 1;">
                             <strong style="display: block; margin-bottom: 6px; font-size: 1.05em;">{{ document.title }}</strong>
@@ -204,17 +204,17 @@
                 {% endfor %}
             </div>
             {% else %}
-            <div style="text-align: center; padding: 60px 20px; color: #8e8e93;">
-                <div style="font-size: 3em; margin-bottom: 16px;">📄</div>
-                <p style="font-size: 1.1em; margin-bottom: 8px; font-weight: 600;">Keine Dokumente vorhanden</p>
-                <p style="font-size: 0.9em;">Laden Sie ein Dokument hoch, um zu beginnen.</p>
+            <div style="text-align: center; padding: 40px 20px; color: #8e8e93;">
+                <div style="font-size: 2.5em; margin-bottom: 12px;">📄</div>
+                <p style="font-size: 1em; margin-bottom: 6px; font-weight: 600;">Keine Dokumente vorhanden</p>
+                <p style="font-size: 0.85em;">Laden Sie ein Dokument hoch, um zu beginnen.</p>
             </div>
             {% endif %}
         </section>
 
-        <section class="content-card" id="content-notizen" style="display: none;">
-            <div class="adea-d-flex-between" style="margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
-                <h2 style="margin: 0; font-size: 1.3em;">Notizen</h2>
+        <section class="content-card" id="content-notizen" style="display: none; padding: 16px;">
+            <div class="adea-d-flex-between" style="margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                <h2 style="margin: 0; font-size: 1.2em;">Notizen</h2>
                 <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
                     <!-- Filter -->
                     <div style="display: flex; gap: 6px; background: #f5f5f7; padding: 4px; border-radius: 8px;">
@@ -223,13 +223,13 @@
                         <a href="?note_filter=erledigt" style="padding: 6px 14px; background: {% if note_filter == 'erledigt' %}#007aff{% else %}transparent{% endif %}; color: {% if note_filter == 'erledigt' %}white{% else %}#1d1d1f{% endif %}; text-decoration: none; border-radius: 6px; font-size: 0.9em; font-weight: {% if note_filter == 'erledigt' %}600{% else %}400{% endif %}; transition: all 0.2s;">Erledigt</a>
                         <a href="?note_filter=archiviert" style="padding: 6px 14px; background: {% if note_filter == 'archiviert' %}#007aff{% else %}transparent{% endif %}; color: {% if note_filter == 'archiviert' %}white{% else %}#1d1d1f{% endif %}; text-decoration: none; border-radius: 6px; font-size: 0.9em; font-weight: {% if note_filter == 'archiviert' %}600{% else %}400{% endif %}; transition: all 0.2s;">Archiviert</a>
                     </div>
-                    <a href="{% url 'adeadesk:note-create' client.pk %}{% if note_filter %}?note_filter={{ note_filter }}{% endif %}" class="adea-button-primary" style="padding: 10px 20px; font-size: 0.95em;">+ Neue Notiz</a>
+                    <a href="{% url 'adeadesk:note-create' client.pk %}{% if note_filter %}?note_filter={{ note_filter }}{% endif %}" class="adea-button-primary" style="padding: 8px 16px; font-size: 0.9em;">+ Neue Notiz</a>
                 </div>
             </div>
             {% if notes %}
-            <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; flex-direction: column; gap: 10px;">
                 {% for note in notes %}
-                <div style="padding: 16px; background: #f5f5f7; border-radius: 8px; border-left: 4px solid {% if note.status == 'ERLEDIGT' %}#34c759{% else %}#007aff{% endif %};">
+                <div style="padding: 12px; background: #f5f5f7; border-radius: 8px; border-left: 4px solid {% if note.status == 'ERLEDIGT' %}#34c759{% else %}#007aff{% endif %};">
                     <div style="display: flex; justify-content: space-between; align-items: start; gap: 16px;">
                         <div style="flex: 1;">
                             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap;">
@@ -261,23 +261,23 @@
                 {% endfor %}
             </div>
             {% else %}
-            <div style="text-align: center; padding: 60px 20px; color: #8e8e93;">
-                <div style="font-size: 3em; margin-bottom: 16px;">📝</div>
-                <p style="font-size: 1.1em; margin-bottom: 8px; font-weight: 600;">Keine Notizen vorhanden</p>
-                <p style="font-size: 0.9em;">Erstellen Sie eine neue Notiz, um wichtige Informationen zu dokumentieren.</p>
+            <div style="text-align: center; padding: 40px 20px; color: #8e8e93;">
+                <div style="font-size: 2.5em; margin-bottom: 12px;">📝</div>
+                <p style="font-size: 1em; margin-bottom: 6px; font-weight: 600;">Keine Notizen vorhanden</p>
+                <p style="font-size: 0.85em;">Erstellen Sie eine neue Notiz, um wichtige Informationen zu dokumentieren.</p>
             </div>
             {% endif %}
         </section>
 
-        <section class="content-card" id="content-aufgaben" style="display: none;">
-            <div class="adea-d-flex-between" style="margin-bottom: 20px;">
-                <h2 style="margin: 0; font-size: 1.3em;">Aufgaben</h2>
-                <a href="{% url 'adeazeit:task-create' %}?client={{ client.pk }}" class="adea-button-primary" style="padding: 10px 20px; font-size: 0.95em;">+ Neue Aufgabe</a>
+        <section class="content-card" id="content-aufgaben" style="display: none; padding: 16px;">
+            <div class="adea-d-flex-between" style="margin-bottom: 16px;">
+                <h2 style="margin: 0; font-size: 1.2em;">Aufgaben</h2>
+                <a href="{% url 'adeazeit:task-create' %}?client={{ client.pk }}" class="adea-button-primary" style="padding: 8px 16px; font-size: 0.9em;">+ Neue Aufgabe</a>
             </div>
             {% if tasks %}
-            <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; flex-direction: column; gap: 10px;">
                 {% for task in tasks %}
-                <div style="padding: 16px; background: #f5f5f7; border-radius: 8px; border-left: 4px solid {% if task.status == 'ERLEDIGT' %}#34c759{% elif task.status == 'IN_ARBEIT' %}#ff9500{% else %}#007aff{% endif %};">
+                <div style="padding: 12px; background: #f5f5f7; border-radius: 8px; border-left: 4px solid {% if task.status == 'ERLEDIGT' %}#34c759{% elif task.status == 'IN_ARBEIT' %}#ff9500{% else %}#007aff{% endif %};">
                     <div style="display: flex; justify-content: space-between; align-items: start; gap: 16px;">
                         <div style="flex: 1;">
                             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap;">
@@ -349,8 +349,8 @@
         });
     </script>
 
-    <div style="margin-top:24px; padding-top: 20px; border-top: 1px solid #e5e5ea;">
-        <a href="{% url 'adeadesk:client-list' %}" class="adea-button-primary" style="background:#e5e5ea; color:#1d1d1f; box-shadow:none; text-decoration:none; display:inline-block; padding:10px 20px;">
+    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e5ea;">
+        <a href="{% url 'adeadesk:client-list' %}" class="adea-button-primary" style="background:#e5e5ea; color:#1d1d1f; box-shadow:none; text-decoration:none; display:inline-block; padding:8px 16px; font-size: 0.9em;">
             &larr; Zurück zur Mandantenliste
         </a>
     </div>
