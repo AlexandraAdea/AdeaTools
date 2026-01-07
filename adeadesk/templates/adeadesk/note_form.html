@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}
+{% if object %}Notiz bearbeiten{% else %}Neue Notiz{% endif %} – AdeaDesk
+{% endblock %}
+
+{% block content %}
+<section class="content-card" style="max-width: 800px; margin: 0 auto;">
+    <div class="adea-d-flex-between" style="margin-bottom: 20px;">
+        <div>
+            <h1 style="margin-bottom: 8px;">
+                {% if object %}Notiz bearbeiten{% else %}Neue Notiz{% endif %}
+            </h1>
+            <p class="lead">Notiz für {{ client.name }}</p>
+        </div>
+        <a href="{% url 'adeadesk:client-detail' client.pk %}" class="adea-button-primary" style="background:#e5e5ea; color:#1d1d1f; box-shadow:none; text-decoration:none;">
+            ← Zurück
+        </a>
+    </div>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+        
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+            <div>
+                <label for="{{ form.title.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">{{ form.title.label }} *</label>
+                {{ form.title }}
+                {% if form.title.errors %}
+                <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.title.errors|striptags }}</div>
+                {% endif %}
+            </div>
+
+            <div>
+                <label for="{{ form.content.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">{{ form.content.label }} *</label>
+                {{ form.content }}
+                {% if form.content.errors %}
+                <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.content.errors|striptags }}</div>
+                {% endif %}
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <label for="{{ form.note_type.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">{{ form.note_type.label }} *</label>
+                    {{ form.note_type }}
+                    {% if form.note_type.errors %}
+                    <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.note_type.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="{{ form.note_date.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">{{ form.note_date.label }} *</label>
+                    {{ form.note_date }}
+                    {% if form.note_date.errors %}
+                    <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.note_date.errors|striptags }}</div>
+                    {% endif %}
+                    {% if form.note_date.help_text %}
+                    <small style="color:#8e8e93; font-size:0.8em; display:block; margin-top:4px;">{{ form.note_date.help_text }}</small>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <label for="{{ form.status.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">{{ form.status.label }}</label>
+                    {{ form.status }}
+                    {% if form.status.errors %}
+                    <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.status.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="{{ form.task.id_for_label }}" style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">{{ form.task.label }}</label>
+                    {{ form.task }}
+                    {% if form.task.errors %}
+                    <div style="color:#ff5f57; margin-top:4px; font-size:12px;">{{ form.task.errors|striptags }}</div>
+                    {% endif %}
+                    {% if form.task.help_text %}
+                    <small style="color:#8e8e93; font-size:0.8em; display:block; margin-top:4px;">{{ form.task.help_text }}</small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 24px; display: flex; gap: 12px; justify-content: flex-end;">
+            <a href="{% url 'adeadesk:client-detail' client.pk %}" class="adea-button-primary" style="background:#e5e5ea; color:#1d1d1f; box-shadow:none; text-decoration:none;">
+                Abbrechen
+            </a>
+            <button type="submit" class="adea-button-primary">
+                {% if object %}Speichern{% else %}Erstellen{% endif %}
+            </button>
+        </div>
+    </form>
+</section>
+{% endblock %}
+

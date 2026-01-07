@@ -974,6 +974,17 @@ class TaskCreateView(LoginRequiredMixin, CreateView):
                     initial["mitarbeiter"] = user_profile.employee
             except UserProfile.DoesNotExist:
                 pass
+        
+        # Client aus URL-Parameter übernehmen (für CRM-Integration)
+        client_id = self.request.GET.get('client')
+        if client_id:
+            try:
+                from adeacore.models import Client
+                client = Client.objects.get(pk=int(client_id))
+                initial["client"] = client
+            except (ValueError, Client.DoesNotExist):
+                pass
+        
         return initial
     
     def get_form(self, form_class=None):

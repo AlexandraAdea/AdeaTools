@@ -1097,6 +1097,112 @@ class Document(models.Model):
         return f"{self.file_size:.1f} TB"
 
 
+class ClientNote(models.Model):
+    """
+    Notizen für Mandanten im CRM.
+    Erlaubt es, wichtige Informationen zu Mandanten zu dokumentieren,
+    z.B. Steuererklärung nächstes Jahr, quartalsweise Notizen, etc.
+    """
+    NOTE_TYPE_CHOICES = [
+        ("STEUER", "Steuererklärung"),
+        ("QUARTAL", "Quartalsweise"),
+        ("MONAT", "Monatlich"),
+        ("ALLGEMEIN", "Allgemein"),
+        ("ERINNERUNG", "Erinnerung"),
+    ]
+    
+    STATUS_CHOICES = [
+        ("OFFEN", "Offen"),
+        ("ERLEDIGT", "Erledigt"),
+    ]
+    
+    client = models.ForeignKey(
+        Client,
+        on_delete=models.CASCADE,
+        related_name="client_notes",
+        verbose_name="Mandant",
+    )
+    title = models.CharField(
+        "Titel",
+        max_length=255,
+        help_text="Titel der Notiz (z.B. 'Steuererklärung 2026')"
+    )
+    content = models.TextField(
+        "Inhalt",
+        help_text="Inhalt der Notiz"
+    )
+    note_type = models.CharField(
+        "Typ",
+        max_length=20,
+        choices=NOTE_TYPE_CHOICES,
+        default="ALLGEMEIN",
+        help_text="Typ der Notiz"
+    )
+    note_date = models.DateField(
+        "Datum",
+        help_text="Datum der Notiz (z.B. Datum der Steuererklärung oder Quartal/Monat)"
+    )
+    status = models.CharField(
+        "Status",
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="OFFEN",
+    )
+    task = models.ForeignKey(
+        "adeazeit.Task",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="client_notes",
+        verbose_name="Verknüpfte Aufgabe",
+        help_text="Optional: Verknüpfung zu einer Aufgabe in AdeaZeit"
+    )
+    archiviert = models.BooleanField(
+        "Archiviert",
+        default=False,
+        help_text="Erledigte Notizen können archiviert werden"
+    )
+    erledigt_am = models.DateTimeField(
+        "Erledigt am",
+        null=True,
+        blank=True,
+        help_text="Datum und Uhrzeit, wann die Notiz als erledigt markiert wurde"
+    )
+    created_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_client_notes",
+        verbose_name="Erstellt von",
+        help_text="Benutzer, der die Notiz erstellt hat"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ["-note_date", "-created_at"]
+        verbose_name = "Mandanten-Notiz"
+        verbose_name_plural = "Mandanten-Notizen"
+        indexes = [
+            models.Index(fields=['client', 'status'], name='adeacore_cnote_client_st_idx'),
+            models.Index(fields=['client', 'archiviert'], name='adeacore_cnote_client_ar_idx'),
+            models.Index(fields=['note_date'], name='adeacore_cnote_date_idx'),
+        ]
+    
+    def __str__(self):
+        return f"{self.title} - {self.client.name} ({self.note_date})"
+    
+    def save(self, *args, **kwargs):
+        """Setzt erledigt_am automatisch wenn Status auf ERLEDIGT."""
+        from django.utils import timezone
+        if self.status == 'ERLEDIGT' and not self.erledigt_am:
+            self.erledigt_am = timezone.now()
+        elif self.status != 'ERLEDIGT':
+            self.erledigt_am = None
+        super().save(*args, **kwargs)
+
+
 class CompanyData(models.Model):
     """
     Firmendaten für Adea Treuhand (Singleton).

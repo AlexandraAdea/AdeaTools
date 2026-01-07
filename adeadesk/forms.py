@@ -1,6 +1,8 @@
+import os
 from django import forms
+from django.utils import timezone
 
-from adeacore.models import Client, Event, Document
+from adeacore.models import Client, Event, Document, ClientNote
 
 
 class ClientForm(forms.ModelForm):
@@ -219,6 +221,58 @@ class DocumentForm(forms.ModelForm):
         file.name = safe_name
         
         return file
+
+
+class ClientNoteForm(forms.ModelForm):
+    class Meta:
+        model = ClientNote
+        fields = [
+            "title",
+            "content",
+            "note_type",
+            "note_date",
+            "status",
+            "task",
+        ]
+        widgets = {
+            "title": forms.TextInput(attrs={"class": "adea-input"}),
+            "content": forms.Textarea(attrs={"class": "adea-textarea", "rows": 6}),
+            "note_type": forms.Select(attrs={"class": "adea-select"}),
+            "note_date": forms.DateInput(attrs={"class": "adea-input", "type": "date"}, format="%Y-%m-%d"),
+            "status": forms.Select(attrs={"class": "adea-select"}),
+            "task": forms.Select(attrs={"class": "adea-select"}),
+        }
+        help_texts = {
+            "note_date": "Datum der Notiz (z.B. Datum der Steuererklärung oder Quartal/Monat)",
+            "task": "Optional: Verknüpfung zu einer Aufgabe in AdeaZeit",
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.client = kwargs.pop('client', None)
+        super().__init__(*args, **kwargs)
+        
+        # Filter Tasks nach Client, wenn vorhanden
+        if self.client:
+            from adeazeit.models import Task
+            self.fields['task'].queryset = Task.objects.filter(
+                client=self.client
+            ).order_by('-erstellt_am')
+        else:
+            self.fields['task'].queryset = self.fields['task'].queryset.none()
+        
+        # Setze Default-Datum auf heute
+        if not self.instance.pk and 'note_date' not in self.data:
+            self.fields['note_date'].initial = timezone.now().date()
+    
+    def clean_task(self):
+        """Validiert, dass die ausgewählte Task zum Client gehört."""
+        task = self.cleaned_data.get('task')
+        if task and self.client:
+            if task.client != self.client:
+                raise forms.ValidationError(
+                    "Die ausgewählte Aufgabe gehört nicht zu diesem Mandanten."
+                )
+        return task
 
 
 

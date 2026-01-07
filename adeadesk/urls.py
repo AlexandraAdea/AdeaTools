@@ -17,4 +17,8 @@ urlpatterns = [
     # Documents
     path("<int:client_pk>/documents/new/", views.DocumentCreateView.as_view(), name="document-create"),
     path("<int:client_pk>/documents/<int:pk>/delete/", views.DocumentDeleteView.as_view(), name="document-delete"),
+    # ClientNotes
+    path("<int:client_pk>/notes/new/", views.ClientNoteCreateView.as_view(), name="note-create"),
+    path("<int:client_pk>/notes/<int:pk>/edit/", views.ClientNoteUpdateView.as_view(), name="note-update"),
+    path("<int:client_pk>/notes/<int:pk>/delete/", views.ClientNoteDeleteView.as_view(), name="note-delete"),
 ]
