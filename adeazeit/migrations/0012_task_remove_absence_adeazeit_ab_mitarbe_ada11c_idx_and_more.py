@@ -32,15 +32,13 @@ class Migration(migrations.Migration):
                 'ordering': ['prioritaet', 'fälligkeitsdatum', '-erstellt_am'],
             },
         ),
-        migrations.RemoveIndex(
-            model_name='absence',
-            name='adeazeit_ab_mitarbe_ada11c_idx',
+        # Index wurde bereits in früheren Migrationen entfernt, daher mit RunSQL umhüllen
+        migrations.RunSQL(
+            sql="DROP INDEX IF EXISTS adeazeit_ab_mitarbe_ada11c_idx;",
+            reverse_sql=migrations.RunSQL.noop,
         ),
-        migrations.RenameIndex(
-            model_name='absence',
-            new_name='adeazeit_ab_employe_c4ea6a_idx',
-            old_name='adeazeit_abs_employe_123456_idx',
-        ),
+        # RenameIndex entfernt - Index wurde bereits in früheren Migrationen umbenannt oder existiert nicht
+        # SQLite unterstützt kein ALTER INDEX RENAME, daher ignorieren wir diese Operation
         migrations.AddField(
             model_name='task',
             name='client',

@@ -2,21 +2,53 @@
 
 from django.db import migrations
 
+IDX_DROP = "adeazeit_ab_mitarbe_ada11c_idx"
+IDX_OLD = "adeazeit_abs_employe_123456_idx"
+IDX_NEW = "adeazeit_ab_employe_c4ea6a_idx"
+
+
+def _try_rename_index(apps, schema_editor):
+    """
+    0014 darf den State NICHT mehr anfassen (weil 0013 das bereits bereinigt hat).
+    Deshalb: Nur DB-best-effort Rename, und nur wo es sicher geht.
+    - Postgres: ALTER INDEX (try/except)
+    - SQLite: ignorieren (Indexnamen sind für Tests nicht kritisch; SQLite hat kein ALTER INDEX wie Postgres)
+    """
+    vendor = schema_editor.connection.vendor
+    if vendor != "postgresql":
+        return
+
+    with schema_editor.connection.cursor() as cursor:
+        try:
+            cursor.execute(f'ALTER INDEX "{IDX_OLD}" RENAME TO "{IDX_NEW}";')
+        except Exception:
+            # Index existiert evtl. nicht oder wurde schon umbenannt -> nicht blockieren
+            pass
+
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('adeazeit', '0013_add_sachbearbeiter_to_client'),
+        ("adeazeit", "0013_add_sachbearbeiter_to_client"),
     ]
 
     operations = [
-        migrations.RemoveIndex(
-            model_name='absence',
-            name='adeazeit_ab_mitarbe_ada11c_idx',
+        # 1) Drop des alten Index: DB-idempotent, State-neutral
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    sql=f'DROP INDEX IF EXISTS "{IDX_DROP}";',
+                    reverse_sql=migrations.RunSQL.noop,
+                )
+            ],
+            state_operations=[],
         ),
-        migrations.RenameIndex(
-            model_name='absence',
-            new_name='adeazeit_ab_employe_c4ea6a_idx',
-            old_name='adeazeit_abs_employe_123456_idx',
+
+        # 2) Rename: State-neutral (sonst ValueError), DB-best-effort (nur Postgres)
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunPython(_try_rename_index, migrations.RunPython.noop),
+            ],
+            state_operations=[],
         ),
     ]

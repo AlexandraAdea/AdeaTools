@@ -25,14 +25,15 @@ class Migration(migrations.Migration):
                 'verbose_name_plural': 'Laufende Zeiteinträge',
             },
         ),
-        migrations.RemoveIndex(
-            model_name='absence',
-            name='adeazeit_ab_mitarbe_ada11c_idx',
-        ),
-        migrations.RenameIndex(
-            model_name='absence',
-            new_name='adeazeit_ab_employe_c4ea6a_idx',
-            old_name='adeazeit_abs_employe_123456_idx',
+        # Index wurde bereits in früheren Migrationen entfernt, daher nur DB-Operation ohne State-Änderung
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    sql='DROP INDEX IF EXISTS "adeazeit_ab_mitarbe_ada11c_idx";',
+                    reverse_sql=migrations.RunSQL.noop,
+                ),
+            ],
+            state_operations=[],
         ),
         migrations.AddField(
             model_name='runningtimeentry',
