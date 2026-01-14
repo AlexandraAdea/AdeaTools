@@ -2,21 +2,144 @@
 
 from django.db import migrations
 
+IDX_DROP = "adeazeit_ab_mitarbe_ada11c_idx"
+IDX_OLD = "adeazeit_abs_employe_123456_idx"
+IDX_NEW = "adeazeit_ab_employe_c4ea6a_idx"
+
+
+def _rename_index_forward(apps, schema_editor):
+    """
+    Macht den Rename DB-sicher:
+    - Postgres: ALTER INDEX (try/except)
+    - SQLite: kein ALTER INDEX -> CREATE neuen Index anhand sqlite_master.sql + DROP alten Index
+    """
+    vendor = schema_editor.connection.vendor
+    with schema_editor.connection.cursor() as cursor:
+        if vendor == "postgresql":
+            try:
+                cursor.execute(f'ALTER INDEX "{IDX_OLD}" RENAME TO "{IDX_NEW}";')
+            except Exception:
+                # Wenn der alte Index nicht existiert oder schon umbenannt wurde: ignorieren
+                pass
+
+        elif vendor == "sqlite":
+            # SQLite kann i.d.R. kein ALTER INDEX. Wir rekonstruieren CREATE INDEX aus sqlite_master.
+            try:
+                cursor.execute(
+                    f"SELECT sql FROM sqlite_master "
+                    f"WHERE type='index' AND name='{IDX_OLD}';"
+                )
+                row = cursor.fetchone()
+                create_sql = row[0] if row else None
+
+                if create_sql:
+                    # CREATE INDEX -> CREATE INDEX IF NOT EXISTS
+                    if create_sql.upper().startswith("CREATE INDEX "):
+                        create_sql = create_sql.replace(
+                            "CREATE INDEX ", "CREATE INDEX IF NOT EXISTS ", 1
+                        )
+
+                    # Name im CREATE-Statement ersetzen (1x reicht)
+                    create_sql = create_sql.replace(f'"{IDX_OLD}"', f'"{IDX_NEW}"', 1)
+                    create_sql = create_sql.replace(IDX_OLD, IDX_NEW, 1)
+
+                    # Neuen Index erstellen (falls schon da: harmlos durch IF NOT EXISTS)
+                    try:
+                        cursor.execute(create_sql)
+                    except Exception:
+                        pass
+
+                # Alten Index entfernen (falls vorhanden)
+                cursor.execute(f'DROP INDEX IF EXISTS "{IDX_OLD}";')
+
+            except Exception:
+                # Wenn irgendwas schiefgeht: nicht blockieren (Indexname ist nicht kritisch für App-Logik)
+                pass
+
+        else:
+            # Best-effort für andere DBs
+            try:
+                cursor.execute(f'ALTER INDEX "{IDX_OLD}" RENAME TO "{IDX_NEW}";')
+            except Exception:
+                pass
+
+
+def _rename_index_backward(apps, schema_editor):
+    """
+    Reverse-Operation fuer den Rename (best-effort).
+    """
+    vendor = schema_editor.connection.vendor
+    with schema_editor.connection.cursor() as cursor:
+        if vendor == "postgresql":
+            try:
+                cursor.execute(f'ALTER INDEX "{IDX_NEW}" RENAME TO "{IDX_OLD}";')
+            except Exception:
+                pass
+
+        elif vendor == "sqlite":
+            try:
+                cursor.execute(
+                    f"SELECT sql FROM sqlite_master "
+                    f"WHERE type='index' AND name='{IDX_NEW}';"
+                )
+                row = cursor.fetchone()
+                create_sql = row[0] if row else None
+
+                if create_sql:
+                    if create_sql.upper().startswith("CREATE INDEX "):
+                        create_sql = create_sql.replace(
+                            "CREATE INDEX ", "CREATE INDEX IF NOT EXISTS ", 1
+                        )
+                    create_sql = create_sql.replace(f'"{IDX_NEW}"', f'"{IDX_OLD}"', 1)
+                    create_sql = create_sql.replace(IDX_NEW, IDX_OLD, 1)
+
+                    try:
+                        cursor.execute(create_sql)
+                    except Exception:
+                        pass
+
+                cursor.execute(f'DROP INDEX IF EXISTS "{IDX_NEW}";')
+
+            except Exception:
+                pass
+
+        else:
+            try:
+                cursor.execute(f'ALTER INDEX "{IDX_NEW}" RENAME TO "{IDX_OLD}";')
+            except Exception:
+                pass
+
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('adeazeit', '0012_task_remove_absence_adeazeit_ab_mitarbe_ada11c_idx_and_more'),
+        ("adeazeit", "0012_task_remove_absence_adeazeit_ab_mitarbe_ada11c_idx_and_more"),
     ]
 
     operations = [
-        migrations.RemoveIndex(
-            model_name='absence',
-            name='adeazeit_ab_mitarbe_ada11c_idx',
+        # 1) RemoveIndex robust machen: DB darf nicht crashen, wenn Index schon weg ist
+        migrations.RunSQL(
+            sql=f'DROP INDEX IF EXISTS "{IDX_DROP}";',
+            reverse_sql=migrations.RunSQL.noop,
+            state_operations=[
+                migrations.RemoveIndex(
+                    model_name="absence",
+                    name=IDX_DROP,
+                ),
+            ],
         ),
-        migrations.RenameIndex(
-            model_name='absence',
-            new_name='adeazeit_ab_employe_c4ea6a_idx',
-            old_name='adeazeit_abs_employe_123456_idx',
+
+        # 2) RenameIndex robust machen: SQLite ohne ALTER INDEX, Postgres per ALTER INDEX (try/except)
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunPython(_rename_index_forward, _rename_index_backward),
+            ],
+            state_operations=[
+                migrations.RenameIndex(
+                    model_name="absence",
+                    old_name=IDX_OLD,
+                    new_name=IDX_NEW,
+                ),
+            ],
         ),
     ]

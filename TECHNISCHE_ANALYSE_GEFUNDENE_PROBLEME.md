@@ -301,3 +301,5 @@ total_hours = TimeEntry.objects.filter(...).aggregate(Sum('dauer'))  # ← Gleic
 
 
 
+
+

@@ -95,3 +95,5 @@ schedule: "0 2 * * *"  # Täglich um 02:00 UTC
 
 Nach dem Setup läuft die Archivierung automatisch. Keine weitere Aktion nötig!
 
+
+
