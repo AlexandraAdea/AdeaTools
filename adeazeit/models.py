@@ -405,10 +405,37 @@ class TimeEntry(models.Model):
         indexes = [
             models.Index(fields=["datum", "mitarbeiter"]),
             models.Index(fields=["client", "datum"]),
+            models.Index(
+                fields=["mitarbeiter", "datum", "start", "ende"],
+                name="adeazeit_te_overlap_idx"
+            ),
         ]
 
     def __str__(self):
         return f"{self.datum} – {self.mitarbeiter.name}"
+
+    @staticmethod
+    def _calculate_duration_minutes(start, ende):
+        """
+        Berechnet Dauer in Minuten zwischen Start- und Endzeit.
+        
+        Args:
+            start: time-Objekt (Startzeit)
+            ende: time-Objekt (Endzeit)
+            
+        Returns:
+            int: Dauer in Minuten (kann negativ sein bei ungültigen Eingaben)
+        """
+        # Konvertiere zu Minuten für Vergleich
+        start_minutes = start.hour * 60 + start.minute
+        end_minutes = ende.hour * 60 + ende.minute
+        
+        # Wenn Endzeit vor Startzeit (über Mitternacht), addiere 24 Stunden
+        if end_minutes <= start_minutes:
+            end_minutes += 24 * 60
+        
+        # Berechne Differenz
+        return end_minutes - start_minutes
 
     def clean(self):
         """Validiere Zeiteintrag."""
@@ -425,16 +452,10 @@ class TimeEntry(models.Model):
             })
         
         if self.ende and self.start:
-            # Konvertiere zu Minuten für Vergleich
-            start_minutes = self.start.hour * 60 + self.start.minute
-            end_minutes = self.ende.hour * 60 + self.ende.minute
-            
-            # Wenn Endzeit vor Startzeit (über Mitternacht), addiere 24 Stunden
-            if end_minutes <= start_minutes:
-                end_minutes += 24 * 60
-            
+            # Verwende Helper-Methode für Dauer-Berechnung und validiere
+            diff_minutes = self._calculate_duration_minutes(self.start, self.ende)
             # Mindestens 1 Minute Unterschied erforderlich
-            if end_minutes - start_minutes < 1:
+            if diff_minutes < 1:
                 raise ValidationError({
                     'ende': 'Endzeit muss mindestens 1 Minute nach Startzeit liegen.'
                 })
@@ -477,16 +498,9 @@ class TimeEntry(models.Model):
         with transaction.atomic():
             # Berechne Dauer automatisch aus Start- und Endzeit, falls beide vorhanden sind
             if self.start and self.ende:
-                # Konvertiere zu Minuten für Vergleich
-                start_minutes = self.start.hour * 60 + self.start.minute
-                end_minutes = self.ende.hour * 60 + self.ende.minute
-                
-                # Wenn Endzeit vor Startzeit (über Mitternacht), addiere 24 Stunden
-                if end_minutes <= start_minutes:
-                    end_minutes += 24 * 60
-                
-                # Berechne Dauer in Stunden
-                diff_minutes = end_minutes - start_minutes
+                # Verwende Helper-Methode für Dauer-Berechnung
+                diff_minutes = self._calculate_duration_minutes(self.start, self.ende)
+                # Konvertiere Minuten zu Stunden
                 self.dauer = Decimal(str(diff_minutes / 60)).quantize(Decimal('0.01'))
             
             # WICHTIG: Für korrekte Fakturierung muss IMMER der aktuelle Stundensatz aus ServiceType verwendet werden

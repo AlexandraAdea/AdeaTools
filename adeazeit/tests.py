@@ -1,5 +1,5 @@
 from decimal import Decimal
-from datetime import date, timedelta
+from datetime import date, timedelta, time
 from django.test import TestCase
 from django.core.exceptions import ValidationError
 
@@ -688,3 +688,52 @@ class HolidayModelTest(TestCase):
         
         self.assertEqual(ch_holiday.canton, "")
         self.assertEqual(zh_holiday.canton, "ZH")
+
+
+class TimeDurationCalculationTest(TestCase):
+    """Tests für die Zeit-Dauer-Berechnung (Helper-Methode)."""
+    
+    def test_normal_duration(self):
+        """Test: Normale Dauer-Berechnung (09:00-17:00 => 480 Minuten)."""
+        start = time(9, 0)  # 09:00
+        ende = time(17, 0)  # 17:00
+        diff_minutes = TimeEntry._calculate_duration_minutes(start, ende)
+        self.assertEqual(diff_minutes, 480)  # 8 Stunden = 480 Minuten
+    
+    def test_midnight_crossing(self):
+        """Test: Dauer über Mitternacht (23:00-01:00 => 120 Minuten)."""
+        start = time(23, 0)  # 23:00
+        ende = time(1, 0)    # 01:00
+        diff_minutes = TimeEntry._calculate_duration_minutes(start, ende)
+        self.assertEqual(diff_minutes, 120)  # 2 Stunden = 120 Minuten
+    
+    def test_edge_case_same_time(self):
+        """Test: Gleiche Zeit (00:00-00:00 => 1440 Minuten über Mitternacht)."""
+        start = time(0, 0)   # 00:00
+        ende = time(0, 0)    # 00:00
+        diff_minutes = TimeEntry._calculate_duration_minutes(start, ende)
+        # Bei gleicher Zeit wird über Mitternacht gerechnet: 24 Stunden = 1440 Minuten
+        self.assertEqual(diff_minutes, 1440)
+    
+    def test_one_minute_difference(self):
+        """Test: Ein-Minuten-Unterschied (09:00-09:01 => 1 Minute)."""
+        start = time(9, 0)   # 09:00
+        ende = time(9, 1)   # 09:01
+        diff_minutes = TimeEntry._calculate_duration_minutes(start, ende)
+        self.assertEqual(diff_minutes, 1)
+    
+    def test_partial_hours(self):
+        """Test: Teilstunden (09:30-17:45 => 495 Minuten)."""
+        start = time(9, 30)  # 09:30
+        ende = time(17, 45)  # 17:45
+        diff_minutes = TimeEntry._calculate_duration_minutes(start, ende)
+        # 8 Stunden 15 Minuten = 495 Minuten
+        self.assertEqual(diff_minutes, 495)
+    
+    def test_midnight_crossing_with_minutes(self):
+        """Test: Mitternacht-Übergang mit Minuten (23:30-01:15 => 105 Minuten)."""
+        start = time(23, 30)  # 23:30
+        ende = time(1, 15)    # 01:15
+        diff_minutes = TimeEntry._calculate_duration_minutes(start, ende)
+        # 1 Stunde 45 Minuten = 105 Minuten
+        self.assertEqual(diff_minutes, 105)
