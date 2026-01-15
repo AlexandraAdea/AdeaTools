@@ -6,6 +6,14 @@ from .base import *
 import os
 from django.core.exceptions import ImproperlyConfigured
 
+# SECRET_KEY ist in Production Pflicht (Render). Wir akzeptieren KEINEN Dev-Fallback.
+_env_secret = os.environ.get("DJANGO_SECRET_KEY")
+if not _env_secret:
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY muss in Production gesetzt sein! Bitte setze die Environment Variable auf Render."
+    )
+SECRET_KEY = _env_secret
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 

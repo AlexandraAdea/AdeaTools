@@ -9,8 +9,14 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# SECRET_KEY wird in __init__.py gesetzt (mit Fallback nur für lokale Entwicklung)
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', None)
+# Dev-Fallback: In lokaler Entwicklung brauchen Tests/Message-Cookies einen SECRET_KEY.
+# Production erzwingt DJANGO_SECRET_KEY zusätzlich in settings/production.py.
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY') or None
+if not SECRET_KEY:
+    import hashlib
+    SECRET_KEY = 'django-insecure-dev-key-change-in-production-' + hashlib.md5(
+        __file__.encode()
+    ).hexdigest()[:20]
 
 # Application definition
 INSTALLED_APPS = [
