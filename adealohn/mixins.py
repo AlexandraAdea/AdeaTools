@@ -1,8 +1,50 @@
 """
-Mixin für Multi-Mandanten-Funktionalität in AdeaLohn.
-Nutzt Client als Mandant und setzt request.current_client.
+Mixins für AdeaLohn Views.
+
+- Multi-Tenant: setze/validiere `request.current_client`
+- Guards: verhindere Änderungen an gesperrten PayrollRecords
 """
-from django.http import HttpResponseForbidden, Http404
+
+from __future__ import annotations
+
+from django.http import Http404, HttpResponseForbidden
+
+
+class LockedPayrollGuardMixin:
+    """
+    Guard gegen Änderungen an gesperrten PayrollRecords.
+
+    Erwartet, dass die View `get_object()` liefert und das Objekt `is_locked()` hat.
+    """
+
+    #: Textfragment nach "kann nicht ..." (z.B. "mehr bearbeitet werden", "gelöscht werden")
+    locked_reason: str = "mehr bearbeitet werden"
+
+    def get_locked_forbidden_message(self, obj) -> str:
+        return (
+            f"Dieser Lohnlauf ist gesperrt (Status: {obj.get_status_display()}) "
+            f"und kann nicht {self.locked_reason}."
+        )
+
+    def dispatch(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if self.object.is_locked():
+            return HttpResponseForbidden(self.get_locked_forbidden_message(self.object))
+        return super().dispatch(request, *args, **kwargs)
+
+
+class LockedPayrollFormGuardMixin(LockedPayrollGuardMixin):
+    """
+    Variante für (Update)Forms: zeigt Fehlermeldung im Formular statt nur 403.
+    """
+
+    def form_valid(self, form):
+        obj = getattr(self, "object", None) or self.get_object()
+        if obj and obj.is_locked():
+            form.add_error(None, self.get_locked_forbidden_message(obj))
+            return self.form_invalid(form)
+        return super().form_valid(form)
+
 from adeacore.models import Client
 
 

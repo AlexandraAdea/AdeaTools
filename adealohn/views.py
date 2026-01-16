@@ -26,7 +26,13 @@ from django import forms
 from adeacore.models import Employee, Client, TimeRecord, PayrollRecord
 from adealohn.models import WageType, WageTypeCategory, BVGParameter, PayrollItem, FamilyAllowanceParameter
 from .forms import EmployeeForm, PayrollRecordForm, FamilyAllowanceNachzahlungForm, PayrollItemSpesenForm, PayrollItemPrivatanteilForm
-from .mixins import TenantMixin, TenantFilterMixin, TenantObjectMixin
+from .mixins import (
+    TenantMixin,
+    TenantFilterMixin,
+    TenantObjectMixin,
+    LockedPayrollGuardMixin,
+    LockedPayrollFormGuardMixin,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -371,11 +377,12 @@ class PayrollRecordDetailView(LoginRequiredMixin, TenantObjectMixin, DetailView)
         return context
 
 
-class PayrollRecordUpdateView(LoginRequiredMixin, TenantObjectMixin, PayrollRecordMixin, UpdateView):
+class PayrollRecordUpdateView(LockedPayrollFormGuardMixin, LoginRequiredMixin, TenantObjectMixin, PayrollRecordMixin, UpdateView):
     model = PayrollRecord
     form_class = PayrollRecordForm
     template_name = "adealohn/payroll/form.html"
     login_url = '/admin/login/'
+    locked_reason = "mehr bearbeitet werden"
     
     def get_form(self, form_class=None):
         """Filtere Employee-Feld nach current_client."""
@@ -389,22 +396,7 @@ class PayrollRecordUpdateView(LoginRequiredMixin, TenantObjectMixin, PayrollReco
         
         return form
 
-    def dispatch(self, request, *args, **kwargs):
-        """Prüfe ob PayrollRecord gesperrt ist."""
-        self.object = self.get_object()
-        if self.object.is_locked():
-            return HttpResponseForbidden(
-                f"Dieser Lohnlauf ist gesperrt (Status: {self.object.get_status_display()}) "
-                "und kann nicht mehr bearbeitet werden."
-            )
-        return super().dispatch(request, *args, **kwargs)
-
     def form_valid(self, form):
-        # Prüfe ob gesperrt (zusätzlich zu dispatch für Sicherheit)
-        if self.object.is_locked():
-            form.add_error(None, f"Dieser Lohnlauf ist gesperrt (Status: {self.object.get_status_display()}) und kann nicht mehr bearbeitet werden.")
-            return self.form_invalid(form)
-        
         employee = form.cleaned_data["employee"]
         month = form.cleaned_data["month"]
         year = form.cleaned_data["year"]
@@ -450,40 +442,21 @@ class PayrollRecordUpdateView(LoginRequiredMixin, TenantObjectMixin, PayrollReco
         return reverse("adealohn:payroll-detail", args=[self.object.pk])
 
 
-class PayrollRecordDeleteView(LoginRequiredMixin, TenantObjectMixin, DeleteView):
+class PayrollRecordDeleteView(LockedPayrollGuardMixin, LoginRequiredMixin, TenantObjectMixin, DeleteView):
     model = PayrollRecord
     template_name = "adealohn/payroll/confirm_delete.html"
     context_object_name = "record"
     success_url = reverse_lazy("adealohn:payroll-list")
     login_url = '/admin/login/'
+    locked_reason = "gelöscht werden"
     
-    def dispatch(self, request, *args, **kwargs):
-        """Prüfe ob PayrollRecord gesperrt ist."""
-        self.object = self.get_object()
-        if self.object.is_locked():
-            return HttpResponseForbidden(
-                f"Dieser Lohnlauf ist gesperrt (Status: {self.object.get_status_display()}) "
-                "und kann nicht gelöscht werden."
-            )
-        return super().dispatch(request, *args, **kwargs)
-
-
-class FamilyAllowanceNachzahlungView(LoginRequiredMixin, TenantObjectMixin, PayrollRecordMixin, DetailView):
+class FamilyAllowanceNachzahlungView(LockedPayrollGuardMixin, LoginRequiredMixin, TenantObjectMixin, PayrollRecordMixin, DetailView):
     """View für die Erfassung von Familienzulagen-Nachzahlungen."""
     model = PayrollRecord
     template_name = "adealohn/payroll/family_allowance_nachzahlung.html"
     context_object_name = "payroll_record"
     login_url = '/admin/login/'
-    
-    def dispatch(self, request, *args, **kwargs):
-        """Prüfe ob PayrollRecord gesperrt ist."""
-        self.object = self.get_object()
-        if self.object.is_locked():
-            return HttpResponseForbidden(
-                f"Dieser Lohnlauf ist gesperrt (Status: {self.object.get_status_display()}) "
-                "und kann nicht mehr bearbeitet werden."
-            )
-        return super().dispatch(request, *args, **kwargs)
+    locked_reason = "mehr bearbeitet werden"
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -545,22 +518,13 @@ class FamilyAllowanceNachzahlungView(LoginRequiredMixin, TenantObjectMixin, Payr
         return self.render_to_response(context)
 
 
-class PayrollItemSpesenCreateView(LoginRequiredMixin, TenantObjectMixin, DetailView):
+class PayrollItemSpesenCreateView(LockedPayrollGuardMixin, LoginRequiredMixin, TenantObjectMixin, DetailView):
     """View für die Erfassung von Spesen als PayrollItem."""
     model = PayrollRecord
     template_name = "adealohn/payroll/spesen_create.html"
     context_object_name = "payroll_record"
     login_url = '/admin/login/'
-    
-    def dispatch(self, request, *args, **kwargs):
-        """Prüfe ob PayrollRecord gesperrt ist."""
-        self.object = self.get_object()
-        if self.object.is_locked():
-            return HttpResponseForbidden(
-                f"Dieser Lohnlauf ist gesperrt (Status: {self.object.get_status_display()}) "
-                "und kann nicht mehr bearbeitet werden."
-            )
-        return super().dispatch(request, *args, **kwargs)
+    locked_reason = "mehr bearbeitet werden"
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -600,22 +564,13 @@ class PayrollItemSpesenCreateView(LoginRequiredMixin, TenantObjectMixin, DetailV
         return self.render_to_response(context)
 
 
-class PayrollItemPrivatanteilCreateView(LoginRequiredMixin, TenantObjectMixin, DetailView):
+class PayrollItemPrivatanteilCreateView(LockedPayrollGuardMixin, LoginRequiredMixin, TenantObjectMixin, DetailView):
     """View für die Erfassung von Privatanteilen (Auto/Telefon) als PayrollItem."""
     model = PayrollRecord
     template_name = "adealohn/payroll/privatanteil_create.html"
     context_object_name = "payroll_record"
     login_url = '/admin/login/'
-    
-    def dispatch(self, request, *args, **kwargs):
-        """Prüfe ob PayrollRecord gesperrt ist."""
-        self.object = self.get_object()
-        if self.object.is_locked():
-            return HttpResponseForbidden(
-                f"Dieser Lohnlauf ist gesperrt (Status: {self.object.get_status_display()}) "
-                "und kann nicht mehr bearbeitet werden."
-            )
-        return super().dispatch(request, *args, **kwargs)
+    locked_reason = "mehr bearbeitet werden"
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
