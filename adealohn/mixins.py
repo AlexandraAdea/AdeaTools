@@ -45,7 +45,7 @@ class LockedPayrollFormGuardMixin(LockedPayrollGuardMixin):
             return self.form_invalid(form)
         return super().form_valid(form)
 
-from adeacore.models import Client
+from adeacore.tenancy import resolve_current_client
 
 
 class TenantMixin:
@@ -56,24 +56,7 @@ class TenantMixin:
     
     def dispatch(self, request, *args, **kwargs):
         """Setze current_client aus Session (nur FIRMA-Clients mit aktiviertem Lohnmodul)."""
-        active_client_id = request.session.get("active_client_id")
-        
-        if active_client_id:
-            try:
-                client = Client.objects.get(pk=active_client_id)
-                # Sicherheitsprüfung: Nur FIRMA-Clients mit aktiviertem Lohnmodul erlauben
-                if client.client_type != "FIRMA" or not client.lohn_aktiv:
-                    # Client ist keine Firma oder Lohnmodul nicht aktiviert, entferne aus Session
-                    request.session.pop("active_client_id", None)
-                    request.current_client = None
-                else:
-                    request.current_client = client
-            except Client.DoesNotExist:
-                # Client existiert nicht mehr, entferne aus Session
-                request.session.pop("active_client_id", None)
-                request.current_client = None
-        else:
-            request.current_client = None
+        resolve_current_client(request)
         
         return super().dispatch(request, *args, **kwargs)
     

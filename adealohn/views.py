@@ -50,7 +50,10 @@ class ClientSwitchView(LoginRequiredMixin, TemplateView):
             client_type="FIRMA",
             lohn_aktiv=True
         ).order_by("name")
-        context['current_client'] = self.request.session.get("active_client_id")
+        # Wichtig: im Template wird ein Client-Objekt erwartet (name/pk).
+        from adeacore.tenancy import resolve_current_client
+
+        context['current_client'] = resolve_current_client(self.request)
         return context
     
     def post(self, request, *args, **kwargs):

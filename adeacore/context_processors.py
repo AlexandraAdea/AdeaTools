@@ -1,7 +1,7 @@
 """
 Context Processors für AdeaTools.
 """
-from adeacore.models import Client
+from adeacore.tenancy import resolve_current_client
 
 
 def current_client(request):
@@ -10,21 +10,7 @@ def current_client(request):
     Nur für AdeaLohn-Views relevant.
     Prüft dass nur FIRMA-Clients verwendet werden.
     """
-    active_client_id = request.session.get("active_client_id")
-    
-    if active_client_id:
-        try:
-            client = Client.objects.get(pk=active_client_id)
-            # Sicherheitsprüfung: Nur FIRMA-Clients mit aktiviertem Lohnmodul erlauben
-            if client.client_type != "FIRMA" or not client.lohn_aktiv:
-                request.session.pop("active_client_id", None)
-                return {"current_client": None}
-            return {"current_client": client}
-        except Client.DoesNotExist:
-            request.session.pop("active_client_id", None)
-            return {"current_client": None}
-    
-    return {"current_client": None}
+    return {"current_client": resolve_current_client(request)}
 
 
 def adeazeit_permissions(request):
