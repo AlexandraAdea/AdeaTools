@@ -683,7 +683,9 @@ class LoadEmployeeInfoView(LoginRequiredMixin, TemplateView):
         month = request.GET.get("month")
         
         if not employee_id:
-            return JsonResponse({"success": False, "error": "Keine Mitarbeiter-ID angegeben"})
+            from adeacore.http import json_error
+
+            return json_error("Keine Mitarbeiter-ID angegeben")
         
         try:
             employee = EmployeeInternal.objects.get(pk=employee_id)
@@ -698,7 +700,9 @@ class LoadEmployeeInfoView(LoginRequiredMixin, TemplateView):
                     if not (1 <= month <= 12):
                         raise ValueError("Monat muss zwischen 1 und 12 sein")
                 except (ValueError, TypeError):
-                    return JsonResponse({"success": False, "error": "Ungültiges Jahr oder Monat"})
+                    from adeacore.http import json_error
+
+                    return json_error("Ungültiges Jahr oder Monat")
             
             # Use WorkingTimeCalculator for comprehensive info including absences
             info = {
@@ -713,17 +717,20 @@ class LoadEmployeeInfoView(LoginRequiredMixin, TemplateView):
                 "monthly_ist": str(WorkingTimeCalculator.monthly_ist_hours(employee, year, month)),
                 "productivity": str(WorkingTimeCalculator.monthly_productivity(employee, year, month)),
             }
-            return JsonResponse({
-                "success": True,
-                "employee": info
-            })
+            from adeacore.http import json_ok
+
+            return json_ok({"employee": info})
         except EmployeeInternal.DoesNotExist:
-            return JsonResponse({"success": False, "error": "Mitarbeiter nicht gefunden"})
+            from adeacore.http import json_error
+
+            return json_error("Mitarbeiter nicht gefunden")
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)
             logger.error(f"Fehler beim Laden der Mitarbeiter-Info: {e}", exc_info=True)
-            return JsonResponse({"success": False, "error": "Ein Fehler ist aufgetreten"})
+            from adeacore.http import json_error
+
+            return json_error("Ein Fehler ist aufgetreten")
 
 
 # AJAX View für Service-Typ Standard-Stundensatz
@@ -734,7 +741,6 @@ class LoadServiceTypeRateView(LoginRequiredMixin, TemplateView):
     def get(self, request, *args, **kwargs):
         import logging
         logger = logging.getLogger(__name__)
-        from django.http import JsonResponse
         from .models import ServiceType, EmployeeInternal
         
         try:
@@ -742,20 +748,26 @@ class LoadServiceTypeRateView(LoginRequiredMixin, TemplateView):
             employee_id = request.GET.get("employee_id")  # Optional: Mitarbeiter-ID für Koeffizient
             
             if not service_type_id:
-                return JsonResponse({"success": False, "error": "Keine Service-Typ-ID angegeben"}, status=400)
+                from adeacore.http import json_error
+
+                return json_error("Keine Service-Typ-ID angegeben", status=400)
             
             # Validierung: service_type_id muss eine Zahl sein
             try:
                 service_type_id = int(service_type_id)
             except (ValueError, TypeError):
                 logger.warning(f"Ungültige service_type_id: {request.GET.get('service_type_id')}")
-                return JsonResponse({"success": False, "error": "Ungültige Service-Typ-ID"}, status=400)
+                from adeacore.http import json_error
+
+                return json_error("Ungültige Service-Typ-ID", status=400)
             
             try:
                 service_type = ServiceType.objects.get(pk=service_type_id)
             except ServiceType.DoesNotExist:
                 logger.warning(f"Service-Typ {service_type_id} nicht gefunden")
-                return JsonResponse({"success": False, "error": "Service-Typ nicht gefunden"}, status=404)
+                from adeacore.http import json_error
+
+                return json_error("Service-Typ nicht gefunden", status=404)
             
             base_rate = service_type.standard_rate or Decimal('0.00')
             final_rate = base_rate
@@ -772,16 +784,21 @@ class LoadServiceTypeRateView(LoginRequiredMixin, TemplateView):
                     # Wenn Mitarbeiter nicht gefunden, verwende Standard-Rate
                     pass
             
-            return JsonResponse({
-                "success": True,
-                "standard_rate": str(service_type.standard_rate),
-                "final_rate": str(final_rate),  # Rate mit Koeffizient angewendet
-                "billable": service_type.billable
-            })
+            from adeacore.http import json_ok
+
+            return json_ok(
+                {
+                    "standard_rate": str(service_type.standard_rate),
+                    "final_rate": str(final_rate),  # Rate mit Koeffizient angewendet
+                    "billable": service_type.billable,
+                }
+            )
             
         except Exception as e:
             logger.error(f"Fehler beim Laden des Service-Typ-Stundensatzes: {e}", exc_info=True)
-            return JsonResponse({"success": False, "error": "Ein Fehler ist aufgetreten"}, status=500)
+            from adeacore.http import json_error
+
+            return json_error("Ein Fehler ist aufgetreten", status=500)
 
 
 # ============================================================================
@@ -1115,9 +1132,13 @@ def mark_task_completed(request, task_id):
                 from .models import UserProfile
                 user_profile = UserProfile.objects.get(user=request.user)
                 if user_profile.employee and task.mitarbeiter != user_profile.employee:
-                    return JsonResponse({"success": False, "error": "Keine Berechtigung"})
+                    from adeacore.http import json_error
+
+                    return json_error("Keine Berechtigung")
             except UserProfile.DoesNotExist:
-                return JsonResponse({"success": False, "error": "Keine Berechtigung"})
+                from adeacore.http import json_error
+
+                return json_error("Keine Berechtigung")
         
         # Markiere als erledigt
         task.status = 'ERLEDIGT'
@@ -1131,7 +1152,9 @@ def mark_task_completed(request, task_id):
             "task_id": task.id
         })
     except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)})
+        from adeacore.http import json_error
+
+        return json_error(str(e))
 
 @login_required
 @require_http_methods(["POST"])
@@ -1145,7 +1168,9 @@ def start_timer(request):
         beschreibung = data.get('beschreibung', '')
         
         if not mitarbeiter_id or not service_type_id:
-            return JsonResponse({"success": False, "error": "Mitarbeiter und Service-Typ sind erforderlich"})
+            from adeacore.http import json_error
+
+            return json_error("Mitarbeiter und Service-Typ sind erforderlich")
         
         # Prüfe ob User Zugriff auf diesen Mitarbeiter hat
         from .permissions import get_accessible_employees
@@ -1157,7 +1182,9 @@ def start_timer(request):
         # Prüfe ob bereits ein Timer läuft
         existing_timer = RunningTimeEntry.objects.filter(mitarbeiter=mitarbeiter).first()
         if existing_timer:
-            return JsonResponse({"success": False, "error": "Es läuft bereits ein Timer für diesen Mitarbeiter"})
+            from adeacore.http import json_error
+
+            return json_error("Es läuft bereits ein Timer für diesen Mitarbeiter")
         
         # Erstelle neuen Timer
         timer = RunningTimeEntry.objects.create(
@@ -1176,7 +1203,9 @@ def start_timer(request):
         import logging
         logger = logging.getLogger(__name__)
         logger.error(f"Fehler beim Starten des Timers: {e}", exc_info=True)
-        return JsonResponse({"success": False, "error": str(e)})
+        from adeacore.http import json_error
+
+        return json_error(str(e))
 
 
 @login_required
@@ -1191,7 +1220,9 @@ def stop_timer(request):
         timer = RunningTimeEntry.objects.filter(mitarbeiter__in=accessible_employees).first()
         
         if not timer:
-            return JsonResponse({"success": False, "error": "Kein laufender Timer gefunden"})
+            from adeacore.http import json_error
+
+            return json_error("Kein laufender Timer gefunden")
         
         # Berechne Dauer
         duration_hours = timer.get_duration_hours()
@@ -1273,7 +1304,9 @@ def stop_timer(request):
         import logging
         logger = logging.getLogger(__name__)
         logger.error(f"Fehler beim Stoppen des Timers: {e}", exc_info=True)
-        return JsonResponse({"success": False, "error": str(e)})
+        from adeacore.http import json_error
+
+        return json_error(str(e))
 
 
 # ============================================================================
@@ -1431,13 +1464,17 @@ def mark_as_invoiced(request):
         # Prüfe Manager/Admin-Berechtigung
         from .permissions import is_manager_or_admin
         if not is_manager_or_admin(request.user):
-            return JsonResponse({"success": False, "error": "Diese Aktion erfordert Manager- oder Admin-Rechte."})
+            from adeacore.http import json_error
+
+            return json_error("Diese Aktion erfordert Manager- oder Admin-Rechte.")
         
         data = json.loads(request.body)
         entry_ids = data.get('entry_ids', [])
         
         if not entry_ids:
-            return JsonResponse({"success": False, "error": "Keine Zeiteinträge ausgewählt"})
+            from adeacore.http import json_error
+
+            return json_error("Keine Zeiteinträge ausgewählt")
         
         # Prüfe Berechtigung
         from .permissions import get_accessible_time_entries
@@ -1447,7 +1484,9 @@ def mark_as_invoiced(request):
         entries = accessible_entries.filter(pk__in=entry_ids)
         
         if entries.count() != len(entry_ids):
-            return JsonResponse({"success": False, "error": "Sie haben keine Berechtigung für alle ausgewählten Einträge"})
+            from adeacore.http import json_error
+
+            return json_error("Sie haben keine Berechtigung für alle ausgewählten Einträge")
         
         # Markiere als verrechnet
         updated = entries.update(verrechnet=True)
@@ -1461,7 +1500,9 @@ def mark_as_invoiced(request):
         import logging
         logger = logging.getLogger(__name__)
         logger.error(f"Fehler beim Markieren als verrechnet: {e}", exc_info=True)
-        return JsonResponse({"success": False, "error": str(e)})
+        from adeacore.http import json_error
+
+        return json_error(str(e))
 
 
 # ============================================================================

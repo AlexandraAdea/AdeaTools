@@ -209,14 +209,18 @@ class CreateInvoiceView(ManagerOrAdminRequiredMixin, View):
             
             if not time_entry_ids:
                 if request.content_type == 'application/json':
-                    return JsonResponse({'success': False, 'error': 'Keine Zeiteinträge ausgewählt.'})
+                    from adeacore.http import json_error
+
+                    return json_error('Keine Zeiteinträge ausgewählt.')
                 else:
                     messages.error(request, 'Keine Zeiteinträge ausgewählt.')
                     return redirect('adearechnung:client-summary')
             
             if not client_id:
                 if request.content_type == 'application/json':
-                    return JsonResponse({'success': False, 'error': 'Kein Kunde angegeben.'})
+                    from adeacore.http import json_error
+
+                    return json_error('Kein Kunde angegeben.')
                 else:
                     messages.error(request, 'Kein Kunde angegeben.')
                     return redirect('adearechnung:client-summary')
@@ -231,26 +235,33 @@ class CreateInvoiceView(ManagerOrAdminRequiredMixin, View):
             )
             
             if request.content_type == 'application/json':
-                return JsonResponse({
-                    'success': True,
-                    'message': f'Rechnung {invoice.invoice_number} erfolgreich erstellt.',
-                    'invoice_id': invoice.id,
-                    'invoice_number': invoice.invoice_number,
-                    'invoice_url': reverse('adearechnung:invoice-detail', args=[invoice.id])
-                })
+                from adeacore.http import json_ok
+
+                return json_ok(
+                    {
+                        'message': f'Rechnung {invoice.invoice_number} erfolgreich erstellt.',
+                        'invoice_id': invoice.id,
+                        'invoice_number': invoice.invoice_number,
+                        'invoice_url': reverse('adearechnung:invoice-detail', args=[invoice.id]),
+                    }
+                )
             else:
                 messages.success(request, f'Rechnung {invoice.invoice_number} erfolgreich erstellt.')
                 return redirect('adearechnung:invoice-detail', pk=invoice.id)
             
         except ValueError as e:
             if request.content_type == 'application/json':
-                return JsonResponse({'success': False, 'error': str(e)})
+                from adeacore.http import json_error
+
+                return json_error(str(e))
             else:
                 messages.error(request, f'Fehler: {str(e)}')
                 return redirect('adearechnung:client-summary')
         except Exception as e:
             if request.content_type == 'application/json':
-                return JsonResponse({'success': False, 'error': f'Fehler: {str(e)}'})
+                from adeacore.http import json_error
+
+                return json_error(f'Fehler: {str(e)}')
             else:
                 messages.error(request, f'Ein unerwarteter Fehler ist aufgetreten: {str(e)}')
                 return redirect('adearechnung:client-summary')
