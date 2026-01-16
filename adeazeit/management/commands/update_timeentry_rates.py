@@ -11,6 +11,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from decimal import Decimal
 from adeazeit.models import TimeEntry
+from adeazeit.timeentry_calc import calculate_timeentry_rate, calculate_timeentry_amount
 
 
 class Command(BaseCommand):
@@ -48,13 +49,7 @@ class Command(BaseCommand):
                     continue
                 
                 current_rate = entry.rate or Decimal('0.00')
-                base_rate = entry.service_type.standard_rate or Decimal('0.00')
-                
-                # Berechne korrekte Rate mit Koeffizient
-                if entry.mitarbeiter.stundensatz and entry.mitarbeiter.stundensatz > 0:
-                    correct_rate = (base_rate * entry.mitarbeiter.stundensatz).quantize(Decimal('0.01'))
-                else:
-                    correct_rate = base_rate
+                correct_rate = calculate_timeentry_rate(service_type=entry.service_type, employee=entry.mitarbeiter)
                 
                 # Prüfe ob Update nötig ist
                 needs_update = False
@@ -71,10 +66,7 @@ class Command(BaseCommand):
                     
                     # Aktualisiere Rate und Betrag (mit Koeffizient)
                     entry.rate = correct_rate
-                    if entry.dauer:
-                        entry.betrag = (correct_rate * entry.dauer).quantize(Decimal('0.01'))
-                    else:
-                        entry.betrag = Decimal('0.00')
+                    entry.betrag = calculate_timeentry_amount(rate=correct_rate, dauer=entry.dauer)
                     
                     if not dry_run:
                         try:

@@ -453,11 +453,12 @@ class TimeEntryCreateView(LoginRequiredMixin, CreateView):
         # WICHTIG: Stelle sicher, dass Rate aus ServiceType übernommen wird (für korrekte Fakturierung)
         # Wende Koeffizient des Mitarbeiters an (z.B. 0.5 = 50% des Standard-Stundensatzes)
         if form.instance.service_type and (not form.instance.rate or form.instance.rate == 0):
-            base_rate = form.instance.service_type.standard_rate or Decimal('0.00')
-            if form.instance.mitarbeiter and form.instance.mitarbeiter.stundensatz and form.instance.mitarbeiter.stundensatz > 0:
-                form.instance.rate = (base_rate * form.instance.mitarbeiter.stundensatz).quantize(Decimal('0.01'))
-            else:
-                form.instance.rate = base_rate
+            from .timeentry_calc import calculate_timeentry_rate
+
+            form.instance.rate = calculate_timeentry_rate(
+                service_type=form.instance.service_type,
+                employee=form.instance.mitarbeiter,
+            )
         
         return super().form_valid(form)
 
@@ -573,12 +574,13 @@ class TimeEntryUpdateView(LoginRequiredMixin, UpdateView):
         # Wende Koeffizient des Mitarbeiters IMMER an (z.B. 0.5 = 50% des Standard-Stundensatzes)
         # Auch bei bestehenden Einträgen muss die Rate neu berechnet werden, damit Koeffizient-Änderungen wirksam werden
         if form.instance.service_type:
-            base_rate = form.instance.service_type.standard_rate or Decimal('0.00')
+            from .timeentry_calc import calculate_timeentry_rate
+
             # IMMER Rate neu berechnen mit Koeffizient (auch wenn bereits gesetzt)
-            if form.instance.mitarbeiter and form.instance.mitarbeiter.stundensatz and form.instance.mitarbeiter.stundensatz > 0:
-                form.instance.rate = (base_rate * form.instance.mitarbeiter.stundensatz).quantize(Decimal('0.01'))
-            else:
-                form.instance.rate = base_rate
+            form.instance.rate = calculate_timeentry_rate(
+                service_type=form.instance.service_type,
+                employee=form.instance.mitarbeiter,
+            )
         
         return super().form_valid(form)
     
@@ -763,8 +765,9 @@ class LoadServiceTypeRateView(LoginRequiredMixin, TemplateView):
                 try:
                     employee_id = int(employee_id)
                     employee = EmployeeInternal.objects.get(pk=employee_id)
-                    if employee.stundensatz and employee.stundensatz > 0:
-                        final_rate = (base_rate * employee.stundensatz).quantize(Decimal('0.01'))
+                    from .timeentry_calc import calculate_timeentry_rate
+
+                    final_rate = calculate_timeentry_rate(service_type=service_type, employee=employee)
                 except (ValueError, TypeError, EmployeeInternal.DoesNotExist):
                     # Wenn Mitarbeiter nicht gefunden, verwende Standard-Rate
                     pass
@@ -1195,12 +1198,10 @@ def stop_timer(request):
         
         # Erstelle Zeiteintrag
         # WICHTIG: Koeffizient des Mitarbeiters anwenden (z.B. 0.5 = 50% des Standard-Stundensatzes)
-        base_rate = timer.service_type.standard_rate if timer.service_type.standard_rate else Decimal('0.00')
-        if timer.mitarbeiter and timer.mitarbeiter.stundensatz and timer.mitarbeiter.stundensatz > 0:
-            rate = (base_rate * timer.mitarbeiter.stundensatz).quantize(Decimal('0.01'))
-        else:
-            rate = base_rate
-        betrag = duration_hours * rate
+        from .timeentry_calc import calculate_timeentry_rate, calculate_timeentry_amount
+
+        rate = calculate_timeentry_rate(service_type=timer.service_type, employee=timer.mitarbeiter)
+        betrag = calculate_timeentry_amount(rate=rate, dauer=duration_hours)
         
         # Berechne Start- und Endzeit
         start_time_local = timezone.localtime(timer.start_time)

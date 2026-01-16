@@ -494,6 +494,7 @@ class TimeEntry(models.Model):
         """Automatische Berechnung von Rate und Betrag."""
         from django.db import transaction
         from datetime import datetime, timedelta
+        from .timeentry_calc import calculate_timeentry_rate, calculate_timeentry_amount
         
         with transaction.atomic():
             # Berechne Dauer automatisch aus Start- und Endzeit, falls beide vorhanden sind
@@ -506,13 +507,9 @@ class TimeEntry(models.Model):
             # WICHTIG: Für korrekte Fakturierung muss IMMER der aktuelle Stundensatz aus ServiceType verwendet werden
             # UND der Koeffizient des Mitarbeiters angewendet werden
             if self.service_type:
-                base_rate = self.service_type.standard_rate or Decimal('0.00')
-                # WICHTIG: Koeffizient des Mitarbeiters IMMER anwenden (z.B. 0.5 = 50% des Standard-Stundensatzes)
+                # Koeffizient des Mitarbeiters IMMER anwenden (z.B. 0.5 = 50% des Standard-Stundensatzes)
                 # Auch wenn rate bereits gesetzt ist, muss sie neu berechnet werden, damit Koeffizient-Änderungen wirksam werden
-                if self.mitarbeiter and self.mitarbeiter.stundensatz and self.mitarbeiter.stundensatz > 0:
-                    self.rate = (base_rate * self.mitarbeiter.stundensatz).quantize(Decimal('0.01'))
-                else:
-                    self.rate = base_rate
+                self.rate = calculate_timeentry_rate(service_type=self.service_type, employee=self.mitarbeiter)
             
             # billable aus ServiceType übernehmen, falls nicht explizit gesetzt
             if not hasattr(self, '_billable_set'):
@@ -521,10 +518,7 @@ class TimeEntry(models.Model):
             
             # Betrag IMMER neu berechnen (für korrekte Fakturierung)
             # Verwendet den aktuellen rate und dauer
-            if self.rate and self.dauer:
-                self.betrag = (self.rate * self.dauer).quantize(Decimal('0.01'))
-            else:
-                self.betrag = Decimal('0.00')
+            self.betrag = calculate_timeentry_amount(rate=self.rate, dauer=self.dauer)
             
             # Validierung
             self.full_clean()
