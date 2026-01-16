@@ -70,7 +70,12 @@ class ClientDetailView(LoginRequiredMixin, DetailView):
         
         # NEU: Lade Tasks aus AdeaZeit für diesen Client
         from adeazeit.models import Task
-        context['tasks'] = Task.objects.filter(client=client, archiviert=False).order_by('-erstellt_am')[:10]
+        # Template nutzt `task.mitarbeiter.name` -> select_related vermeidet N+1
+        context['tasks'] = (
+            Task.objects.filter(client=client, archiviert=False)
+            .select_related("mitarbeiter")
+            .order_by('-erstellt_am')[:10]
+        )
         
         # NEU: Lade Notizen für diesen Client
         note_filter = self.request.GET.get('note_filter', 'all')
@@ -85,7 +90,11 @@ class ClientDetailView(LoginRequiredMixin, DetailView):
         else:
             notes_queryset = notes_queryset.filter(archiviert=False)
         
-        context['notes'] = notes_queryset.order_by('-note_date', '-created_at')[:10]
+        # Template nutzt `note.created_by` und `note.task` -> select_related vermeidet N+1
+        context['notes'] = (
+            notes_queryset.select_related("created_by", "task")
+            .order_by('-note_date', '-created_at')[:10]
+        )
         context['note_filter'] = note_filter
         
         return context
