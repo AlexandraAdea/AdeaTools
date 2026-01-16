@@ -275,7 +275,8 @@ class InvoiceListView(ManagerOrAdminRequiredMixin, ListView):
     paginate_by = 50
     
     def get_queryset(self):
-        queryset = Invoice.objects.select_related('client', 'created_by').prefetch_related('items')
+        # List-Template nutzt nur invoice.* + invoice.client.*. `items` wird hier nicht benötigt.
+        queryset = Invoice.objects.select_related('client', 'created_by')
         
         # Filter nach Client
         client_id = self.request.GET.get('client_id')

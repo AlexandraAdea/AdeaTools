@@ -202,7 +202,16 @@ class PayrollRecordListView(LoginRequiredMixin, TenantFilterMixin, ListView):
         context["selected_year"] = self.request.GET.get("year", "")
         context["query"] = self.request.GET.get("q", "")
         context["months"] = [(i, month_name[i]) for i in range(1, 13)]
-        years = PayrollRecord.objects.values_list("year", flat=True).distinct().order_by("-year")
+        # Performance + Konsistenz: Years nur für den aktuellen Mandanten (wie die Liste selbst).
+        if current_client and current_client.client_type == "FIRMA" and current_client.lohn_aktiv:
+            years = (
+                PayrollRecord.objects.filter(employee__client=current_client)
+                .values_list("year", flat=True)
+                .distinct()
+                .order_by("-year")
+            )
+        else:
+            years = PayrollRecord.objects.none().values_list("year", flat=True)
         context["years"] = list(years)
         return context
 
