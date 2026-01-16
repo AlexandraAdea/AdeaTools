@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import logout as auth_logout
 from django.core.exceptions import PermissionDenied
-from django.db.models import Count, Sum
+from django.db.models import Count, Sum, Q
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -26,41 +26,61 @@ def admin_dashboard(request):
     this_month_start = date(today.year, today.month, 1)
     
     # Statistiken
+    client_stats = Client.objects.aggregate(
+        total=Count("id"),
+        firma=Count("id", filter=Q(client_type="FIRMA")),
+        privat=Count("id", filter=Q(client_type="PRIVAT")),
+        lohn_aktiv=Count("id", filter=Q(lohn_aktiv=True)),
+    )
+    employee_internal_stats = EmployeeInternal.objects.aggregate(
+        total=Count("id"),
+        active=Count("id", filter=Q(aktiv=True)),
+    )
+    employee_payroll_stats = Employee.objects.aggregate(
+        total=Count("id"),
+        active=Count("id", filter=Q(client__lohn_aktiv=True)),
+    )
+    time_entry_stats = TimeEntry.objects.aggregate(
+        today=Count("id", filter=Q(datum=today)),
+        this_month=Count("id", filter=Q(datum__gte=this_month_start)),
+        total_hours_today=Sum("dauer", filter=Q(datum=today)),
+    )
+    payroll_stats = PayrollRecord.objects.aggregate(
+        this_month=Count("id", filter=Q(month=today.month, year=today.year)),
+        pending=Count("id", filter=Q(status="ENTWURF")),
+        completed=Count("id", filter=Q(status="ABGERECHNET")),
+    )
+    absence_stats = Absence.objects.aggregate(
+        active=Count("id", filter=Q(date_from__lte=today, date_to__gte=today)),
+    )
+
     stats = {
         'clients': {
-            'total': Client.objects.count(),
-            'firma': Client.objects.filter(client_type='FIRMA').count(),
-            'privat': Client.objects.filter(client_type='PRIVAT').count(),
-            'lohn_aktiv': Client.objects.filter(lohn_aktiv=True).count(),
+            'total': client_stats["total"],
+            'firma': client_stats["firma"],
+            'privat': client_stats["privat"],
+            'lohn_aktiv': client_stats["lohn_aktiv"],
         },
         'employees_internal': {
-            'total': EmployeeInternal.objects.count(),
-            'active': EmployeeInternal.objects.filter(aktiv=True).count(),
+            'total': employee_internal_stats["total"],
+            'active': employee_internal_stats["active"],
         },
         'employees_payroll': {
-            'total': Employee.objects.count(),
-            'active': Employee.objects.filter(client__lohn_aktiv=True).count(),
+            'total': employee_payroll_stats["total"],
+            'active': employee_payroll_stats["active"],
         },
         'time_entries': {
-            'today': TimeEntry.objects.filter(datum=today).count(),
-            'this_month': TimeEntry.objects.filter(datum__gte=this_month_start).count(),
-            'total_hours_today': TimeEntry.objects.filter(datum=today).aggregate(
-                total=Sum('dauer')
-            )['total'] or Decimal('0.00'),
+            'today': time_entry_stats["today"],
+            'this_month': time_entry_stats["this_month"],
+            'total_hours_today': time_entry_stats["total_hours_today"] or Decimal('0.00'),
         },
         'absences': {
-            'active': Absence.objects.filter(
-                date_from__lte=today,
-                date_to__gte=today
-            ).count(),
+            'active': absence_stats["active"],
         },
         'payroll': {
-            'this_month': PayrollRecord.objects.filter(
-                month=today.month,
-                year=today.year
-            ).count(),
-            'pending': PayrollRecord.objects.filter(status='ENTWURF').count(),
-            'completed': PayrollRecord.objects.filter(status='ABGERECHNET').count(),
+            'this_month': payroll_stats["this_month"],
+            'pending': payroll_stats["pending"],
+            'completed': payroll_stats["completed"],
         },
     }
     
