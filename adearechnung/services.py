@@ -67,14 +67,15 @@ class InvoiceService:
         if invoice_date is None:
             invoice_date = date.today()
         
-        # Lade Zeiteinträge
-        time_entries = TimeEntry.objects.filter(
+        # Lade Zeiteinträge (einmalig) – vermeidet extra `.exists()` Query
+        time_entries_qs = TimeEntry.objects.filter(
             id__in=time_entry_ids,
             client=client,
             verrechnet=False
         ).select_related('service_type', 'mitarbeiter')
-        
-        if not time_entries.exists():
+
+        time_entries = list(time_entries_qs)
+        if not time_entries:
             raise ValueError("Keine verrechenbaren Zeiteinträge gefunden.")
         
         # Prüfe ob Client MWST-pflichtig ist

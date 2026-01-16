@@ -87,14 +87,32 @@ class ClientTimeSummaryView(ManagerOrAdminRequiredMixin, TemplateView):
         if client_search:
             entries_query = entries_query.filter(client__name__icontains=client_search)
         
-        entries = entries_query.select_related("client", "mitarbeiter", "service_type").order_by("client__name", "datum")
+        # Performance: nur Felder laden, die im Template/Grouping verwendet werden
+        entries = (
+            entries_query.select_related("client", "mitarbeiter", "service_type")
+            .only(
+                "id",
+                "datum",
+                "kommentar",
+                "dauer",
+                "betrag",
+                "verrechnet",
+                "client_id",
+                "client__name",
+                "mitarbeiter_id",
+                "mitarbeiter__name",
+                "service_type_id",
+                "service_type__code",
+                "service_type__name",
+            )
+            .order_by("client__name", "datum")
+        )
         
         # Gruppiere nach Kunde und dann nach Service-Typ
         from collections import defaultdict
         
         client_summary = defaultdict(lambda: {
             'client': None,
-            'entries': [],
             'service_groups': defaultdict(lambda: {
                 'service_type': None,
                 'entries': [],
@@ -110,10 +128,6 @@ class ClientTimeSummaryView(ManagerOrAdminRequiredMixin, TemplateView):
         })
         
         for entry in entries:
-            # Stelle sicher, dass client nicht None ist
-            if not entry.client:
-                continue
-                
             client_id = entry.client.id
             if client_id not in client_summary:
                 client_summary[client_id]['client'] = entry.client
@@ -128,7 +142,6 @@ class ClientTimeSummaryView(ManagerOrAdminRequiredMixin, TemplateView):
                 client_summary[client_id]['service_groups'][service_type_id]['total_dauer'] += entry.dauer
                 client_summary[client_id]['service_groups'][service_type_id]['total_betrag'] += entry.betrag
             
-            client_summary[client_id]['entries'].append(entry)
             client_summary[client_id]['total_dauer'] += entry.dauer
             client_summary[client_id]['total_betrag'] += entry.betrag
             

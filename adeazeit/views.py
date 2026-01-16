@@ -130,11 +130,17 @@ class EmployeeMonthlyStatsView(ManagerOrAdminRequiredMixin, TemplateView):
         ).order_by("name")
         
         # Berechne Statistiken für jeden Mitarbeiter
+        from .employee_info import calculate_employee_monthly_stats_bulk
+
+        bulk_stats = calculate_employee_monthly_stats_bulk(employees=employees, year=year, month=month)
         employee_stats = []
         for employee in employees:
-            from .employee_info import calculate_employee_monthly_stats
+            stats = bulk_stats.get(employee.id)
+            if stats is None:
+                # Fallback (sollte praktisch nie passieren, schützt gegen inkonsistente Iterables)
+                from .employee_info import calculate_employee_monthly_stats
 
-            stats = calculate_employee_monthly_stats(employee=employee, year=year, month=month)
+                stats = calculate_employee_monthly_stats(employee=employee, year=year, month=month)
             employee_stats.append(
                 {
                     "employee": employee,
@@ -899,7 +905,8 @@ class TaskListView(LoginRequiredMixin, ListView):
     paginate_by = 20
     
     def get_queryset(self):
-        queryset = super().get_queryset()
+        # Performance: Templates nutzen task.mitarbeiter.name und task.client.name -> N+1 vermeiden
+        queryset = super().get_queryset().select_related("mitarbeiter", "client")
         # Admin/Manager sehen alle Tasks
         if can_view_all_entries(self.request.user) or self.request.user.is_staff:
             # Alle Tasks anzeigen - keine Filterung
@@ -1061,7 +1068,8 @@ class TaskArchiveListView(LoginRequiredMixin, ListView):
     paginate_by = 20
     
     def get_queryset(self):
-        queryset = super().get_queryset().filter(archiviert=True)
+        # Performance: Templates nutzen task.mitarbeiter.name und task.client.name -> N+1 vermeiden
+        queryset = super().get_queryset().select_related("mitarbeiter", "client").filter(archiviert=True)
         # Admin/Manager sehen alle Tasks
         if can_view_all_entries(self.request.user) or self.request.user.is_staff:
             pass

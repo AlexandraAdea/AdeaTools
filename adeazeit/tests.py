@@ -633,6 +633,100 @@ class WorkingTimeCalculatorTest(TestCase):
         self.assertEqual(productivity, expected_productivity.quantize(Decimal('0.01')))
 
 
+class EmployeeMonthlyStatsBulkTest(TestCase):
+    """Bulk-Stats müssen identisch zu Single-Stats sein (DRY + Performance)."""
+
+    def setUp(self):
+        self.employee1 = EmployeeInternal.objects.create(
+            code="EMP_BULK_1",
+            name="Bulk One",
+            function_title="Consultant",
+            employment_percent=Decimal("100.00"),
+            weekly_soll_hours=Decimal("42.00"),
+            weekly_working_days=Decimal("5.0"),
+            work_canton="ZH",
+            eintrittsdatum=date(2020, 1, 1),
+            aktiv=True,
+        )
+        self.employee2 = EmployeeInternal.objects.create(
+            code="EMP_BULK_2",
+            name="Bulk Two",
+            function_title="Consultant",
+            employment_percent=Decimal("80.00"),
+            weekly_soll_hours=Decimal("40.00"),
+            weekly_working_days=Decimal("5.0"),
+            work_canton="AG",
+            eintrittsdatum=date(2020, 1, 1),
+            aktiv=True,
+        )
+
+        self.client = Client.objects.create(name="Bulk Client", client_type="FIRMA")
+        self.service_type = ServiceType.objects.create(
+            code="BUCH",
+            name="Buchhaltung",
+            standard_rate=Decimal("150.00"),
+            billable=True,
+        )
+
+        # Feiertag CH-weit im Januar 2025
+        Holiday.objects.create(name="Neujahr", date=date(2025, 1, 1), canton="", is_official=True)
+
+        # TimeEntries (nur Dauer relevant für monthly_ist_hours)
+        TimeEntry.objects.create(
+            mitarbeiter=self.employee1,
+            client=self.client,
+            datum=date(2025, 1, 10),
+            dauer=Decimal("3.50"),
+            service_type=self.service_type,
+            rate=Decimal("150.00"),
+            betrag=Decimal("525.00"),
+            billable=True,
+        )
+        TimeEntry.objects.create(
+            mitarbeiter=self.employee2,
+            client=self.client,
+            datum=date(2025, 1, 11),
+            dauer=Decimal("7.00"),
+            service_type=self.service_type,
+            rate=Decimal("150.00"),
+            betrag=Decimal("1050.00"),
+            billable=True,
+        )
+
+        # Abwesenheiten (full_day + partial)
+        Absence.objects.create(
+            employee=self.employee1,
+            absence_type="FERIEN",
+            date_from=date(2025, 1, 15),
+            date_to=date(2025, 1, 16),
+            full_day=True,
+            comment="Ferien",
+        )
+        Absence.objects.create(
+            employee=self.employee2,
+            absence_type="KRANK",
+            date_from=date(2025, 1, 20),
+            date_to=date(2025, 1, 20),
+            full_day=False,
+            hours=Decimal("2.00"),
+            comment="Krank",
+        )
+
+    def test_bulk_equals_single(self):
+        from .employee_info import calculate_employee_monthly_stats, calculate_employee_monthly_stats_bulk
+
+        employees = EmployeeInternal.objects.filter(id__in=[self.employee1.id, self.employee2.id]).order_by("id")
+        bulk = calculate_employee_monthly_stats_bulk(employees=employees, year=2025, month=1)
+
+        for emp in employees:
+            single = calculate_employee_monthly_stats(employee=emp, year=2025, month=1)
+            self.assertEqual(bulk[emp.id]["monthly_soll"], single["monthly_soll"])
+            self.assertEqual(bulk[emp.id]["monthly_absence"], single["monthly_absence"])
+            self.assertEqual(bulk[emp.id]["monthly_effective_soll"], single["monthly_effective_soll"])
+            self.assertEqual(bulk[emp.id]["monthly_ist"], single["monthly_ist"])
+            self.assertEqual(bulk[emp.id]["productivity"], single["productivity"])
+
+
 class HolidayModelTest(TestCase):
     """Tests für das Holiday-Modell."""
     

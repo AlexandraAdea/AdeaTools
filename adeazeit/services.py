@@ -3,6 +3,7 @@ Business-Logik für Arbeitszeitberechnungen in AdeaZeit.
 """
 from decimal import Decimal
 from datetime import date, timedelta
+from functools import lru_cache
 from django.db.models import Sum, Q
 from calendar import monthrange
 from .models import EmployeeInternal, TimeEntry, Absence, Holiday
@@ -128,6 +129,34 @@ class WorkingTimeCalculator:
     """
     Erweiterte Berechnungen für Arbeitszeit mit Abwesenheiten und Feiertagen.
     """
+
+    @staticmethod
+    @lru_cache(maxsize=256)
+    def _holidays_set(year: int, month: int, canton: str):
+        """
+        Cached holidays for (year, month, canton).
+
+        Hint: Holidays ändern sich selten; durch Caching vermeiden wir N× identische DB-Queries
+        (z.B. in EmployeeMonthlyStatsView).
+        """
+        holidays = (
+            Holiday.objects.filter(date__year=year, date__month=month)
+            .filter(Q(canton="") | Q(canton=canton))
+            .values_list("date", flat=True)
+        )
+        return frozenset(holidays)
+
+    @staticmethod
+    @lru_cache(maxsize=256)
+    def _count_workdays_for_canton(year: int, month: int, canton: str) -> int:
+        """Cached nominal workdays (Mon–Fri ohne Feiertage) pro Monat und Kanton."""
+        holidays_set = WorkingTimeCalculator._holidays_set(year, month, canton)
+        workdays = 0
+        for day in WorkingTimeCalculator.iter_days(year, month):
+            # Monday = 0, Friday = 4
+            if day.weekday() < 5 and day not in holidays_set:
+                workdays += 1
+        return workdays
     
     @staticmethod
     def iter_days(year: int, month: int):
@@ -145,26 +174,8 @@ class WorkingTimeCalculator:
         - Monday–Friday only.
         - Exclude holidays (Holiday) that match employee.work_canton OR canton="".
         """
-        workdays = 0
         employee_canton = employee.work_canton or ""
-        
-        # Get all holidays for this month (CH-wide or matching canton)
-        holidays = Holiday.objects.filter(
-            date__year=year,
-            date__month=month
-        ).filter(
-            Q(canton="") | Q(canton=employee_canton)
-        ).values_list('date', flat=True)
-        
-        holidays_set = set(holidays)
-        
-        for day in WorkingTimeCalculator.iter_days(year, month):
-            # Monday = 0, Friday = 4
-            if day.weekday() < 5:  # Monday to Friday
-                if day not in holidays_set:
-                    workdays += 1
-        
-        return workdays
+        return WorkingTimeCalculator._count_workdays_for_canton(year, month, employee_canton)
     
     @staticmethod
     def monthly_soll_hours(employee: EmployeeInternal, year: int, month: int) -> Decimal:
@@ -221,12 +232,9 @@ class WorkingTimeCalculator:
         weekly_working_days = employee.weekly_working_days or Decimal('5.0')
         daily_hours = employee.weekly_soll_hours / weekly_working_days if employee.weekly_soll_hours and weekly_working_days > 0 else Decimal('0.00')
         
-        # Get holidays for this month (to exclude from workday count)
-        holidays = Holiday.objects.filter(
-            Q(date__year=year, date__month=month),
-            Q(canton=employee.work_canton) | Q(canton="")
-        ).values_list('date', flat=True)
-        holidays_set = set(holidays)
+        # Get holidays for this month (to exclude from workday count) – cached per (year, month, canton)
+        employee_canton = employee.work_canton or ""
+        holidays_set = WorkingTimeCalculator._holidays_set(year, month, employee_canton)
         
         for absence in absences:
             # Calculate overlap with the month
