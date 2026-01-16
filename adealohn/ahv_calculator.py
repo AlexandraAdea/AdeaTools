@@ -1,4 +1,6 @@
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
+
+from adeacore.money import round_to_5_rappen
 
 
 class AHVCalculator:
@@ -39,13 +41,8 @@ class AHVCalculator:
         ahv_employer_raw = effective_basis * cls.RATE_EMPLOYER
 
         # Auf 0.05 CHF runden
-        ahv_employee = (ahv_employee_raw / Decimal("0.05")).quantize(
-            Decimal("1"), rounding=ROUND_HALF_UP
-        ) * Decimal("0.05")
-
-        ahv_employer = (ahv_employer_raw / Decimal("0.05")).quantize(
-            Decimal("1"), rounding=ROUND_HALF_UP
-        ) * Decimal("0.05")
+        ahv_employee = round_to_5_rappen(ahv_employee_raw)
+        ahv_employer = round_to_5_rappen(ahv_employer_raw)
 
         return {
             "ahv_effective_basis": effective_basis,

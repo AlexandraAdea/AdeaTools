@@ -1,4 +1,6 @@
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
+
+from adeacore.money import round_to_5_rappen
 
 
 class UVGCalculator:
@@ -41,17 +43,13 @@ class UVGCalculator:
 
         # BU: immer nur Arbeitgeber
         bu_employer_raw = effective_basis * self.RATE_BU_EMPLOYER
-        bu_employer = (bu_employer_raw / Decimal("0.05")).quantize(
-            Decimal("1"), rounding=ROUND_HALF_UP
-        ) * Decimal("0.05")
+        bu_employer = round_to_5_rappen(bu_employer_raw)
         bu_employee = Decimal("0.00")
 
         # NBU: nur wenn Pflicht (>8h/Woche)
         if getattr(employee, "nbu_pflichtig", False):
             nbu_employee_raw = effective_basis * self.RATE_NBU_EMPLOYEE
-            nbu_employee = (nbu_employee_raw / Decimal("0.05")).quantize(
-                Decimal("1"), rounding=ROUND_HALF_UP
-            ) * Decimal("0.05")
+            nbu_employee = round_to_5_rappen(nbu_employee_raw)
         else:
             nbu_employee = Decimal("0.00")
 

@@ -1,5 +1,7 @@
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 from typing import TYPE_CHECKING
+
+from adeacore.money import round_to_5_rappen
 
 if TYPE_CHECKING:
     from adeacore.models import PayrollRecord
@@ -53,13 +55,8 @@ class ALVCalculator:
         alv_employee_raw = effective_basis * self.RATE_EMPLOYEE
         alv_employer_raw = effective_basis * self.RATE_EMPLOYER
 
-        alv_employee = (alv_employee_raw / Decimal("0.05")).quantize(
-            Decimal("1"), rounding=ROUND_HALF_UP
-        ) * Decimal("0.05")
-
-        alv_employer = (alv_employer_raw / Decimal("0.05")).quantize(
-            Decimal("1"), rounding=ROUND_HALF_UP
-        ) * Decimal("0.05")
+        alv_employee = round_to_5_rappen(alv_employee_raw)
+        alv_employer = round_to_5_rappen(alv_employer_raw)
 
         return {
             "alv_effective_basis": effective_basis,

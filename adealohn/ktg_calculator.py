@@ -1,4 +1,6 @@
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
+
+from adeacore.money import round_to_5_rappen
 
 
 class KTGCalculator:
@@ -32,13 +34,8 @@ class KTGCalculator:
         ktg_employee_raw = effective_basis * params.ktg_rate_employee
         ktg_employer_raw = effective_basis * params.ktg_rate_employer
 
-        ktg_employee = (ktg_employee_raw / Decimal("0.05")).quantize(
-            Decimal("1"), rounding=ROUND_HALF_UP
-        ) * Decimal("0.05")
-
-        ktg_employer = (ktg_employer_raw / Decimal("0.05")).quantize(
-            Decimal("1"), rounding=ROUND_HALF_UP
-        ) * Decimal("0.05")
+        ktg_employee = round_to_5_rappen(ktg_employee_raw)
+        ktg_employer = round_to_5_rappen(ktg_employer_raw)
 
         return {
             "ktg_effective_basis": effective_basis,

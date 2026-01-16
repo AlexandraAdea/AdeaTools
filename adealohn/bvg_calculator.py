@@ -1,4 +1,6 @@
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
+
+from adeacore.money import round_to_5_rappen
 
 
 class BVGCalculator:
@@ -56,13 +58,8 @@ class BVGCalculator:
         bvg_employee_raw = insured_month * params.employee_rate
         bvg_employer_raw = insured_month * params.employer_rate
 
-        bvg_employee = (bvg_employee_raw / Decimal("0.05")).quantize(
-            Decimal("1"), rounding=ROUND_HALF_UP
-        ) * Decimal("0.05")
-
-        bvg_employer = (bvg_employer_raw / Decimal("0.05")).quantize(
-            Decimal("1"), rounding=ROUND_HALF_UP
-        ) * Decimal("0.05")
+        bvg_employee = round_to_5_rappen(bvg_employee_raw)
+        bvg_employer = round_to_5_rappen(bvg_employer_raw)
 
         return {
             "bvg_insured_salary": insured_annual,  # Gesamt versicherter Lohn (jährlich)

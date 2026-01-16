@@ -1,4 +1,6 @@
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
+
+from adeacore.money import round_to_5_rappen
 
 
 class QSTCalculator:
@@ -47,9 +49,7 @@ class QSTCalculator:
         # 5. Sonst 0.00 (bereits gesetzt)
 
         # Rundung auf 0.05 CHF
-        qst_amount = (qst_amount / Decimal("0.05")).quantize(
-            Decimal("1"), rounding=ROUND_HALF_UP
-        ) * Decimal("0.05")
+        qst_amount = round_to_5_rappen(qst_amount)
 
         payroll.qst_amount = qst_amount
 
