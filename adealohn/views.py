@@ -33,6 +33,7 @@ from .mixins import (
     LockedPayrollGuardMixin,
     LockedPayrollFormGuardMixin,
 )
+from .payroll_flow import create_payroll_item_and_recompute
 
 logger = logging.getLogger(__name__)
 
@@ -497,20 +498,13 @@ class FamilyAllowanceNachzahlungView(LockedPayrollGuardMixin, LoginRequiredMixin
                 if sva_entscheid:
                     beschreibung += f" (SVA-Entscheid {sva_entscheid.entscheid})"
 
-            # PayrollItem erstellen
-            PayrollItem.objects.create(
+            return create_payroll_item_and_recompute(
                 payroll=self.object,
                 wage_type=wage_type,
-                quantity=Decimal(str(anzahl_monate)),
+                quantity=anzahl_monate,
                 amount=monatsbetrag,
                 description=beschreibung,
             )
-
-            # PayrollRecord neu berechnen
-            self.object.recompute_bases_from_items()
-            self.object.save()
-
-            return redirect(reverse("adealohn:payroll-detail", args=[self.object.pk]))
 
         # Form-Fehler: Formular erneut anzeigen
         context = self.get_context_data()
@@ -543,20 +537,13 @@ class PayrollItemSpesenCreateView(LockedPayrollGuardMixin, LoginRequiredMixin, T
 
             wage_type = WageType.objects.get(code=wage_type_code)
 
-            # PayrollItem erstellen (Menge = 1, fix)
-            PayrollItem.objects.create(
+            return create_payroll_item_and_recompute(
                 payroll=self.object,
                 wage_type=wage_type,
                 quantity=Decimal("1.0"),
                 amount=amount,
                 description=description,
             )
-
-            # PayrollRecord neu berechnen
-            self.object.recompute_bases_from_items()
-            self.object.save()
-
-            return redirect(reverse("adealohn:payroll-detail", args=[self.object.pk]))
 
         # Form-Fehler: Formular erneut anzeigen
         context = self.get_context_data()
@@ -589,20 +576,13 @@ class PayrollItemPrivatanteilCreateView(LockedPayrollGuardMixin, LoginRequiredMi
 
             wage_type = WageType.objects.get(code=wage_type_code)
 
-            # PayrollItem erstellen (Menge = 1, fix)
-            PayrollItem.objects.create(
+            return create_payroll_item_and_recompute(
                 payroll=self.object,
                 wage_type=wage_type,
                 quantity=Decimal("1.0"),
                 amount=amount,
                 description=description,
             )
-
-            # PayrollRecord neu berechnen
-            self.object.recompute_bases_from_items()
-            self.object.save()
-
-            return redirect(reverse("adealohn:payroll-detail", args=[self.object.pk]))
 
         # Form-Fehler: Formular erneut anzeigen
         context = self.get_context_data()
