@@ -5,6 +5,7 @@ Custom Middleware für erweiterte Sicherheit.
 from django.utils.deprecation import MiddlewareMixin
 from django.contrib.sessions.models import Session
 from django.utils import timezone
+from django.conf import settings
 from datetime import timedelta
 import logging
 
@@ -38,7 +39,7 @@ class SessionSecurityMiddleware(MiddlewareMixin):
                 last_activity = parse_datetime(last_activity)
             
             if last_activity:
-                timeout = timedelta(seconds=request.session.get('SESSION_COOKIE_AGE', 28800))
+                timeout = timedelta(seconds=getattr(settings, "SESSION_COOKIE_AGE", 28800))
                 if timezone.now() - last_activity > timeout:
                     # Session abgelaufen
                     from django.contrib.auth import logout
