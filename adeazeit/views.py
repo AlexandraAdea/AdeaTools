@@ -3,7 +3,7 @@ from calendar import month_name
 from datetime import datetime, timedelta, date
 from django.db.models import Q, Sum
 from django.db import transaction
-from django.shortcuts import redirect, get_object_or_404
+from django.shortcuts import redirect, get_object_or_404, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -17,7 +17,6 @@ from django.views.generic import (
     TemplateView,
 )
 from django.http import JsonResponse, HttpResponseForbidden
-from django.shortcuts import render
 from .mixins import render_forbidden
 
 from adeacore.models import Client

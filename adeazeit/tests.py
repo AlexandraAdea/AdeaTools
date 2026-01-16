@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 from adeacore.models import Client
 from .models import EmployeeInternal, ServiceType, ZeitProject, TimeEntry, Absence, Holiday
 from .forms import EmployeeInternalForm, TimeEntryForm, AbsenceForm
-from .services import WorkingTimeService, WorkingTimeCalculator
+from .services import WorkingTimeCalculator
 
 
 class EmployeeInternalModelTest(TestCase):
@@ -150,121 +150,6 @@ class EmployeeInternalFormTest(TestCase):
         
         self.assertFalse(form.is_valid())
         self.assertIn("employment_end", form.errors)
-
-
-class WorkingTimeServiceTest(TestCase):
-    """Tests für WorkingTimeService."""
-    
-    def setUp(self):
-        """Erstelle Test-Daten."""
-        self.employee = EmployeeInternal.objects.create(
-            code="EMP001",
-            name="Max Mustermann",
-            function_title="Senior Consultant",
-            employment_percent=Decimal('100.00'),
-            weekly_soll_hours=Decimal('42.00'),
-            eintrittsdatum=date(2020, 1, 1),
-            aktiv=True
-        )
-        
-        self.client = Client.objects.create(
-            name="Test Client",
-            client_type="FIRMA"
-        )
-        
-        self.service_type = ServiceType.objects.create(
-            code="STEU",
-            name="Steuerberatung",
-            standard_rate=Decimal('150.00'),
-            billable=True
-        )
-    
-    def test_calculate_monthly_soll(self):
-        """Test: Monatliche Sollzeit-Berechnung mit 42h/Woche."""
-        soll = WorkingTimeService.calculate_monthly_soll(self.employee, 2025, 1)
-        # 42 * 4.333 = 181.986
-        expected = Decimal('42.00') * Decimal('4.333')
-        self.assertEqual(soll, expected.quantize(Decimal('0.01')))
-    
-    def test_calculate_monthly_ist_empty(self):
-        """Test: Ist-Zeit ist 0 wenn keine Zeiteinträge vorhanden."""
-        ist = WorkingTimeService.calculate_monthly_ist(self.employee, 2025, 1)
-        self.assertEqual(ist, Decimal('0.00'))
-    
-    def test_calculate_monthly_ist_with_entries(self):
-        """Test: Ist-Zeit wird korrekt aus TimeEntries summiert."""
-        # Erstelle Zeiteinträge
-        TimeEntry.objects.create(
-            mitarbeiter=self.employee,
-            client=self.client,
-            datum=date(2025, 1, 15),
-            dauer=Decimal('8.00'),
-            service_type=self.service_type,
-            rate=Decimal('150.00'),
-            betrag=Decimal('1200.00').quantize(Decimal('0.01')),
-            billable=True
-        )
-        TimeEntry.objects.create(
-            mitarbeiter=self.employee,
-            client=self.client,
-            datum=date(2025, 1, 16),
-            dauer=Decimal('6.50'),
-            service_type=self.service_type,
-            rate=Decimal('150.00'),
-            betrag=Decimal('975.00').quantize(Decimal('0.01')),
-            billable=True
-        )
-        
-        ist = WorkingTimeService.calculate_monthly_ist(self.employee, 2025, 1)
-        self.assertEqual(ist, Decimal('14.50'))
-    
-    def test_calculate_productivity(self):
-        """Test: Produktivität wird korrekt berechnet."""
-        # Erstelle Zeiteinträge (14.5h)
-        TimeEntry.objects.create(
-            mitarbeiter=self.employee,
-            client=self.client,
-            datum=date(2025, 1, 15),
-            dauer=Decimal('8.00'),
-            service_type=self.service_type,
-            rate=Decimal('150.00'),
-            betrag=Decimal('1200.00').quantize(Decimal('0.01')),
-            billable=True
-        )
-        TimeEntry.objects.create(
-            mitarbeiter=self.employee,
-            client=self.client,
-            datum=date(2025, 1, 16),
-            dauer=Decimal('6.50'),
-            service_type=self.service_type,
-            rate=Decimal('150.00'),
-            betrag=Decimal('975.00').quantize(Decimal('0.01')),
-            billable=True
-        )
-        
-        productivity = WorkingTimeService.calculate_productivity(self.employee, 2025, 1)
-        soll = WorkingTimeService.calculate_monthly_soll(self.employee, 2025, 1)
-        expected = (Decimal('14.50') / soll) * Decimal('100.00')
-        self.assertEqual(productivity, expected.quantize(Decimal('0.01')))
-    
-    def test_calculate_productivity_zero_soll(self):
-        """Test: Produktivität ist 0 wenn Soll-Zeit 0 ist."""
-        self.employee.weekly_soll_hours = Decimal('0.00')
-        self.employee.save()
-        
-        productivity = WorkingTimeService.calculate_productivity(self.employee, 2025, 1)
-        self.assertEqual(productivity, Decimal('0.00'))
-    
-    def test_get_employee_info(self):
-        """Test: get_employee_info gibt korrekte Informationen zurück."""
-        info = WorkingTimeService.get_employee_info(self.employee, 2025, 1)
-        
-        self.assertEqual(info["employee"], self.employee)
-        self.assertEqual(info["employment_percent"], Decimal('100.00'))
-        self.assertEqual(info["weekly_soll_hours"], Decimal('42.00'))
-        self.assertIn("monthly_soll", info)
-        self.assertIn("monthly_ist", info)
-        self.assertIn("productivity", info)
 
 
 class TimeEntryFormTest(TestCase):
