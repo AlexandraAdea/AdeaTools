@@ -132,22 +132,17 @@ class EmployeeMonthlyStatsView(ManagerOrAdminRequiredMixin, TemplateView):
         # Berechne Statistiken für jeden Mitarbeiter
         employee_stats = []
         for employee in employees:
-            monthly_soll = WorkingTimeCalculator.monthly_soll_hours(employee, year, month)
-            monthly_absence = WorkingTimeCalculator.monthly_absence_hours(employee, year, month)
-            monthly_effective_soll = WorkingTimeCalculator.monthly_effective_soll_hours(employee, year, month)
-            monthly_ist = WorkingTimeCalculator.monthly_ist_hours(employee, year, month)
-            productivity = WorkingTimeCalculator.monthly_productivity(employee, year, month)
-            
-            employee_stats.append({
-                "employee": employee,
-                "monthly_soll": monthly_soll,
-                "monthly_absence": monthly_absence,
-                "monthly_effective_soll": monthly_effective_soll,
-                "monthly_ist": monthly_ist,
-                "productivity": productivity,
-                "employment_percent": employee.employment_percent,
-                "weekly_soll_hours": employee.weekly_soll_hours,
-            })
+            from .employee_info import calculate_employee_monthly_stats
+
+            stats = calculate_employee_monthly_stats(employee=employee, year=year, month=month)
+            employee_stats.append(
+                {
+                    "employee": employee,
+                    **stats,
+                    "employment_percent": employee.employment_percent,
+                    "weekly_soll_hours": employee.weekly_soll_hours,
+                }
+            )
         
         context["employee_stats"] = employee_stats
         
@@ -492,16 +487,9 @@ class TimeEntryCreateView(LoginRequiredMixin, CreateView):
                 accessible_employees = get_accessible_employees(self.request.user)
                 employee = accessible_employees.get(pk=employee_id)
                 today = date.today()
-                context["employee_info"] = {
-                    "employee": employee,
-                    "employment_percent": employee.employment_percent,
-                    "weekly_soll_hours": employee.weekly_soll_hours,
-                    "monthly_soll": WorkingTimeCalculator.monthly_soll_hours(employee, today.year, today.month),
-                    "monthly_absence": WorkingTimeCalculator.monthly_absence_hours(employee, today.year, today.month),
-                    "monthly_effective_soll": WorkingTimeCalculator.monthly_effective_soll_hours(employee, today.year, today.month),
-                    "monthly_ist": WorkingTimeCalculator.monthly_ist_hours(employee, today.year, today.month),
-                    "productivity": WorkingTimeCalculator.monthly_productivity(employee, today.year, today.month),
-                }
+                from .employee_info import build_employee_sidebar_info
+
+                context["employee_info"] = build_employee_sidebar_info(employee=employee, year=today.year, month=today.month)
             except EmployeeInternal.DoesNotExist:
                 pass
         return context
@@ -591,16 +579,9 @@ class TimeEntryUpdateView(LoginRequiredMixin, UpdateView):
             try:
                 today = date.today()
                 employee = self.object.mitarbeiter
-                context["employee_info"] = {
-                    "employee": employee,
-                    "employment_percent": employee.employment_percent,
-                    "weekly_soll_hours": employee.weekly_soll_hours,
-                    "monthly_soll": WorkingTimeCalculator.monthly_soll_hours(employee, today.year, today.month),
-                    "monthly_absence": WorkingTimeCalculator.monthly_absence_hours(employee, today.year, today.month),
-                    "monthly_effective_soll": WorkingTimeCalculator.monthly_effective_soll_hours(employee, today.year, today.month),
-                    "monthly_ist": WorkingTimeCalculator.monthly_ist_hours(employee, today.year, today.month),
-                    "productivity": WorkingTimeCalculator.monthly_productivity(employee, today.year, today.month),
-                }
+                from .employee_info import build_employee_sidebar_info
+
+                context["employee_info"] = build_employee_sidebar_info(employee=employee, year=today.year, month=today.month)
             except Exception as e:
                 import logging
                 logger = logging.getLogger(__name__)
@@ -704,19 +685,9 @@ class LoadEmployeeInfoView(LoginRequiredMixin, TemplateView):
 
                     return json_error("Ungültiges Jahr oder Monat")
             
-            # Use WorkingTimeCalculator for comprehensive info including absences
-            info = {
-                "name": employee.name,
-                "function_title": employee.function_title,
-                "internal_full_name": employee.internal_full_name,
-                "employment_percent": str(employee.employment_percent),
-                "weekly_soll_hours": str(employee.weekly_soll_hours),
-                "monthly_soll": str(WorkingTimeCalculator.monthly_soll_hours(employee, year, month)),
-                "monthly_absence": str(WorkingTimeCalculator.monthly_absence_hours(employee, year, month)),
-                "monthly_effective_soll": str(WorkingTimeCalculator.monthly_effective_soll_hours(employee, year, month)),
-                "monthly_ist": str(WorkingTimeCalculator.monthly_ist_hours(employee, year, month)),
-                "productivity": str(WorkingTimeCalculator.monthly_productivity(employee, year, month)),
-            }
+            from .employee_info import build_employee_ajax_info
+
+            info = build_employee_ajax_info(employee=employee, year=year, month=month)
             from adeacore.http import json_ok
 
             return json_ok({"employee": info})
