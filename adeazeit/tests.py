@@ -538,9 +538,9 @@ class WorkingTimeCalculatorTest(TestCase):
         
         soll = WorkingTimeCalculator.monthly_soll_hours(self.employee, 2025, 1)
         
-        # Januar 2025 hat 23 Arbeitstage (31 Tage - 8 Wochenenden - 1 Feiertag)
-        # 23 * (42 / 5) = 23 * 8.4 = 193.2
-        expected_workdays = 23  # 31 Tage - 8 Wochenenden - 1 Feiertag
+        # Januar 2025 hat 22 Arbeitstage (31 Tage - 8 Wochenenden - 1 Feiertag)
+        # 22 * (42 / 5) = 22 * 8.4 = 184.8
+        expected_workdays = 22  # 31 Tage - 8 Wochenenden - 1 Feiertag
         expected_hours = Decimal(str(expected_workdays)) * (Decimal('42.00') / Decimal('5.0'))
         
         self.assertEqual(soll, expected_hours.quantize(Decimal('0.01')))
