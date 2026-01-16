@@ -13,6 +13,8 @@ from typing import Optional, Dict, Any
 from django.conf import settings
 from django.contrib.auth import get_user_model
 
+from adeacore.http import get_client_ip
+
 User = get_user_model()
 
 logger = logging.getLogger(__name__)
@@ -164,16 +166,6 @@ def get_audit_logger() -> AuditLogger:
     if _audit_logger is None:
         _audit_logger = AuditLogger()
     return _audit_logger
-
-
-def get_client_ip(request) -> Optional[str]:
-    """Holt die IP-Adresse aus dem Request."""
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0]
-    else:
-        ip = request.META.get('REMOTE_ADDR')
-    return ip
 
 
 def get_user_agent(request) -> Optional[str]:

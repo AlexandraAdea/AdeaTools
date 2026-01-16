@@ -10,6 +10,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+from adeacore.http import get_client_ip
+
 
 class SessionSecurityMiddleware(MiddlewareMixin):
     """
@@ -49,7 +51,7 @@ class SessionSecurityMiddleware(MiddlewareMixin):
         # IP-Adress-Validierung (optional, kann deaktiviert werden)
         # Prüfe ob IP-Adresse sich geändert hat
         if 'ip_address' in request.session:
-            current_ip = self.get_client_ip(request)
+            current_ip = get_client_ip(request)
             stored_ip = request.session['ip_address']
             
             # Warnung bei IP-Wechsel (aber nicht blockieren, da IPs sich ändern können)
@@ -60,19 +62,8 @@ class SessionSecurityMiddleware(MiddlewareMixin):
                 )
         else:
             # Speichere IP-Adresse beim ersten Request
-            request.session['ip_address'] = self.get_client_ip(request)
+            request.session['ip_address'] = get_client_ip(request)
         
         return None
     
-    def get_client_ip(self, request) -> str:
-        """Holt die IP-Adresse aus dem Request."""
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-        if x_forwarded_for:
-            ip = x_forwarded_for.split(',')[0].strip()
-        else:
-            ip = request.META.get('REMOTE_ADDR', 'unknown')
-        return ip
-
-
-
-
+    

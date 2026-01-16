@@ -12,6 +12,8 @@ from django.utils import timezone
 from functools import wraps
 import logging
 
+from adeacore.http import get_client_ip
+
 logger = logging.getLogger(__name__)
 
 
@@ -136,16 +138,6 @@ def rate_limit_api(view_func):
         return response
     
     return wrapper
-
-
-def get_client_ip(request) -> str:
-    """Holt die IP-Adresse aus dem Request."""
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0].strip()
-    else:
-        ip = request.META.get('REMOTE_ADDR', 'unknown')
-    return ip
 
 
 def reset_login_rate_limit(username: str, ip_address: str):
