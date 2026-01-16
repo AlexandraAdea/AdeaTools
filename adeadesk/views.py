@@ -27,11 +27,9 @@ class ClientListView(LoginRequiredMixin, ListView):
         client_type_filter = self.request.GET.get("client_type")
         
         if query:
-            queryset = queryset.filter(
-                Q(name__icontains=query)
-                | Q(city__icontains=query)
-                | Q(email__icontains=query)
-            )
+            # NOTE: `city` und `email` sind verschlüsselte Felder und sind daher nicht sinnvoll
+            # per `icontains` in der DB durchsuchbar. Wir suchen bewusst nur über Name (Klartext).
+            queryset = queryset.filter(Q(name__icontains=query))
         
         if client_type_filter:
             queryset = queryset.filter(client_type=client_type_filter)

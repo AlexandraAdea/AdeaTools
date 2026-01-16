@@ -99,12 +99,14 @@ class EncryptionManager:
             decrypted = self.cipher.decrypt(encrypted_bytes)
             return decrypted.decode('utf-8')
         except Exception as e:
-            # Falls Entschlüsselung fehlschlägt, könnte es ein alter Wert sein
-            # Versuche als Klartext zurückzugeben (für Migration)
+            # Wichtig: Wir werfen den Fehler weiter, damit die Feld-Implementierungen
+            # (EncryptedCharField/EncryptedTextField/EncryptedDateField) entscheiden können,
+            # ob ein Fallback auf Klartext sinnvoll ist. Ein stilles "Klartext" führt sonst
+            # zu kaputten/unsichtbaren Werten (z.B. EncryptedDateField -> parse_date(None)).
             import logging
             logger = logging.getLogger(__name__)
-            logger.warning(f"Entschlüsselung fehlgeschlagen, verwende Klartext: {e}")
-            return encrypted_value
+            logger.warning(f"Entschlüsselung fehlgeschlagen: {e}")
+            raise
 
 
 # Globale Instanz

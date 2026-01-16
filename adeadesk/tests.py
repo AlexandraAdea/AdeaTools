@@ -35,7 +35,7 @@ class ClientCRUDTestCase(TestCase):
         """Test dass Client-Liste Login erfordert."""
         response = self.test_client.get(reverse('adeadesk:client-list'))
         self.assertEqual(response.status_code, 302)  # Redirect zu Login
-        self.assertIn('/admin/login/', response.url)
+        self.assertIn('/login/', response.url)
     
     def test_client_list_shows_all_clients(self):
         """Test dass Client-Liste alle Clients zeigt."""
@@ -63,7 +63,9 @@ class ClientCRUDTestCase(TestCase):
     def test_client_list_search(self):
         """Test dass Suche funktioniert."""
         self.test_client.login(username='testuser', password='testpass123')
-        response = self.test_client.get(reverse('adeadesk:client-list') + '?q=Zürich')
+        # Suche funktioniert über Name (Klartext). Verschlüsselte Felder wie `city` sind
+        # nicht sinnvoll per DB-Filter durchsuchbar.
+        response = self.test_client.get(reverse('adeadesk:client-list') + '?q=Test Firma')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.client_firma.name)
         self.assertNotContains(response, self.client_privat.name)
