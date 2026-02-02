@@ -25,6 +25,23 @@ class EmployeeForm(forms.ModelForm):
             "qst_prozent",
             "qst_fixbetrag",
         ]
+        labels = {
+            "client": "Mandant",
+            "first_name": "Vorname",
+            "last_name": "Nachname",
+            "role": "Rolle",
+            "hourly_rate": "Stundensatz (CHF)",
+            "weekly_hours": "Wöchentliche Stunden",
+            "nbu_pflichtig": "NBU-pflichtig",
+            "is_rentner": "Rentner/in",
+            "ahv_freibetrag_aktiv": "AHV-Freibetrag aktiv",
+            "qst_pflichtig": "QST-pflichtig",
+            "qst_tarif": "QST-Tarif",
+            "qst_kinder": "QST-Kinder",
+            "qst_kirchensteuer": "QST-Kirchensteuer",
+            "qst_prozent": "QST-Prozent",
+            "qst_fixbetrag": "QST-Fixbetrag (CHF)",
+        }
         widgets = {
             "client": forms.Select(attrs={"class": "adea-select"}),
             "first_name": forms.TextInput(attrs={"class": "adea-input"}),
@@ -85,6 +102,13 @@ class PayrollRecordForm(forms.ModelForm):
             "status",
             "gross_salary",
         ]
+        labels = {
+            "employee": "Mitarbeiter",
+            "month": "Monat",
+            "year": "Jahr",
+            "status": "Status",
+            "gross_salary": "Bruttolohn (CHF)",
+        }
         widgets = {
             "employee": forms.Select(attrs={"class": "adea-select"}),
             "month": forms.NumberInput(
