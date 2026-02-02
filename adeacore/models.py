@@ -464,13 +464,13 @@ class PayrollRecord(models.Model):
         max_digits=10,
         decimal_places=2,
         default=0,
-        help_text="FAK-Beitrag Arbeitgeber (1.025% vom Bruttolohn)",
+        help_text="FAK-Beitrag Arbeitgeber (1.0% vom Bruttolohn, gemäss Excel-Vorlage)",
     )
     vk_employer = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         default=0,
-        help_text="Verwaltungskosten Arbeitgeber (5.0% vom Total AHV-Beitrag)",
+        help_text="Verwaltungskosten Arbeitgeber (3.0% vom Total AHV-Beitrag, gemäss Excel-Vorlage)",
     )
     net_salary = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)

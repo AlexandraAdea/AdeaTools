@@ -5,13 +5,14 @@ from adeacore.money import round_to_5_rappen
 
 class FAKCalculator:
     """
-    Berechnet FAK-Beitrag (Familienausgleichskasse) gemäss Schweizer Recht:
+    Berechnet FAK-Beitrag (Familienausgleichskasse) gemäss Excel-Vorlage:
     - Kantonabhängiger AG-Beitrag vom Bruttolohn
     - Wird vom Arbeitgeber bezahlt
-    - Standard: 1.025% (falls kein kantonaler Satz definiert)
+    - Standard: 1.0% (falls kein kantonaler Satz definiert)
+    - Aktueller Satz kann auf AHV-Rechnung gefunden werden
     """
 
-    DEFAULT_RATE_EMPLOYER = Decimal("0.01025")  # 1.025% Standard (Fallback)
+    DEFAULT_RATE_EMPLOYER = Decimal("0.01")  # 1.0% Standard (Fallback, gemäss Excel-Vorlage)
 
     @classmethod
     def calculate_for_payroll(cls, payroll):

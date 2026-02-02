@@ -61,17 +61,16 @@
 ## ⚠️ FEHLENDE ODER UNVOLLSTÄNDIGE KOMPONENTEN
 
 ### 1. FAK-Beitrag (Familienausgleichskasse)
-- **Offizielle Tabelle:** 1.025% AG Beitrag (vom Bruttolohn)
-- **Excel-Vorlage:** 1.0% AG (vereinfacht/gerundet)
-- **AdeaLohn:** ❌ Nicht als AG-Beitrag implementiert
-- **Status:** Familienzulagen werden als Zulagen erfasst, aber FAK-Beitrag fehlt
-- **Empfehlung:** FAK-Beitrag als separater AG-Beitrag hinzufügen (**1.025% vom Bruttolohn**, nicht 1.0%!)
+- **Excel-Vorlage:** 1.0% AG Beitrag (vom Bruttolohn)
+- **AdeaLohn:** ✅ Implementiert mit 1.0% Standard (gemäss Excel-Vorlage)
+- **Status:** FAK-Beitrag als separater AG-Beitrag implementiert
+- **Hinweis:** Aktueller Satz kann auf AHV-Rechnung gefunden werden (kann kantonabhängig variieren)
 
 ### 2. VK (Verwaltungskosten)
-- **Offizielle Tabelle:** 5.0% AG (vom **Total AHV/IV/EO-Beitrag**, nicht nur AG-Anteil!)
-- **Excel-Vorlage:** 3.0% AG (veraltet oder falsch)
-- **AdeaLohn:** ❌ Nicht implementiert
-- **Empfehlung:** VK als separater AG-Beitrag hinzufügen (**5.0% vom Total AHV-Beitrag** = 5.0% × (AHV-AN + AHV-AG))
+- **Excel-Vorlage:** 3.0% AG (vom **Total AHV/IV/EO-Beitrag**, nicht nur AG-Anteil!)
+- **AdeaLohn:** ✅ Implementiert mit 3.0% (gemäss Excel-Vorlage)
+- **Status:** VK als separater AG-Beitrag implementiert
+- **Hinweis:** Aktueller Satz (in % des AHV-Betrags) kann auf AHV-Rechnung gefunden werden
 
 ### 3. BU/NBU Raten (UVG)
 - **Excel:** 

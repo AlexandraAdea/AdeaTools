@@ -121,8 +121,8 @@ class FAKParameter(models.Model):
     fak_rate_employer = models.DecimalField(
         max_digits=5,
         decimal_places=4,
-        default=Decimal("0.01025"),
-        help_text="FAK-Beitragssatz Arbeitgeber (z.B. 0.01450 für 1.450%)",
+        default=Decimal("0.01"),  # 1.0% Standard (gemäss Excel-Vorlage)
+        help_text="FAK-Beitragssatz Arbeitgeber (z.B. 0.01 für 1.0% Standard, 0.01450 für 1.450% Aargau). Aktueller Satz kann auf AHV-Rechnung gefunden werden.",
     )
 
     class Meta:

@@ -5,12 +5,13 @@ from adeacore.money import round_to_5_rappen
 
 class VKCalculator:
     """
-    Berechnet VK (Verwaltungskosten) gemäss Schweizer Recht:
-    - 5.0% AG vom Total AHV/IV/EO-Beitrag (AN + AG)
+    Berechnet VK (Verwaltungskosten) gemäss Excel-Vorlage:
+    - 3.0% AG vom Total AHV/IV/EO-Beitrag (AN + AG)
     - Wird vom Arbeitgeber bezahlt
+    - Aktueller Satz (in % des AHV-Betrags) kann auf AHV-Rechnung gefunden werden
     """
 
-    RATE_EMPLOYER = Decimal("0.05")  # 5.0% Arbeitgeber
+    RATE_EMPLOYER = Decimal("0.03")  # 3.0% Arbeitgeber (gemäss Excel-Vorlage)
 
     @classmethod
     def calculate_for_payroll(cls, payroll):
