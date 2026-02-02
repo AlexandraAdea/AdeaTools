@@ -105,6 +105,36 @@ class KTGParameter(models.Model):
         return "KTG Parameter"
 
 
+class FAKParameter(models.Model):
+    """
+    Konfigurierbare Parameter für die Familienausgleichskasse (FAK).
+    Kantonale Beitragssätze pro Jahr.
+    """
+    year = models.IntegerField(
+        default=2026,
+        help_text="Jahr für diese FAK-Parameter",
+    )
+    canton = models.CharField(
+        max_length=50,
+        help_text="Kanton (z.B. 'AG', 'ZH', 'BE') oder 'DEFAULT' für Standard",
+    )
+    fak_rate_employer = models.DecimalField(
+        max_digits=5,
+        decimal_places=4,
+        default=Decimal("0.01025"),
+        help_text="FAK-Beitragssatz Arbeitgeber (z.B. 0.01450 für 1.450%)",
+    )
+
+    class Meta:
+        verbose_name = "FAK Parameter"
+        verbose_name_plural = "FAK Parameter"
+        unique_together = ("year", "canton")
+        ordering = ["-year", "canton"]
+
+    def __str__(self):
+        return f"FAK Parameter {self.year} – {self.canton}"
+
+
 class UVGParameter(models.Model):
     """
     Konfigurierbare Parameter für die Unfallversicherung (UVG).

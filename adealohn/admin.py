@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from adealohn.models import WageType, PayrollItem, KTGParameter, BVGParameter, QSTParameter, FamilyAllowanceParameter, UVGParameter
+from adealohn.models import WageType, PayrollItem, KTGParameter, BVGParameter, QSTParameter, FamilyAllowanceParameter, UVGParameter, FAKParameter
 from adeacore.models import PayrollRecord
 
 
@@ -95,6 +95,34 @@ class KTGParameterAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         # Löschen verhindern, damit immer Parameter vorhanden sind
         return False
+
+
+@admin.register(FAKParameter)
+class FAKParameterAdmin(admin.ModelAdmin):
+    list_display = (
+        "year",
+        "canton",
+        "fak_rate_employer",
+    )
+    list_filter = ("year", "canton")
+    search_fields = ("canton",)
+    fieldsets = (
+        (
+            "Jahr und Kanton",
+            {
+                "fields": ("year", "canton"),
+                "description": "Jahr und Kanton (z.B. 'AG', 'ZH', 'BE') oder 'DEFAULT' für Standard",
+            },
+        ),
+        (
+            "FAK-Beitragssatz",
+            {
+                "fields": ("fak_rate_employer",),
+                "description": "FAK-Beitragssatz Arbeitgeber (z.B. 0.01450 für 1.450% für Aargau)",
+            },
+        ),
+    )
+    ordering = ["-year", "canton"]
 
 
 @admin.register(UVGParameter)

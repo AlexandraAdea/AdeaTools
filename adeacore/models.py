@@ -109,6 +109,15 @@ class Client(models.Model):
         help_text="Interne Notizen und Bemerkungen",
     )
     
+    # Arbeitgeberort (für kantonale Sozialversicherungsbeiträge)
+    work_canton = models.CharField(
+        "Arbeitskanton",
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="Kanton des Arbeitgebersitzes (für FAK und andere kantonale Beiträge). Z.B. 'AG', 'ZH', 'BE'",
+    )
+    
     # Module-Aktivierung
     lohn_aktiv = models.BooleanField(
         "AdeaLohn aktiviert",
