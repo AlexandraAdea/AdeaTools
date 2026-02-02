@@ -72,37 +72,145 @@ class PayrollItem(models.Model):
         return f"{self.payroll_id} – {self.wage_type.code} – {self.total}"
 
 
+class AHVParameter(models.Model):
+    """
+    Konfigurierbare Parameter für AHV/IV/EO (Alters- und Hinterlassenenversicherung).
+    Ein Datensatz pro Jahr.
+    """
+    year = models.IntegerField(
+        default=2025,
+        unique=True,
+        help_text="Jahr für diese AHV-Parameter",
+    )
+    rate_employee = models.DecimalField(
+        max_digits=5,
+        decimal_places=4,
+        default=Decimal("0.053"),  # 5.3% Standard
+        help_text="AHV-Beitragssatz Arbeitnehmer (z.B. 0.0530 für 5.3%)",
+    )
+    rate_employer = models.DecimalField(
+        max_digits=5,
+        decimal_places=4,
+        default=Decimal("0.053"),  # 5.3% Standard
+        help_text="AHV-Beitragssatz Arbeitgeber (z.B. 0.0530 für 5.3%)",
+    )
+    rentner_freibetrag_monat = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("1400.00"),
+        help_text="Rentnerfreibetrag pro Monat (Standard: 1'400 CHF)",
+    )
+
+    class Meta:
+        verbose_name = "AHV Parameter"
+        verbose_name_plural = "AHV Parameter"
+        ordering = ["-year"]
+
+    def __str__(self):
+        return f"AHV Parameter {self.year}"
+
+
+class ALVParameter(models.Model):
+    """
+    Konfigurierbare Parameter für ALV (Arbeitslosenversicherung).
+    Ein Datensatz pro Jahr.
+    """
+    year = models.IntegerField(
+        default=2025,
+        unique=True,
+        help_text="Jahr für diese ALV-Parameter",
+    )
+    rate_employee = models.DecimalField(
+        max_digits=5,
+        decimal_places=4,
+        default=Decimal("0.011"),  # 1.1% Standard
+        help_text="ALV-Beitragssatz Arbeitnehmer (z.B. 0.0110 für 1.1%)",
+    )
+    rate_employer = models.DecimalField(
+        max_digits=5,
+        decimal_places=4,
+        default=Decimal("0.011"),  # 1.1% Standard
+        help_text="ALV-Beitragssatz Arbeitgeber (z.B. 0.0110 für 1.1%)",
+    )
+    max_annual_insured_salary = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("148200.00"),
+        help_text="Maximal versichertes Jahreseinkommen (Standard: 148'200 CHF)",
+    )
+
+    class Meta:
+        verbose_name = "ALV Parameter"
+        verbose_name_plural = "ALV Parameter"
+        ordering = ["-year"]
+
+    def __str__(self):
+        return f"ALV Parameter {self.year}"
+
+
+class VKParameter(models.Model):
+    """
+    Konfigurierbare Parameter für VK (Verwaltungskosten).
+    Ein Datensatz pro Jahr.
+    """
+    year = models.IntegerField(
+        default=2025,
+        unique=True,
+        help_text="Jahr für diese VK-Parameter",
+    )
+    rate_employer = models.DecimalField(
+        max_digits=5,
+        decimal_places=4,
+        default=Decimal("0.03"),  # 3.0% Standard (gemäss Excel-Vorlage)
+        help_text="VK-Beitragssatz Arbeitgeber (in % des Total AHV-Beitrags, z.B. 0.03 für 3.0%). Aktueller Satz kann auf AHV-Rechnung gefunden werden.",
+    )
+
+    class Meta:
+        verbose_name = "VK Parameter"
+        verbose_name_plural = "VK Parameter"
+        ordering = ["-year"]
+
+    def __str__(self):
+        return f"VK Parameter {self.year}"
+
+
 class KTGParameter(models.Model):
     """
     Konfigurierbare Parameter für die Krankentaggeldversicherung (KTG).
-    Es sollte nur eine Instanz existieren (Singleton-Pattern).
+    Ein Datensatz pro Jahr.
     """
+    year = models.IntegerField(
+        default=2025,
+        unique=True,
+        help_text="Jahr für diese KTG-Parameter",
+    )
     ktg_rate_employee = models.DecimalField(
         max_digits=5,
         decimal_places=4,
-        default=0,
-        help_text="KTG-Beitragssatz Arbeitnehmer (z.B. 0.0150 für 1.5%)",
+        default=Decimal("0.005"),  # 0.5% Standard
+        help_text="KTG-Beitragssatz Arbeitnehmer (z.B. 0.0050 für 0.5%)",
     )
     ktg_rate_employer = models.DecimalField(
         max_digits=5,
         decimal_places=4,
-        default=0,
-        help_text="KTG-Beitragssatz Arbeitgeber (z.B. 0.0150 für 1.5%)",
+        default=Decimal("0.005"),  # 0.5% Standard
+        help_text="KTG-Beitragssatz Arbeitgeber (z.B. 0.0050 für 0.5%)",
     )
     ktg_max_basis = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         null=True,
         blank=True,
-        help_text="Maximale Bemessungsgrundlage (z.B. 148200.00 für Jahreslohn). Optional.",
+        help_text="Maximale Bemessungsgrundlage (z.B. 300000.00 für Jahreslohn). Optional.",
     )
 
     class Meta:
         verbose_name = "KTG Parameter"
         verbose_name_plural = "KTG Parameter"
+        ordering = ["-year"]
 
     def __str__(self):
-        return "KTG Parameter"
+        return f"KTG Parameter {self.year}"
 
 
 class FAKParameter(models.Model):

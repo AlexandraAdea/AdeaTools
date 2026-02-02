@@ -9,19 +9,27 @@ if TYPE_CHECKING:
 
 class ALVCalculator:
     """
-    Berechnet ALV gemäss Schweizer Recht 2025:
-    - Beitragssatz Arbeitnehmer: 1.1 %
-    - Beitragssatz Arbeitgeber: 1.1 %
-    - Nur auf Löhne bis 148'200 CHF pro Jahr
+    Berechnet ALV gemäss konfigurierten Parametern:
+    - Beitragssätze konfigurierbar pro Jahr über ALVParameter
+    - Nur auf Löhne bis Max-Basis pro Jahr
     - Rentner zahlen keine ALV
     """
 
-    RATE_EMPLOYEE = Decimal("0.011")
-    RATE_EMPLOYER = Decimal("0.011")
-    MAX_ANNUAL_INSURED_SALARY = Decimal("148200.00")
-
     def calculate_for_payroll(self, payroll: "PayrollRecord") -> dict:
         from decimal import Decimal
+        from adealohn.models import ALVParameter
+
+        params = ALVParameter.objects.filter(year=payroll.year).first()
+        
+        # Fallback auf Standardwerte wenn keine Parameter gefunden
+        if not params:
+            rate_employee = Decimal("0.011")  # 1.1% Standard
+            rate_employer = Decimal("0.011")  # 1.1% Standard
+            max_year = Decimal("148200.00")
+        else:
+            rate_employee = params.rate_employee
+            rate_employer = params.rate_employer
+            max_year = params.max_annual_insured_salary
 
         basis = payroll.alv_basis or Decimal("0.00")
         employee = getattr(payroll, "employee", None)
@@ -38,7 +46,6 @@ class ALVCalculator:
         # YTD-Logik: Berechne YTD-Basis + aktuelle Basis
         ytd_basis = getattr(employee, "alv_ytd_basis", Decimal("0.00")) or Decimal("0.00")
         ytd_basis = Decimal(str(ytd_basis))
-        max_year = self.MAX_ANNUAL_INSURED_SALARY
         
         # Prüfe ob YTD-Basis bereits über Maximum liegt
         if ytd_basis >= max_year:
@@ -52,8 +59,8 @@ class ALVCalculator:
         effective_basis = capped_current
 
         # ALV-Beiträge berechnen und auf 0.05 CHF runden
-        alv_employee_raw = effective_basis * self.RATE_EMPLOYEE
-        alv_employer_raw = effective_basis * self.RATE_EMPLOYER
+        alv_employee_raw = effective_basis * rate_employee
+        alv_employer_raw = effective_basis * rate_employer
 
         alv_employee = round_to_5_rappen(alv_employee_raw)
         alv_employer = round_to_5_rappen(alv_employer_raw)

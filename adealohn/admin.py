@@ -1,6 +1,10 @@
 from django.contrib import admin
 
-from adealohn.models import WageType, PayrollItem, KTGParameter, BVGParameter, QSTParameter, FamilyAllowanceParameter, UVGParameter, FAKParameter
+from adealohn.models import (
+    WageType, PayrollItem, KTGParameter, BVGParameter, QSTParameter, 
+    FamilyAllowanceParameter, UVGParameter, FAKParameter, AHVParameter, 
+    ALVParameter, VKParameter
+)
 from adeacore.models import PayrollRecord
 
 
@@ -68,33 +72,113 @@ class PayrollItemAdmin(admin.ModelAdmin):
     autocomplete_fields = ("payroll", "wage_type")
 
 
+@admin.register(AHVParameter)
+class AHVParameterAdmin(admin.ModelAdmin):
+    list_display = ("year", "rate_employee", "rate_employer", "rentner_freibetrag_monat")
+    fieldsets = (
+        (
+            "Jahr",
+            {
+                "fields": ("year",),
+                "description": "Jahr für diese AHV-Parameter (einzigartig)",
+            },
+        ),
+        (
+            "AHV-Beitragssätze",
+            {
+                "fields": ("rate_employee", "rate_employer"),
+                "description": "Beitragssätze als Dezimalzahl (z.B. 0.0530 für 5.3%)",
+            },
+        ),
+        (
+            "Rentnerfreibetrag",
+            {
+                "fields": ("rentner_freibetrag_monat",),
+                "description": "Rentnerfreibetrag pro Monat (Standard: 1'400 CHF)",
+            },
+        ),
+    )
+    ordering = ["-year"]
+
+
+@admin.register(ALVParameter)
+class ALVParameterAdmin(admin.ModelAdmin):
+    list_display = ("year", "rate_employee", "rate_employer", "max_annual_insured_salary")
+    fieldsets = (
+        (
+            "Jahr",
+            {
+                "fields": ("year",),
+                "description": "Jahr für diese ALV-Parameter (einzigartig)",
+            },
+        ),
+        (
+            "ALV-Beitragssätze",
+            {
+                "fields": ("rate_employee", "rate_employer"),
+                "description": "Beitragssätze als Dezimalzahl (z.B. 0.0110 für 1.1%)",
+            },
+        ),
+        (
+            "Lohnobergrenze",
+            {
+                "fields": ("max_annual_insured_salary",),
+                "description": "Maximal versichertes Jahreseinkommen (Standard: 148'200 CHF)",
+            },
+        ),
+    )
+    ordering = ["-year"]
+
+
+@admin.register(VKParameter)
+class VKParameterAdmin(admin.ModelAdmin):
+    list_display = ("year", "rate_employer")
+    fieldsets = (
+        (
+            "Jahr",
+            {
+                "fields": ("year",),
+                "description": "Jahr für diese VK-Parameter (einzigartig)",
+            },
+        ),
+        (
+            "VK-Beitragssatz",
+            {
+                "fields": ("rate_employer",),
+                "description": "VK-Beitragssatz Arbeitgeber (in % des Total AHV-Beitrags, z.B. 0.03 für 3.0%). Aktueller Satz kann auf AHV-Rechnung gefunden werden.",
+            },
+        ),
+    )
+    ordering = ["-year"]
+
+
 @admin.register(KTGParameter)
 class KTGParameterAdmin(admin.ModelAdmin):
-    list_display = ("ktg_rate_employee", "ktg_rate_employer", "ktg_max_basis")
+    list_display = ("year", "ktg_rate_employee", "ktg_rate_employer", "ktg_max_basis")
     fieldsets = (
+        (
+            "Jahr",
+            {
+                "fields": ("year",),
+                "description": "Jahr für diese KTG-Parameter (einzigartig)",
+            },
+        ),
         (
             "KTG-Beitragssätze",
             {
                 "fields": ("ktg_rate_employee", "ktg_rate_employer"),
-                "description": "Beitragssätze als Dezimalzahl (z.B. 0.0150 für 1.5%)",
+                "description": "Beitragssätze als Dezimalzahl (z.B. 0.0050 für 0.5%)",
             },
         ),
         (
             "Bemessungsgrundlage",
             {
                 "fields": ("ktg_max_basis",),
-                "description": "Optional: Maximale Bemessungsgrundlage (z.B. 148200.00 für Jahreslohn)",
+                "description": "Optional: Maximale Bemessungsgrundlage (z.B. 300000.00 für Jahreslohn)",
             },
         ),
     )
-
-    def has_add_permission(self, request):
-        # Nur eine Instanz erlauben
-        return not KTGParameter.objects.exists()
-
-    def has_delete_permission(self, request, obj=None):
-        # Löschen verhindern, damit immer Parameter vorhanden sind
-        return False
+    ordering = ["-year"]
 
 
 @admin.register(FAKParameter)

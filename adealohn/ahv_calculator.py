@@ -7,11 +7,8 @@ class AHVCalculator:
     """
     Berechnet AHV-Beiträge basierend auf der AHV-Basis eines PayrollRecords.
     Berücksichtigt Rentnerfreibetrag falls aktiviert.
+    Verwendet AHVParameter für jährlich konfigurierbare Sätze.
     """
-
-    RATE_EMPLOYEE = Decimal("0.053")  # 5.3% Arbeitnehmer
-    RATE_EMPLOYER = Decimal("0.053")  # 5.3% Arbeitgeber
-    RENTNER_FREIBETRAG_MONAT = Decimal("1400.00")
 
     @classmethod
     def calculate_for_payroll(cls, payroll):
@@ -27,18 +24,32 @@ class AHVCalculator:
                 - ahv_employee: Arbeitnehmerbeitrag (gerundet auf 0.05)
                 - ahv_employer: Arbeitgeberbeitrag (gerundet auf 0.05)
         """
+        from adealohn.models import AHVParameter
+
+        params = AHVParameter.objects.filter(year=payroll.year).first()
+        
+        # Fallback auf Standardwerte wenn keine Parameter gefunden
+        if not params:
+            rate_employee = Decimal("0.053")  # 5.3% Standard
+            rate_employer = Decimal("0.053")  # 5.3% Standard
+            rentner_freibetrag = Decimal("1400.00")
+        else:
+            rate_employee = params.rate_employee
+            rate_employer = params.rate_employer
+            rentner_freibetrag = params.rentner_freibetrag_monat
+
         basis = payroll.ahv_basis
         employee = payroll.employee
 
         # Rentnerfreibetrag anwenden
         if employee.is_rentner and employee.ahv_freibetrag_aktiv:
-            effective_basis = max(basis - cls.RENTNER_FREIBETRAG_MONAT, Decimal("0"))
+            effective_basis = max(basis - rentner_freibetrag, Decimal("0"))
         else:
             effective_basis = basis
 
         # AHV-Beiträge berechnen
-        ahv_employee_raw = effective_basis * cls.RATE_EMPLOYEE
-        ahv_employer_raw = effective_basis * cls.RATE_EMPLOYER
+        ahv_employee_raw = effective_basis * rate_employee
+        ahv_employer_raw = effective_basis * rate_employer
 
         # Auf 0.05 CHF runden
         ahv_employee = round_to_5_rappen(ahv_employee_raw)

@@ -13,7 +13,7 @@ class KTGCalculator:
         from decimal import Decimal
         from adealohn.models import KTGParameter
 
-        params = KTGParameter.objects.first()
+        params = KTGParameter.objects.filter(year=payroll.year).first()
 
         if not params:
             return {

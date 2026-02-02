@@ -688,18 +688,21 @@ class PayrollRecord(models.Model):
         # AN-Sozialabzüge auf ALV-Basis müssen direkt auf ALV-Basis berechnet werden (nicht proportional!)
         # WICHTIG: Diese Berechnung muss NACH allen anderen Berechnungen erfolgen!
         from decimal import Decimal
-        from adealohn.ahv_calculator import AHVCalculator
         from adealohn.ktg_calculator import KTGCalculator
         from adealohn.uvg_calculator import UVGCalculator
-        from adealohn.models import KTGParameter, UVGParameter
+        from adealohn.models import KTGParameter, UVGParameter, AHVParameter
         from adeacore.money import round_to_5_rappen
         
         alv_basis_for_qst = self.alv_basis or Decimal("0.00")
         employee = getattr(self, "employee", None)
         
+        # AHV-Parameter für Jahr holen
+        ahv_params = AHVParameter.objects.filter(year=self.year).first()
+        ahv_rate_employee = ahv_params.rate_employee if ahv_params else Decimal("0.053")  # Fallback 5.3%
+        
         # AHV-AN auf ALV-Basis: Berechne AHV direkt mit ALV-Basis (ohne Rentnerfreibetrag für QST)
         # Für QST-Basis wird Rentnerfreibetrag nicht berücksichtigt (wie im alten System)
-        ahv_an_on_alv_basis = alv_basis_for_qst * AHVCalculator.RATE_EMPLOYEE
+        ahv_an_on_alv_basis = alv_basis_for_qst * ahv_rate_employee
         ahv_an_on_alv_basis = round_to_5_rappen(ahv_an_on_alv_basis)
         
         # ALV-AN ist bereits auf ALV-Basis (bereits korrekt berechnet)
