@@ -256,6 +256,14 @@ class PayrollRecordCreateView(LoginRequiredMixin, TenantMixin, PayrollRecordMixi
     template_name = "adealohn/payroll/form.html"
     login_url = '/admin/login/'
     
+    def get_initial(self):
+        """Setze Initialwerte für Jahr und Monat auf aktuelle Werte."""
+        initial = super().get_initial()
+        today = datetime.now()
+        initial['year'] = today.year
+        initial['month'] = today.month
+        return initial
+    
     def get_form(self, form_class=None):
         """Filtere Employee-Feld nach current_client."""
         form = super().get_form(form_class)
