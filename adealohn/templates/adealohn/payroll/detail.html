@@ -369,7 +369,7 @@
                     {% for item in time_records %}
                     <tr>
                         <td>{{ item.date|date:"d.m.Y" }}</td>
-                        <td>{{ item.project.name if item.project else "Allgemein" }}</td>
+                        <td>{% if item.project %}{{ item.project.name }}{% else %}Allgemein{% endif %}</td>
                         <td>{{ item.hours|floatformat:2 }}</td>
                     </tr>
                     {% empty %}
