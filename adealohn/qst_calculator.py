@@ -25,13 +25,13 @@ class QSTCalculator:
 
         qst_amount = Decimal("0.00")
 
-        # 2. Fixbetrag hat Vorrang
+        # 2. Fixbetrag hat Vorrang (vom Employee)
         if employee.qst_fixbetrag:
             qst_amount = employee.qst_fixbetrag
 
-        # 3. Dann Prozentsatz vom Employee
-        elif employee.qst_prozent:
-            qst_amount = basis * (employee.qst_prozent / Decimal("100"))
+        # 3. Dann Prozentsatz vom PayrollRecord (monatlich variabel)
+        elif payroll.qst_prozent:
+            qst_amount = basis * (payroll.qst_prozent / Decimal("100"))
 
         # 4. Suche QSTParameter(year, tarif) mit effektivem Tarif (inkl. Kirchensteuer)
         elif employee.qst_tarif:

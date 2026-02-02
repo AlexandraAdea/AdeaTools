@@ -154,8 +154,8 @@
                     <li><strong>QST-Betrag:</strong> <strong>{{ record.qst_amount|floatformat:2 }} CHF</strong></li>
                     {% if record.employee.qst_fixbetrag %}
                         <li><em style="color:#8e8e93; font-size:0.9em;">Fixbetrag verwendet</em></li>
-                    {% elif record.employee.qst_prozent %}
-                        <li><em style="color:#8e8e93; font-size:0.9em;">Prozentsatz: {{ record.employee.qst_prozent|floatformat:2 }}%</em></li>
+                    {% elif record.qst_prozent %}
+                        <li><em style="color:#8e8e93; font-size:0.9em;">Prozentsatz: {{ record.qst_prozent|floatformat:2 }}%</em></li>
                     {% elif record.employee.qst_tarif %}
                         <li><em style="color:#8e8e93; font-size:0.9em;">Berechnet aus QSTParameter (Tarif: {{ record.employee.qst_effective_tarif }})</em></li>
                     {% endif %}

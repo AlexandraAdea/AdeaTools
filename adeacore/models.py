@@ -439,6 +439,13 @@ class PayrollRecord(models.Model):
     bvg_employee = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     bvg_employer = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     qst_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    qst_prozent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        help_text="QST-Prozentsatz für diesen Monat (z.B. 5.00 für 5%). Kann monatlich variieren bei Stundenlöhnen.",
+    )
     net_salary = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 

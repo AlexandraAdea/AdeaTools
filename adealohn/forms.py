@@ -133,6 +133,7 @@ class PayrollRecordForm(forms.ModelForm):
             "year",
             "status",
             "gross_salary",
+            "qst_prozent",
         ]
         labels = {
             "employee": "Mitarbeiter",
@@ -140,6 +141,7 @@ class PayrollRecordForm(forms.ModelForm):
             "year": "Jahr",
             "status": "Status",
             "gross_salary": "Bruttolohn (CHF)",
+            "qst_prozent": "QST-Prozentsatz (%)",
         }
         widgets = {
             "employee": forms.Select(attrs={"class": "adea-select"}),
@@ -153,8 +155,41 @@ class PayrollRecordForm(forms.ModelForm):
             "gross_salary": forms.NumberInput(
                 attrs={"class": "adea-input", "step": "0.05", "min": "0"}
             ),
+            "qst_prozent": forms.NumberInput(
+                attrs={"class": "adea-input", "step": "0.01", "min": "0", "max": "100"}
+            ),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        employee_id = self.data.get("employee") or self.initial.get("employee")
+        employee = None
+        if employee_id:
+            try:
+                employee = Employee.objects.get(pk=employee_id)
+            except Employee.DoesNotExist:
+                employee = None
+        elif self.instance and self.instance.pk:
+            employee = self.instance.employee
+        
+        # Wenn gesperrt, Status-Feld readonly machen
+        if self.instance and self.instance.pk and self.instance.is_locked():
+            self.fields["status"].widget.attrs["readonly"] = True
+            self.fields["status"].widget.attrs["disabled"] = True
+        
+        if employee and employee.hourly_rate > 0:
+            self.fields["gross_salary"].required = False
+            self.fields["gross_salary"].widget = forms.HiddenInput()
+            self.show_gross_salary_field = False
+        else:
+            self.show_gross_salary_field = True
+        
+        # QST-Prozent nur bei QST-pflichtigen Mitarbeitern anzeigen
+        if employee and not employee.qst_pflichtig:
+            self.fields["qst_prozent"].widget = forms.HiddenInput()
+            self.fields["qst_prozent"].required = False
+        else:
+            self.fields["qst_prozent"].help_text = "QST-Prozentsatz für diesen Monat (z.B. 4.30 für 4.30%). Kann monatlich variieren bei Stundenlöhnen."
 
 
 class FamilyAllowanceNachzahlungForm(forms.Form):
