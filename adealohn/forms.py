@@ -22,8 +22,8 @@ class EmployeeForm(forms.ModelForm):
             "qst_tarif",
             "qst_kinder",
             "qst_kirchensteuer",
-            "qst_prozent",
             "qst_fixbetrag",
+            # qst_prozent entfernt - wird pro PayrollRecord gespeichert (ändert sich monatlich)
         ]
         labels = {
             "client": "Mandant",
@@ -32,14 +32,13 @@ class EmployeeForm(forms.ModelForm):
             "role": "Rolle",
             "hourly_rate": "Stundensatz (CHF)",
             "weekly_hours": "Wöchentliche Stunden",
-            "nbu_pflichtig": "NBU-pflichtig",
+            "nbu_pflichtig": "NBU-pflichtig (ab 8h/Woche)",
             "is_rentner": "Rentner/in",
-            "ahv_freibetrag_aktiv": "AHV-Freibetrag aktiv",
+            "ahv_freibetrag_aktiv": "AHV-Freibetrag aktiv (nur bei Rentnern)",
             "qst_pflichtig": "QST-pflichtig",
             "qst_tarif": "QST-Tarif",
             "qst_kinder": "QST-Kinder",
             "qst_kirchensteuer": "QST-Kirchensteuer",
-            "qst_prozent": "QST-Prozent",
             "qst_fixbetrag": "QST-Fixbetrag (CHF)",
         }
         widgets = {
@@ -73,13 +72,6 @@ class EmployeeForm(forms.ModelForm):
                 }
             ),
             "qst_kirchensteuer": forms.CheckboxInput(attrs={"class": "adea-checkbox"}),
-            "qst_prozent": forms.NumberInput(
-                attrs={
-                    "class": "adea-input",
-                    "step": "0.01",
-                    "min": "0",
-                }
-            ),
             "qst_fixbetrag": forms.NumberInput(
                 attrs={
                     "class": "adea-input",
@@ -88,6 +80,46 @@ class EmployeeForm(forms.ModelForm):
                 }
             ),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # AHV-Freibetrag nur bei Rentnern anzeigen
+        if not (self.instance and self.instance.pk and self.instance.is_rentner):
+            # Wenn nicht Rentner, AHV-Freibetrag ausblenden
+            if 'ahv_freibetrag_aktiv' in self.fields:
+                self.fields['ahv_freibetrag_aktiv'].widget = forms.HiddenInput()
+                # Setze auf False, wenn nicht Rentner
+                if not self.instance.is_rentner:
+                    self.fields['ahv_freibetrag_aktiv'].initial = False
+        
+        # NBU-Hinweis: Nur ab 8h/Woche relevant
+        if 'nbu_pflichtig' in self.fields:
+            self.fields['nbu_pflichtig'].help_text = "NBU-Pflicht gilt ab 8 Stunden pro Woche. Wird automatisch aktiviert, wenn wöchentliche Stunden > 8 sind."
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        from django.core.exceptions import ValidationError
+        from decimal import Decimal
+        
+        # NBU-Validierung: Nur ab 8h/Woche
+        weekly_hours = cleaned_data.get('weekly_hours') or Decimal('0')
+        nbu_pflichtig = cleaned_data.get('nbu_pflichtig', False)
+        
+        if nbu_pflichtig and weekly_hours < Decimal('8'):
+            raise ValidationError({
+                'nbu_pflichtig': 'NBU-Pflicht gilt nur ab 8 Stunden pro Woche. Bitte wöchentliche Stunden anpassen oder NBU-Pflicht deaktivieren.'
+            })
+        
+        # AHV-Freibetrag nur bei Rentnern
+        is_rentner = cleaned_data.get('is_rentner', False)
+        ahv_freibetrag_aktiv = cleaned_data.get('ahv_freibetrag_aktiv', False)
+        
+        if ahv_freibetrag_aktiv and not is_rentner:
+            raise ValidationError({
+                'ahv_freibetrag_aktiv': 'AHV-Freibetrag kann nur bei Rentnern aktiviert werden.'
+            })
+        
+        return cleaned_data
 
 
 class PayrollRecordForm(forms.ModelForm):
@@ -123,29 +155,6 @@ class PayrollRecordForm(forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        employee_id = self.data.get("employee") or self.initial.get("employee")
-        employee = None
-        if employee_id:
-            try:
-                employee = Employee.objects.get(pk=employee_id)
-            except Employee.DoesNotExist:
-                employee = None
-        elif self.instance and self.instance.pk:
-            employee = self.instance.employee
-        
-        # Wenn gesperrt, Status-Feld readonly machen
-        if self.instance and self.instance.pk and self.instance.is_locked():
-            self.fields["status"].widget.attrs["readonly"] = True
-            self.fields["status"].widget.attrs["disabled"] = True
-        
-        if employee and employee.hourly_rate > 0:
-            self.fields["gross_salary"].required = False
-            self.fields["gross_salary"].widget = forms.HiddenInput()
-            self.show_gross_salary_field = False
-        else:
-            self.show_gross_salary_field = True
 
 
 class FamilyAllowanceNachzahlungForm(forms.Form):
