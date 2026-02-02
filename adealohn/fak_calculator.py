@@ -17,7 +17,10 @@ class FAKCalculator:
     def calculate_for_payroll(cls, payroll):
         """
         Berechnet FAK-Beitrag für einen PayrollRecord.
-        Verwendet kantonalen Satz basierend auf Arbeitgeberort (Client.work_canton).
+        
+        WICHTIG: FAK ist kantonabhängig basierend auf dem FIRMENSITZ des Mandanten (Client),
+        nicht auf dem Wohnort des Mitarbeiters! Jeder Treuhandmandant kann einen
+        unterschiedlichen Firmensitz haben.
 
         Args:
             payroll: PayrollRecord-Instanz
@@ -30,29 +33,39 @@ class FAKCalculator:
 
         gross_salary = payroll.gross_salary or Decimal("0.00")
         
-        # Kanton des Arbeitgebers ermitteln
-        employee = getattr(payroll, "employee", None)
+        # Kanton des FIRMENSITZES des Mandanten (Client) ermitteln
+        # PayrollRecord → Employee → Client → work_canton
         canton = None
-        if employee and employee.client:
-            canton = employee.client.work_canton
+        try:
+            employee = payroll.employee
+            if employee and hasattr(employee, 'client') and employee.client:
+                # Client ist der Mandant (Firma), dessen Firmensitz relevant ist
+                canton = employee.client.work_canton
+        except AttributeError:
+            # Fallback wenn employee oder client nicht verfügbar
+            pass
         
         # FAK-Parameter für Jahr und Kanton suchen
         rate = cls.DEFAULT_RATE_EMPLOYER
         if canton:
-            fak_param = FAKParameter.objects.filter(
-                year=payroll.year,
-                canton=canton.upper() if canton else None
-            ).first()
-            if fak_param:
-                rate = fak_param.fak_rate_employer
-            else:
-                # Fallback: DEFAULT-Parameter suchen
-                fak_param_default = FAKParameter.objects.filter(
+            canton_upper = canton.strip().upper() if canton else None
+            if canton_upper:
+                fak_param = FAKParameter.objects.filter(
                     year=payroll.year,
-                    canton="DEFAULT"
+                    canton=canton_upper
                 ).first()
-                if fak_param_default:
-                    rate = fak_param_default.fak_rate_employer
+                if fak_param:
+                    rate = fak_param.fak_rate_employer
+                    # Kein weiterer Fallback nötig, da kantonaler Satz gefunden
+        
+        # Wenn kein kantonaler Satz gefunden, versuche DEFAULT
+        if rate == cls.DEFAULT_RATE_EMPLOYER:
+            fak_param_default = FAKParameter.objects.filter(
+                year=payroll.year,
+                canton="DEFAULT"
+            ).first()
+            if fak_param_default:
+                rate = fak_param_default.fak_rate_employer
 
         # FAK-Beitrag berechnen
         fak_employer_raw = gross_salary * rate
