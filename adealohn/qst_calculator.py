@@ -20,8 +20,9 @@ class QSTCalculator:
             payroll.qst_amount = Decimal("0.00")
             return
 
-        # Basis bestimmen: qst_basis oder fallback gross_salary
-        basis = payroll.qst_basis or payroll.gross_salary or Decimal("0.00")
+        # Basis bestimmen: qst_basis (bereits korrekt berechnet als ALV-Basis - AN-Sozialabzüge)
+        # Fallback auf gross_salary nur wenn qst_basis nicht gesetzt
+        basis = payroll.qst_basis if payroll.qst_basis and payroll.qst_basis > 0 else (payroll.gross_salary or Decimal("0.00"))
 
         qst_amount = Decimal("0.00")
 

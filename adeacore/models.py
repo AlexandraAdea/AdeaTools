@@ -684,7 +684,74 @@ class PayrollRecord(models.Model):
             logger.error(f"BVG-Berechnung fehlgeschlagen für PayrollRecord {self.pk}: {e}", exc_info=True)
             raise ValidationError(f"BVG-Berechnung fehlgeschlagen: {e}")
 
-        # QST-Berechnung durchführen
+        # QST-Basis neu berechnen (gemäss Excel-Logik: ALV-Basis - AN-Sozialabzüge auf ALV-Basis)
+        # AN-Sozialabzüge auf ALV-Basis müssen direkt auf ALV-Basis berechnet werden (nicht proportional!)
+        # WICHTIG: Diese Berechnung muss NACH allen anderen Berechnungen erfolgen!
+        from decimal import Decimal
+        from adealohn.ahv_calculator import AHVCalculator
+        from adealohn.ktg_calculator import KTGCalculator
+        from adealohn.uvg_calculator import UVGCalculator
+        from adealohn.models import KTGParameter, UVGParameter
+        from adeacore.money import round_to_5_rappen
+        
+        alv_basis_for_qst = self.alv_basis or Decimal("0.00")
+        employee = getattr(self, "employee", None)
+        
+        # AHV-AN auf ALV-Basis: Berechne AHV direkt mit ALV-Basis (ohne Rentnerfreibetrag für QST)
+        # Für QST-Basis wird Rentnerfreibetrag nicht berücksichtigt (wie im alten System)
+        ahv_an_on_alv_basis = alv_basis_for_qst * AHVCalculator.RATE_EMPLOYEE
+        ahv_an_on_alv_basis = round_to_5_rappen(ahv_an_on_alv_basis)
+        
+        # ALV-AN ist bereits auf ALV-Basis (bereits korrekt berechnet)
+        alv_an_on_alv_basis = self.alv_employee or Decimal("0.00")
+        
+        # NBU-AN auf ALV-Basis: Berechne NBU direkt mit ALV-Basis
+        nbu_on_alv_basis = Decimal("0.00")
+        if employee and getattr(employee, "nbu_pflichtig", False):
+            uvg_params = UVGParameter.objects.filter(year=self.year).first()
+            if uvg_params:
+                # YTD-Logik für NBU (gleiche wie für BU)
+                ytd_basis = getattr(employee, "uvg_ytd_basis", Decimal("0.00")) or Decimal("0.00")
+                ytd_basis = Decimal(str(ytd_basis))
+                max_year = uvg_params.max_annual_insured_salary
+                
+                if ytd_basis < max_year:
+                    remaining = max_year - ytd_basis
+                    capped_alv_basis = min(alv_basis_for_qst, remaining)
+                    nbu_raw = capped_alv_basis * uvg_params.nbu_rate_employee
+                    nbu_on_alv_basis = round_to_5_rappen(nbu_raw)
+        
+        # KTG-AN auf ALV-Basis: Berechne KTG direkt mit ALV-Basis
+        ktg_on_alv_basis = Decimal("0.00")
+        ktg_params = KTGParameter.objects.first()
+        if ktg_params and ktg_params.ktg_rate_employee > 0:
+            # Optional: Kappung anwenden
+            if ktg_params.ktg_max_basis:
+                effective_alv_basis = min(alv_basis_for_qst, ktg_params.ktg_max_basis)
+            else:
+                effective_alv_basis = alv_basis_for_qst
+            
+            ktg_total_on_alv = effective_alv_basis * (ktg_params.ktg_rate_employee + ktg_params.ktg_rate_employer)
+            # AN-Anteil (50/50 Split, falls nicht anders konfiguriert)
+            ktg_on_alv_basis = ktg_total_on_alv * (ktg_params.ktg_rate_employee / (ktg_params.ktg_rate_employee + ktg_params.ktg_rate_employer)) if (ktg_params.ktg_rate_employee + ktg_params.ktg_rate_employer) > 0 else Decimal("0.00")
+            ktg_on_alv_basis = round_to_5_rappen(ktg_on_alv_basis)
+        
+        # BVG ist unabhängig von Basis (wird direkt verwendet)
+        bvg_an = self.bvg_employee or Decimal("0.00")
+        
+        # AN-Sozialabzüge auf ALV-Basis
+        sozialabzuege_auf_alv_basis = (
+            ahv_an_on_alv_basis +
+            alv_an_on_alv_basis +
+            nbu_on_alv_basis +
+            ktg_on_alv_basis +
+            bvg_an
+        )
+        
+        # QST-Basis = ALV-Basis - AN-Sozialabzüge auf ALV-Basis
+        self.qst_basis = max(alv_basis_for_qst - sozialabzuege_auf_alv_basis, Decimal("0.00"))
+        
+        # QST-Berechnung durchführen (verwendet jetzt korrekte qst_basis)
         try:
             from adealohn.qst_calculator import QSTCalculator
             qst_calc = QSTCalculator()
