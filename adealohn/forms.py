@@ -103,14 +103,16 @@ class EmployeeForm(forms.ModelForm):
         from django.core.exceptions import ValidationError
         from decimal import Decimal
         
-        # NBU-Validierung: Nur ab 8h/Woche
-        weekly_hours = cleaned_data.get('weekly_hours') or Decimal('0')
+        # NBU-Validierung: Nur ab 8h/Woche (nur wenn weekly_hours ausgefüllt ist)
+        weekly_hours = cleaned_data.get('weekly_hours')
         nbu_pflichtig = cleaned_data.get('nbu_pflichtig', False)
         
-        if nbu_pflichtig and weekly_hours < Decimal('8'):
-            raise ValidationError({
-                'nbu_pflichtig': 'NBU-Pflicht gilt nur ab 8 Stunden pro Woche. Bitte wöchentliche Stunden anpassen oder NBU-Pflicht deaktivieren.'
-            })
+        # Nur validieren, wenn weekly_hours vorhanden ist (nicht None/leer)
+        if weekly_hours is not None and weekly_hours > 0:
+            if nbu_pflichtig and weekly_hours < Decimal('8'):
+                raise ValidationError({
+                    'nbu_pflichtig': 'NBU-Pflicht gilt nur ab 8 Stunden pro Woche. Bitte wöchentliche Stunden anpassen oder NBU-Pflicht deaktivieren.'
+                })
         
         # AHV-Freibetrag nur bei Rentnern
         is_rentner = cleaned_data.get('is_rentner', False)
