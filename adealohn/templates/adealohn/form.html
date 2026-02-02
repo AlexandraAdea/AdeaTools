@@ -1,10 +1,6 @@
 {% extends 'base.html' %}
 
-{% if object %}
-    {% block title %}Mitarbeiter bearbeiten – AdeaLohn{% endblock %}
-{% else %}
-    {% block title %}Neuer Mitarbeiter – AdeaLohn{% endblock %}
-{% endif %}
+{% block title %}{% if object %}Mitarbeiter bearbeiten{% else %}Neuer Mitarbeiter{% endif %} – AdeaLohn{% endblock %}
 
 {% block content %}
 <section class="content-card">
