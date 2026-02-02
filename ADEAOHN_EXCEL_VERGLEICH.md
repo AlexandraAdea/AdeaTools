@@ -61,15 +61,17 @@
 ## ⚠️ FEHLENDE ODER UNVOLLSTÄNDIGE KOMPONENTEN
 
 ### 1. FAK-Beitrag (Familienausgleichskasse)
-- **Excel:** 1.0% AG Beitrag (separater Beitrag)
+- **Offizielle Tabelle:** 1.025% AG Beitrag (vom Bruttolohn)
+- **Excel-Vorlage:** 1.0% AG (vereinfacht/gerundet)
 - **AdeaLohn:** ❌ Nicht als AG-Beitrag implementiert
 - **Status:** Familienzulagen werden als Zulagen erfasst, aber FAK-Beitrag fehlt
-- **Empfehlung:** FAK-Beitrag als separater AG-Beitrag hinzufügen (1.0% vom Bruttolohn)
+- **Empfehlung:** FAK-Beitrag als separater AG-Beitrag hinzufügen (**1.025% vom Bruttolohn**, nicht 1.0%!)
 
 ### 2. VK (Verwaltungskosten)
-- **Excel:** 3.0% AG (vom AHV-Betrag)
+- **Offizielle Tabelle:** 5.0% AG (vom **Total AHV/IV/EO-Beitrag**, nicht nur AG-Anteil!)
+- **Excel-Vorlage:** 3.0% AG (veraltet oder falsch)
 - **AdeaLohn:** ❌ Nicht implementiert
-- **Empfehlung:** VK als separater AG-Beitrag hinzufügen (3.0% vom AHV-AG-Beitrag)
+- **Empfehlung:** VK als separater AG-Beitrag hinzufügen (**5.0% vom Total AHV-Beitrag** = 5.0% × (AHV-AN + AHV-AG))
 
 ### 3. BU/NBU Raten (UVG)
 - **Excel:** 
@@ -103,16 +105,26 @@
 ✅ NBU-Pflicht (ab 8h/Woche)  
 
 ### Fehlend oder unvollständig (4/13):
-❌ FAK-Beitrag (1.0% AG)  
-❌ VK (3.0% AG vom AHV-Betrag)  
+❌ FAK-Beitrag (**1.025%** AG, nicht 1.0%!)  
+❌ VK (**5.0%** AG vom **Total AHV-Beitrag**, nicht 3.0%!)  
 ⚠️ BU/NBU Raten (Platzhalter, müssen konfigurierbar sein)  
-❓ Ferienentschädigung (muss prüfen)  
+❌ Ferienentschädigung (8.33%/10.64% fehlt)  
 
 ---
 
 ## 🔧 EMPFOHLENE NÄCHSTE SCHRITTE
 
 1. **UVGParameter-Model erstellen** (BU/NBU Raten konfigurierbar machen)
-2. **FAK-Beitrag hinzufügen** (1.0% AG vom Bruttolohn)
-3. **VK (Verwaltungskosten) hinzufügen** (3.0% AG vom AHV-AG-Beitrag)
-4. **Ferienentschädigung prüfen** (8.33%/10.64% für Stundenlöhne)
+2. **FAK-Beitrag hinzufügen** (**1.025%** AG vom Bruttolohn - korrigiert!)
+3. **VK (Verwaltungskosten) hinzufügen** (**5.0%** AG vom **Total AHV-Beitrag** - korrigiert!)
+4. **Ferienentschädigung implementieren** (8.33%/10.64% für Stundenlöhne)
+
+---
+
+## ⚠️ KRITISCHE KORREKTUREN (basierend auf offizieller Tabelle)
+
+**Quelle:** Offizielle Berechnungstabelle "Berechnung der Sozialversicherungsbeiträge"
+
+### Korrigierte Werte:
+- **FAK:** 1.025% (nicht 1.0% wie in Excel-Vorlage)
+- **VK:** 5.0% vom **Total AHV-Beitrag** (nicht 3.0% vom AG-Anteil)
