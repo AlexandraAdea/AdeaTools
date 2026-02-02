@@ -54,14 +54,13 @@
         </div>
 
         {% if not form.show_gross_salary_field %}
-        <div class="feature-item" style="margin-top:16px;">
-            <strong>Hinweis:</strong> Bruttolohn wird automatisch berechnet (Stunden × Stundensatz).
-        </div>
-        {% endif %}
-
-        {% if hours_total %}
-        <div class="feature-item" style="margin-top:16px;">
-            <strong>Berechnete Stunden:</strong> {{ hours_total|floatformat:2 }} h
+        <div class="feature-item" style="margin-top:16px; padding:12px; background:#e8f4f8; border-left:4px solid #007aff; border-radius:4px;">
+            <strong>ℹ️ Hinweis:</strong> Bruttolohn wird automatisch berechnet (Stunden × Stundensatz).
+            {% if hours_total %}
+            <br><strong>Berechnete Stunden:</strong> {{ hours_total|floatformat:2 }} h
+            {% elif not hours_total %}
+            <br><strong>⚠️ Achtung:</strong> Keine Stunden gefunden. Bitte Stunden manuell eingeben oder Zeiteinträge erstellen.
+            {% endif %}
         </div>
         {% endif %}
 

@@ -446,7 +446,17 @@ class PayrollRecordUpdateView(LockedPayrollFormGuardMixin, LoginRequiredMixin, T
         employee = form.cleaned_data["employee"]
         month = form.cleaned_data["month"]
         year = form.cleaned_data["year"]
-        hours_total = self.get_hours_total(employee, month, year)
+        
+        # Stunden: Zuerst aus TimeRecords, falls vorhanden, sonst manuell eingegeben
+        hours_from_records = self.get_hours_total(employee, month, year)
+        hours_manual = form.cleaned_data.get("hours_manual") or Decimal("0")
+        
+        # Wenn TimeRecords vorhanden sind, diese verwenden, sonst manuell eingegebene Stunden
+        if hours_from_records > 0:
+            hours_total = hours_from_records
+        else:
+            hours_total = hours_manual
+        
         self.hours_total = hours_total
         gross_salary = form.cleaned_data.get("gross_salary")
 

@@ -126,6 +126,17 @@ class EmployeeForm(forms.ModelForm):
 
 class PayrollRecordForm(forms.ModelForm):
     show_gross_salary_field = True
+    hours_manual = forms.DecimalField(
+        required=False,
+        max_digits=6,
+        decimal_places=2,
+        min_value=Decimal("0"),
+        widget=forms.NumberInput(
+            attrs={"class": "adea-input", "step": "0.25", "min": "0"}
+        ),
+        label="Stunden (manuell)",
+        help_text="Stunden manuell eingeben, falls keine Zeiteinträge vorhanden sind. Wird automatisch aus Zeiteinträgen berechnet, wenn vorhanden.",
+    )
 
     class Meta:
         model = PayrollRecord
@@ -183,8 +194,13 @@ class PayrollRecordForm(forms.ModelForm):
             self.fields["gross_salary"].required = False
             self.fields["gross_salary"].widget = forms.HiddenInput()
             self.show_gross_salary_field = False
+            # Stunden-Feld nur bei Stundenlöhnen anzeigen
+            self.fields["hours_manual"].help_text = "Stunden manuell eingeben, falls keine Zeiteinträge vorhanden sind. Wird automatisch aus Zeiteinträgen berechnet, wenn vorhanden."
         else:
             self.show_gross_salary_field = True
+            # Stunden-Feld bei Monatslöhnen ausblenden
+            self.fields["hours_manual"].widget = forms.HiddenInput()
+            self.fields["hours_manual"].required = False
         
         # QST-Prozent nur bei QST-pflichtigen Mitarbeitern anzeigen
         if employee and not employee.qst_pflichtig:
