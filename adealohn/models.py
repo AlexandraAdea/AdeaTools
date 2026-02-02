@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db import models
 
 from adeacore.models import PayrollRecord
@@ -101,6 +103,44 @@ class KTGParameter(models.Model):
 
     def __str__(self):
         return "KTG Parameter"
+
+
+class UVGParameter(models.Model):
+    """
+    Konfigurierbare Parameter für die Unfallversicherung (UVG).
+    Ein Datensatz pro Jahr.
+    """
+    year = models.IntegerField(
+        default=2025,
+        unique=True,
+        help_text="Jahr für diese UVG-Parameter",
+    )
+    bu_rate_employer = models.DecimalField(
+        max_digits=5,
+        decimal_places=4,
+        default=Decimal("0.00644"),
+        help_text="BU-Beitragssatz Arbeitgeber (z.B. 0.00644 für 0.644%)",
+    )
+    nbu_rate_employee = models.DecimalField(
+        max_digits=5,
+        decimal_places=4,
+        default=Decimal("0.0230"),
+        help_text="NBU-Beitragssatz Arbeitnehmer (z.B. 0.0230 für 2.3%)",
+    )
+    max_annual_insured_salary = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("148200.00"),
+        help_text="Maximal versichertes Jahreseinkommen (Standard: 148'200 CHF)",
+    )
+
+    class Meta:
+        verbose_name = "UVG Parameter"
+        verbose_name_plural = "UVG Parameter"
+        ordering = ["-year"]
+
+    def __str__(self):
+        return f"UVG Parameter {self.year}"
 
 
 class BVGParameter(models.Model):

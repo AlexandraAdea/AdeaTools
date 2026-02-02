@@ -11,16 +11,19 @@ class UVGCalculator:
     - Lohnobergrenze: 148'200 CHF/Jahr (12'350 CHF/Monat)
     """
 
-    RATE_BU_EMPLOYER = Decimal("0.00")  # Platzhalter, wird später von Versicherer definiert
-    RATE_NBU_EMPLOYEE = Decimal("0.00")  # Platzhalter, wird später definiert
-
-    MAX_ANNUAL_INSURED_SALARY = Decimal("148200.00")
-
-    def get_month_cap(self):
-        return self.MAX_ANNUAL_INSURED_SALARY / Decimal("12")
-
     def calculate_for_payroll(self, payroll):
         from decimal import Decimal
+        from adealohn.models import UVGParameter
+
+        params = UVGParameter.objects.filter(year=payroll.year).first()
+
+        if not params:
+            return {
+                "uvg_effective_basis": Decimal("0.00"),
+                "bu_employer": Decimal("0.00"),
+                "bu_employee": Decimal("0.00"),
+                "nbu_employee": Decimal("0.00"),
+            }
 
         basis = payroll.uv_basis or Decimal("0.00")
         employee = getattr(payroll, "employee", None)
@@ -28,7 +31,7 @@ class UVGCalculator:
         # YTD-Logik: Berechne YTD-Basis + aktuelle Basis
         ytd_basis = getattr(employee, "uvg_ytd_basis", Decimal("0.00")) or Decimal("0.00")
         ytd_basis = Decimal(str(ytd_basis))
-        max_year = self.MAX_ANNUAL_INSURED_SALARY
+        max_year = params.max_annual_insured_salary
         
         # Prüfe ob YTD-Basis bereits über Maximum liegt
         if ytd_basis >= max_year:
@@ -42,13 +45,13 @@ class UVGCalculator:
         effective_basis = capped_current
 
         # BU: immer nur Arbeitgeber
-        bu_employer_raw = effective_basis * self.RATE_BU_EMPLOYER
+        bu_employer_raw = effective_basis * params.bu_rate_employer
         bu_employer = round_to_5_rappen(bu_employer_raw)
         bu_employee = Decimal("0.00")
 
         # NBU: nur wenn Pflicht (>8h/Woche)
         if getattr(employee, "nbu_pflichtig", False):
-            nbu_employee_raw = effective_basis * self.RATE_NBU_EMPLOYEE
+            nbu_employee_raw = effective_basis * params.nbu_rate_employee
             nbu_employee = round_to_5_rappen(nbu_employee_raw)
         else:
             nbu_employee = Decimal("0.00")

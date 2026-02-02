@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from adealohn.models import WageType, PayrollItem, KTGParameter, BVGParameter, QSTParameter, FamilyAllowanceParameter
+from adealohn.models import WageType, PayrollItem, KTGParameter, BVGParameter, QSTParameter, FamilyAllowanceParameter, UVGParameter
 from adeacore.models import PayrollRecord
 
 
@@ -95,6 +95,47 @@ class KTGParameterAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         # Löschen verhindern, damit immer Parameter vorhanden sind
         return False
+
+
+@admin.register(UVGParameter)
+class UVGParameterAdmin(admin.ModelAdmin):
+    list_display = (
+        "year",
+        "bu_rate_employer",
+        "nbu_rate_employee",
+        "max_annual_insured_salary",
+    )
+    fieldsets = (
+        (
+            "Jahr",
+            {
+                "fields": ("year",),
+                "description": "Jahr für diese UVG-Parameter (einzigartig)",
+            },
+        ),
+        (
+            "BU-Beitragssatz",
+            {
+                "fields": ("bu_rate_employer",),
+                "description": "BU-Beitragssatz Arbeitgeber (z.B. 0.00644 für 0.644%)",
+            },
+        ),
+        (
+            "NBU-Beitragssatz",
+            {
+                "fields": ("nbu_rate_employee",),
+                "description": "NBU-Beitragssatz Arbeitnehmer (z.B. 0.0230 für 2.3%)",
+            },
+        ),
+        (
+            "Lohnobergrenze",
+            {
+                "fields": ("max_annual_insured_salary",),
+                "description": "Maximal versichertes Jahreseinkommen (Standard: 148'200 CHF)",
+            },
+        ),
+    )
+    ordering = ["-year"]
 
 
 @admin.register(BVGParameter)

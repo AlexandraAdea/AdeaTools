@@ -226,6 +226,11 @@ class Employee(models.Model):
         default=0,
         help_text="Wöchentliche Arbeitsstunden",
     )
+    vacation_weeks = models.IntegerField(
+        default=5,
+        choices=[(4, "4 Wochen"), (5, "5 Wochen"), (6, "6 Wochen")],
+        help_text="Anzahl Ferienwochen (für Ferienentschädigung bei Stundenlöhnen)",
+    )
     nbu_pflichtig = models.BooleanField(
         default=False,
         help_text="NBU-Pflicht (AN). Automatisch bei >8h/Woche, aber manuell überschreibbar.",
@@ -446,6 +451,18 @@ class PayrollRecord(models.Model):
         null=True,
         help_text="QST-Prozentsatz für diesen Monat (z.B. 5.00 für 5%). Kann monatlich variieren bei Stundenlöhnen.",
     )
+    fak_employer = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="FAK-Beitrag Arbeitgeber (1.025% vom Bruttolohn)",
+    )
+    vk_employer = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Verwaltungskosten Arbeitgeber (5.0% vom Total AHV-Beitrag)",
+    )
     net_salary = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -590,6 +607,24 @@ class PayrollRecord(models.Model):
         except Exception as e:
             logger.error(f"AHV-Berechnung fehlgeschlagen für PayrollRecord {self.pk}: {e}", exc_info=True)
             raise ValidationError(f"AHV-Berechnung fehlgeschlagen: {e}")
+
+        # FAK-Berechnung durchführen (nach AHV, da auf Bruttolohn basiert)
+        try:
+            from adealohn.fak_calculator import FAKCalculator
+            fak_result = FAKCalculator.calculate_for_payroll(self)
+            self.fak_employer = fak_result["fak_employer"]
+        except Exception as e:
+            logger.error(f"FAK-Berechnung fehlgeschlagen für PayrollRecord {self.pk}: {e}", exc_info=True)
+            raise ValidationError(f"FAK-Berechnung fehlgeschlagen: {e}")
+
+        # VK-Berechnung durchführen (nach AHV, da auf Total AHV-Beitrag basiert)
+        try:
+            from adealohn.vk_calculator import VKCalculator
+            vk_result = VKCalculator.calculate_for_payroll(self)
+            self.vk_employer = vk_result["vk_employer"]
+        except Exception as e:
+            logger.error(f"VK-Berechnung fehlgeschlagen für PayrollRecord {self.pk}: {e}", exc_info=True)
+            raise ValidationError(f"VK-Berechnung fehlgeschlagen: {e}")
 
         # ALV-Berechnung durchführen
         try:

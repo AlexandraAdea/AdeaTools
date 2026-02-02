@@ -310,6 +310,31 @@ class PayrollRecordCreateView(LoginRequiredMixin, TenantMixin, PayrollRecordMixi
                 amount=employee.hourly_rate,
                 description="Automatisch berechneter Stundenlohn.",
             )
+
+            # Ferienentschädigung automatisch hinzufügen (nur bei Stundenlöhnen)
+            from adealohn.vacation_calculator import VacationCalculator
+            base_salary = hours_total * employee.hourly_rate
+            vacation_weeks = getattr(employee, "vacation_weeks", 5) or 5
+            vacation_allowance = VacationCalculator.calculate_vacation_allowance(
+                base_salary, vacation_weeks
+            )
+
+            if vacation_allowance > 0:
+                # Ferienentschädigung als Zulage (AHV/ALV/NBU-pflichtig, aber NICHT BVG-pflichtig)
+                vacation_wage_type = self.ensure_wage_type(
+                    "FERIENENTSCHAEDIGUNG", "Ferienentschädigung"
+                )
+                # Setze BVG-relevant auf False für Ferienentschädigung
+                if vacation_wage_type.bvg_relevant:
+                    vacation_wage_type.bvg_relevant = False
+                    vacation_wage_type.save(update_fields=["bvg_relevant"])
+
+                self.object.items.create(
+                    wage_type=vacation_wage_type,
+                    quantity=Decimal("1.0"),
+                    amount=vacation_allowance,
+                    description=f"Automatisch berechnete Ferienentschädigung ({vacation_weeks} Wochen).",
+                )
         else:
             wage_type = self.ensure_wage_type(
                 "GRUNDLOHN_MONAT", "Grundlohn Monatslohn"
@@ -444,6 +469,31 @@ class PayrollRecordUpdateView(LockedPayrollFormGuardMixin, LoginRequiredMixin, T
                 amount=employee.hourly_rate,
                 description="Automatisch berechneter Stundenlohn.",
             )
+
+            # Ferienentschädigung automatisch hinzufügen (nur bei Stundenlöhnen)
+            from adealohn.vacation_calculator import VacationCalculator
+            base_salary = hours_total * employee.hourly_rate
+            vacation_weeks = getattr(employee, "vacation_weeks", 5) or 5
+            vacation_allowance = VacationCalculator.calculate_vacation_allowance(
+                base_salary, vacation_weeks
+            )
+
+            if vacation_allowance > 0:
+                # Ferienentschädigung als Zulage (AHV/ALV/NBU-pflichtig, aber NICHT BVG-pflichtig)
+                vacation_wage_type = self.ensure_wage_type(
+                    "FERIENENTSCHAEDIGUNG", "Ferienentschädigung"
+                )
+                # Setze BVG-relevant auf False für Ferienentschädigung
+                if vacation_wage_type.bvg_relevant:
+                    vacation_wage_type.bvg_relevant = False
+                    vacation_wage_type.save(update_fields=["bvg_relevant"])
+
+                self.object.items.create(
+                    wage_type=vacation_wage_type,
+                    quantity=Decimal("1.0"),
+                    amount=vacation_allowance,
+                    description=f"Automatisch berechnete Ferienentschädigung ({vacation_weeks} Wochen).",
+                )
         else:
             wage_type = self.ensure_wage_type(
                 "GRUNDLOHN_MONAT", "Grundlohn Monatslohn"
