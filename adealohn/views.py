@@ -394,10 +394,19 @@ class PayrollRecordDetailView(LoginRequiredMixin, TenantObjectMixin, DetailView)
         # Summe der Familienzulagen
         summe_familienzulagen = sum(item.total for item in family_allowance_items)
         
+        # BVG-Sätze in Prozent berechnen (für Template-Anzeige)
+        bvg_employee_rate_percent = None
+        bvg_employer_rate_percent = None
+        if bvg_params:
+            bvg_employee_rate_percent = bvg_params.employee_rate * Decimal("100")
+            bvg_employer_rate_percent = bvg_params.employer_rate * Decimal("100")
+        
         context["time_records"] = time_records
         context["hours_total"] = hours_total
         context["month_name"] = month_name[self.object.month]
         context["bvg_params"] = bvg_params
+        context["bvg_employee_rate_percent"] = bvg_employee_rate_percent
+        context["bvg_employer_rate_percent"] = bvg_employer_rate_percent
         context["annual_salary"] = annual_salary
         context["family_allowance_items"] = family_allowance_items
         context["laufende_zulagen"] = laufende_zulagen

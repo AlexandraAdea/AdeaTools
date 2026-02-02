@@ -130,8 +130,8 @@
                     <li><strong>Koordinationsabzug:</strong> {{ bvg_params.coordination_deduction|floatformat:2 }} CHF</li>
                     <li><strong>Versicherter Lohn (jährlich):</strong> {{ record.bvg_insured_salary|floatformat:2 }} CHF</li>
                     <li><em style="color:#8e8e93; font-size:0.9em;">Korridor: {{ bvg_params.min_insured_salary|floatformat:2 }} – {{ bvg_params.max_insured_salary|floatformat:2 }} CHF</em></li>
-                    <li><strong>BVG-Satz AN:</strong> {{ bvg_params.employee_rate|mul:100|floatformat:2 }}%</li>
-                    <li><strong>BVG-Satz AG:</strong> {{ bvg_params.employer_rate|mul:100|floatformat:2 }}%</li>
+                    <li><strong>BVG-Satz AN:</strong> {{ bvg_employee_rate_percent|floatformat:2 }}%</li>
+                    <li><strong>BVG-Satz AG:</strong> {{ bvg_employer_rate_percent|floatformat:2 }}%</li>
                     <li><strong>BVG Arbeitnehmer:</strong> {{ record.bvg_employee|floatformat:2 }} CHF</li>
                     <li><strong>BVG Arbeitgeber:</strong> {{ record.bvg_employer|floatformat:2 }} CHF</li>
                     <li><em style="color:#8e8e93; font-size:0.9em;">Beträge gemäss Vorsorgeplan</em></li>
