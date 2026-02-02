@@ -9,7 +9,12 @@
             <h1 style="margin-bottom: 8px;">Payroll-Records</h1>
             <p class="lead">Monatliche Lohnabrechnungen mit Filter nach Mitarbeitenden, Monat und Jahr.</p>
         </div>
-        <a class="adea-button-primary" href="{% url 'adealohn:payroll-create' %}">Neuer Payroll-Eintrag</a>
+        <div style="display:flex; gap:12px; align-items:center;">
+            <a class="adea-button-secondary" href="{% url 'adealohn:employee-list' %}" style="text-decoration:none;">
+                📋 Mitarbeiter verwalten
+            </a>
+            <a class="adea-button-primary" href="{% url 'adealohn:payroll-create' %}">Neuer Payroll-Eintrag</a>
+        </div>
     </div>
 
     <form method="get" class="adea-filter-bar">

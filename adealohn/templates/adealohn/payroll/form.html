@@ -35,6 +35,19 @@
                         {{ field.errors|striptags }}
                     </div>
                     {% endif %}
+                    {% if field.name == "employee" and not field.field.queryset.exists %}
+                    <div style="margin-top:12px; padding:12px; background:#fff3cd; border-left:4px solid #ffc107; border-radius:4px;">
+                        <strong>⚠️ Keine Mitarbeiter vorhanden:</strong> Bitte zuerst einen Mitarbeiter anlegen.
+                        <div style="margin-top:8px;">
+                            <a href="{% url 'adealohn:employee-create' %}" class="adea-button-primary" style="display:inline-block; text-decoration:none;">
+                                ➕ Neuen Mitarbeiter anlegen
+                            </a>
+                            <a href="{% url 'adealohn:employee-list' %}" class="adea-button-secondary" style="display:inline-block; text-decoration:none; margin-left:8px;">
+                                📋 Zur Mitarbeiter-Liste
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
                 {% endif %}
             {% endfor %}
