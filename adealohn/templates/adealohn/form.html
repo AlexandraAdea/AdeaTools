@@ -7,19 +7,174 @@
     <h1 style="margin-bottom: 24px;">{% if object %}Mitarbeiter bearbeiten{% else %}Neuer Mitarbeiter{% endif %}</h1>
     <form method="post" novalidate>
         {% csrf_token %}
-        <div class="feature-grid">
-            {% for field in form %}
-            <div class="feature-item" style="box-shadow:none; background:transparent; border:none; padding:0;">
-                <label for="{{ field.id_for_label }}" style="display:block; font-weight:600; margin-bottom:8px;">{{ field.label }}</label>
-                {{ field }}
-                {% if field.errors %}
-                <div style="color:#ff5f57; margin-top:6px; font-size:13px;">
-                    {{ field.errors|striptags }}
-                </div>
-                {% endif %}
+        
+        {% if form.non_field_errors %}
+        <div style="color:#ff5f57; margin-bottom:16px;">{{ form.non_field_errors|striptags }}</div>
+        {% endif %}
+
+        <!-- Persönliche Daten -->
+        <div style="margin-bottom: 32px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+            <h2 style="margin-bottom: 16px; font-size: 1.2em;">Persönliche Daten</h2>
+            <div class="feature-grid">
+                {% for field in form %}
+                    {% if field.name in "client,personalnummer,first_name,last_name,geburtsdatum,ahv_nummer" %}
+                    <div class="feature-item" style="box-shadow:none; background:transparent; border:none; padding:0;">
+                        <label for="{{ field.id_for_label }}" style="display:block; font-weight:600; margin-bottom:8px;">
+                            {{ field.label }}{% if field.field.required %}*{% endif %}
+                        </label>
+                        {{ field }}
+                        {% if field.help_text %}
+                        <small style="color:#6e6e73;">{{ field.help_text }}</small>
+                        {% endif %}
+                        {% if field.errors %}
+                        <div style="color:#ff5f57; margin-top:6px; font-size:13px;">
+                            {{ field.errors|striptags }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
+
+        <!-- Adresse -->
+        <div style="margin-bottom: 32px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+            <h2 style="margin-bottom: 16px; font-size: 1.2em;">Adresse</h2>
+            <div class="feature-grid">
+                {% for field in form %}
+                    {% if field.name in "street,zipcode,city,country" %}
+                    <div class="feature-item" style="box-shadow:none; background:transparent; border:none; padding:0;">
+                        <label for="{{ field.id_for_label }}" style="display:block; font-weight:600; margin-bottom:8px;">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                        <small style="color:#6e6e73;">{{ field.help_text }}</small>
+                        {% endif %}
+                        {% if field.errors %}
+                        <div style="color:#ff5f57; margin-top:6px; font-size:13px;">
+                            {{ field.errors|striptags }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Kontakt -->
+        <div style="margin-bottom: 32px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+            <h2 style="margin-bottom: 16px; font-size: 1.2em;">Kontakt</h2>
+            <div class="feature-grid">
+                {% for field in form %}
+                    {% if field.name in "email,phone,mobile" %}
+                    <div class="feature-item" style="box-shadow:none; background:transparent; border:none; padding:0;">
+                        <label for="{{ field.id_for_label }}" style="display:block; font-weight:600; margin-bottom:8px;">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                        <small style="color:#6e6e73;">{{ field.help_text }}</small>
+                        {% endif %}
+                        {% if field.errors %}
+                        <div style="color:#ff5f57; margin-top:6px; font-size:13px;">
+                            {{ field.errors|striptags }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Beschäftigung -->
+        <div style="margin-bottom: 32px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+            <h2 style="margin-bottom: 16px; font-size: 1.2em;">Beschäftigung</h2>
+            <div class="feature-grid">
+                {% for field in form %}
+                    {% if field.name in "zivilstand,eintrittsdatum,austrittsdatum,role,taetigkeit_branche" %}
+                    <div class="feature-item" style="box-shadow:none; background:transparent; border:none; padding:0;">
+                        <label for="{{ field.id_for_label }}" style="display:block; font-weight:600; margin-bottom:8px;">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                        <small style="color:#6e6e73;">{{ field.help_text }}</small>
+                        {% endif %}
+                        {% if field.errors %}
+                        <div style="color:#ff5f57; margin-top:6px; font-size:13px;">
+                            {{ field.errors|striptags }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Lohn & Arbeitszeit -->
+        <div style="margin-bottom: 32px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+            <h2 style="margin-bottom: 16px; font-size: 1.2em;">Lohn & Arbeitszeit</h2>
+            <div class="feature-grid">
+                {% for field in form %}
+                    {% if field.name in "hourly_rate,monthly_salary,weekly_hours,vacation_weeks" %}
+                    <div class="feature-item" style="box-shadow:none; background:transparent; border:none; padding:0;">
+                        <label for="{{ field.id_for_label }}" style="display:block; font-weight:600; margin-bottom:8px;">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                        <small style="color:#6e6e73;">{{ field.help_text }}</small>
+                        {% endif %}
+                        {% if field.errors %}
+                        <div style="color:#ff5f57; margin-top:6px; font-size:13px;">
+                            {{ field.errors|striptags }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Versicherungen -->
+        <div style="margin-bottom: 32px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+            <h2 style="margin-bottom: 16px; font-size: 1.2em;">Versicherungen</h2>
+            <div class="feature-grid">
+                {% for field in form %}
+                    {% if field.name in "nbu_pflichtig,is_rentner,ahv_freibetrag_aktiv" %}
+                    <div class="feature-item" style="box-shadow:none; background:transparent; border:none; padding:0;">
+                        <label for="{{ field.id_for_label }}" style="display:block; font-weight:600; margin-bottom:8px;">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                        <small style="color:#6e6e73;">{{ field.help_text }}</small>
+                        {% endif %}
+                        {% if field.errors %}
+                        <div style="color:#ff5f57; margin-top:6px; font-size:13px;">
+                            {{ field.errors|striptags }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Quellensteuer (QST) -->
+        <div style="margin-bottom: 32px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+            <h2 style="margin-bottom: 16px; font-size: 1.2em;">Quellensteuer (QST)</h2>
+            <div class="feature-grid">
+                {% for field in form %}
+                    {% if field.name in "qst_pflichtig,qst_tarif,qst_kinder,qst_kirchensteuer,qst_fixbetrag" %}
+                    <div class="feature-item" style="box-shadow:none; background:transparent; border:none; padding:0;">
+                        <label for="{{ field.id_for_label }}" style="display:block; font-weight:600; margin-bottom:8px;">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                        <small style="color:#6e6e73;">{{ field.help_text }}</small>
+                        {% endif %}
+                        {% if field.errors %}
+                        <div style="color:#ff5f57; margin-top:6px; font-size:13px;">
+                            {{ field.errors|striptags }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+
         <div style="margin-top:28px; display:flex; gap:12px; flex-wrap:wrap;">
             <button type="submit" class="adea-button-primary">
                 {% if object %}Speichern{% else %}Anlegen{% endif %}
@@ -31,8 +186,3 @@
     </form>
 </section>
 {% endblock %}
-
-
-
-
-

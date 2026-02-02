@@ -7,7 +7,11 @@
     <div class="adea-d-flex-between">
         <div>
             <h1>{{ employee.first_name }} {{ employee.last_name }}</h1>
-            <p class="lead">Client: {{ employee.client.name }} · Rolle: {{ employee.role|default:"–" }}</p>
+            <p class="lead">
+                {% if employee.personalnummer %}Personal-Nr.: {{ employee.personalnummer }} · {% endif %}
+                Client: {{ employee.client.name }}
+                {% if employee.role %} · Rolle: {{ employee.role }}{% endif %}
+            </p>
         </div>
         <div style="display:flex; gap:12px; flex-wrap:wrap;">
             <a class="adea-button-primary" href="{% url 'adealohn:employee-update' employee.pk %}">Bearbeiten</a>
@@ -16,24 +20,131 @@
     </div>
 
     <div class="feature-grid" style="margin-top:24px;">
+        <!-- Persönliche Daten -->
         <div class="feature-item">
-            <h2>Details</h2>
+            <h2>Persönliche Daten</h2>
+            <ul>
+                {% if employee.personalnummer %}
+                <li><strong>Personal-Nr.:</strong> {{ employee.personalnummer }}</li>
+                {% endif %}
+                <li><strong>Vorname:</strong> {{ employee.first_name }}</li>
+                <li><strong>Nachname:</strong> {{ employee.last_name }}</li>
+                {% if employee.geburtsdatum %}
+                <li><strong>Geburtsdatum:</strong> {{ employee.geburtsdatum|date:"d.m.Y" }}</li>
+                {% endif %}
+                {% if employee.ahv_nummer %}
+                <li><strong>AHV-Nummer:</strong> {{ employee.ahv_nummer }}</li>
+                {% endif %}
+                {% if employee.zivilstand %}
+                <li><strong>Zivilstand:</strong> {{ employee.get_zivilstand_display }}</li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <!-- Adresse -->
+        <div class="feature-item">
+            <h2>Adresse</h2>
+            <ul>
+                {% if employee.street %}
+                <li><strong>Strasse:</strong> {{ employee.street }}</li>
+                {% endif %}
+                {% if employee.zipcode or employee.city %}
+                <li><strong>PLZ/Ort:</strong> {{ employee.zipcode }} {{ employee.city }}</li>
+                {% endif %}
+                {% if employee.country %}
+                <li><strong>Land:</strong> {{ employee.country }}</li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <!-- Kontakt -->
+        <div class="feature-item">
+            <h2>Kontakt</h2>
+            <ul>
+                {% if employee.email %}
+                <li><strong>E-Mail:</strong> {{ employee.email }}</li>
+                {% endif %}
+                {% if employee.phone %}
+                <li><strong>Telefon:</strong> {{ employee.phone }}</li>
+                {% endif %}
+                {% if employee.mobile %}
+                <li><strong>Mobil:</strong> {{ employee.mobile }}</li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <!-- Beschäftigung -->
+        <div class="feature-item">
+            <h2>Beschäftigung</h2>
             <ul>
                 <li><strong>Client:</strong> {{ employee.client.name }}</li>
-                <li><strong>Rolle:</strong> {{ employee.role|default:"–" }}</li>
-                <li><strong>Stundensatz:</strong> {{ employee.hourly_rate }} CHF</li>
-                <li><strong>Angelegt:</strong> {{ employee.created_at|date:"d.m.Y" }}</li>
+                {% if employee.role %}
+                <li><strong>Rolle/Tätigkeit:</strong> {{ employee.role }}</li>
+                {% endif %}
+                {% if employee.taetigkeit_branche %}
+                <li><strong>Tätigkeit/Branche:</strong> {{ employee.taetigkeit_branche }}</li>
+                {% endif %}
+                {% if employee.eintrittsdatum %}
+                <li><strong>Eintrittsdatum:</strong> {{ employee.eintrittsdatum|date:"d.m.Y" }}</li>
+                {% endif %}
+                {% if employee.austrittsdatum %}
+                <li><strong>Austrittsdatum:</strong> {{ employee.austrittsdatum|date:"d.m.Y" }}</li>
+                {% endif %}
             </ul>
         </div>
+
+        <!-- Lohn & Arbeitszeit -->
         <div class="feature-item">
-            <h2>Arbeitsstunden</h2>
+            <h2>Lohn & Arbeitszeit</h2>
             <ul>
-                <li><strong>Einträge:</strong> {{ time_records|length }}</li>
-                <li><strong>Summe Stunden:</strong> {{ hours_sum|floatformat:2 }}</li>
+                {% if employee.hourly_rate > 0 %}
+                <li><strong>Lohnart:</strong> Stundenlohn</li>
+                <li><strong>Stundensatz:</strong> {{ employee.hourly_rate|floatformat:2 }} CHF</li>
+                {% elif employee.monthly_salary > 0 %}
+                <li><strong>Lohnart:</strong> Monatslohn</li>
+                <li><strong>Monatslohn:</strong> {{ employee.monthly_salary|floatformat:2 }} CHF</li>
+                {% else %}
+                <li><strong>Lohnart:</strong> Nicht definiert</li>
+                {% endif %}
+                <li><strong>Wöchentliche Stunden:</strong> {{ employee.weekly_hours|floatformat:1 }} h</li>
+                <li><strong>Ferienwochen:</strong> {{ employee.vacation_weeks }}</li>
             </ul>
         </div>
+
+        <!-- Versicherungen -->
+        <div class="feature-item">
+            <h2>Versicherungen</h2>
+            <ul>
+                <li><strong>NBU-pflichtig:</strong> {% if employee.nbu_pflichtig %}Ja{% else %}Nein{% endif %}</li>
+                <li><strong>Rentner/in:</strong> {% if employee.is_rentner %}Ja{% else %}Nein{% endif %}</li>
+                {% if employee.is_rentner %}
+                <li><strong>AHV-Freibetrag aktiv:</strong> {% if employee.ahv_freibetrag_aktiv %}Ja{% else %}Nein{% endif %}</li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <!-- Quellensteuer -->
+        {% if employee.qst_pflichtig %}
+        <div class="feature-item">
+            <h2>Quellensteuer (QST)</h2>
+            <ul>
+                <li><strong>QST-pflichtig:</strong> Ja</li>
+                {% if employee.qst_tarif %}
+                <li><strong>QST-Tarif:</strong> {{ employee.qst_effective_tarif|default:employee.qst_tarif }}</li>
+                {% endif %}
+                {% if employee.qst_kinder > 0 %}
+                <li><strong>Kinder:</strong> {{ employee.qst_kinder }}</li>
+                {% endif %}
+                <li><strong>Kirchensteuer:</strong> {% if employee.qst_kirchensteuer %}Ja{% else %}Nein{% endif %}</li>
+                {% if employee.qst_fixbetrag %}
+                <li><strong>QST-Fixbetrag:</strong> {{ employee.qst_fixbetrag|floatformat:2 }} CHF</li>
+                {% endif %}
+            </ul>
+        </div>
+        {% endif %}
     </div>
 
+    <!-- Zeiteinträge -->
     <div class="feature-item" style="margin-top:24px;">
         <h2>Zeiteinträge</h2>
         <div class="adea-table-wrapper" style="box-shadow:none;">
@@ -48,17 +159,17 @@
                     </tr>
                 </thead>
                 <tbody>
-      {% for record in time_records %}
-      <tr>
-          <td>{{ record.date|date:"d.m.Y" }}</td>
-          <td>{{ record.client.name }}</td>
-          <td>{% if record.project %}{{ record.project.name }}{% else %}Allgemein{% endif %}</td>
-          <td>{{ record.hours|floatformat:2 }}</td>
-          <td class="adea-table-actions">
-              <a href="{% url 'adeazeit:timerecord-detail' record.pk %}">Detail</a>
-          </td>
-      </tr>
-      {% empty %}
+                    {% for record in time_records %}
+                    <tr>
+                        <td>{{ record.date|date:"d.m.Y" }}</td>
+                        <td>{{ record.client.name }}</td>
+                        <td>{% if record.project %}{{ record.project.name }}{% else %}Allgemein{% endif %}</td>
+                        <td>{{ record.hours|floatformat:2 }}</td>
+                        <td class="adea-table-actions">
+                            <a href="{% url 'adeazeit:timerecord-detail' record.pk %}">Detail</a>
+                        </td>
+                    </tr>
+                    {% empty %}
                     <tr>
                         <td colspan="5">Noch keine Zeiteinträge.</td>
                     </tr>
@@ -66,6 +177,11 @@
                 </tbody>
             </table>
         </div>
+        {% if time_records %}
+        <p style="margin-top:12px; color:#6e6e73;">
+            <strong>Summe Stunden:</strong> {{ hours_sum|floatformat:2 }} h
+        </p>
+        {% endif %}
     </div>
 
     <div style="margin-top:24px;">
@@ -73,8 +189,3 @@
     </div>
 </section>
 {% endblock %}
-
-
-
-
-

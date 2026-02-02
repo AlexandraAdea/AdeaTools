@@ -19,6 +19,7 @@ urlpatterns = [
     path("payroll/<int:pk>/family-allowance-nachzahlung/", views.FamilyAllowanceNachzahlungView.as_view(), name="payroll-family-allowance-nachzahlung"),
     path("payroll/<int:pk>/spesen/new/", views.PayrollItemSpesenCreateView.as_view(), name="payroll_spesen_create"),
     path("payroll/<int:pk>/privatanteil/new/", views.PayrollItemPrivatanteilCreateView.as_view(), name="payroll_privatanteil_create"),
+    path("versicherungsansaetze/", views.InsuranceRatesView.as_view(), name="insurance-rates"),
 ]
 
 

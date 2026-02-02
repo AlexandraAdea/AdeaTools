@@ -213,13 +213,102 @@ class Employee(models.Model):
         on_delete=models.CASCADE,
         related_name="employees",
     )
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
-    role = models.CharField(max_length=255, blank=True)
+    
+    # Identifikation
+    personalnummer = models.CharField(
+        "Personal-Nr.",
+        max_length=50,
+        blank=True,
+        help_text="Eindeutige Personalnummer des Mitarbeiters",
+    )
+    
+    # Personendaten
+    first_name = models.CharField("Vorname", max_length=100)
+    last_name = models.CharField("Nachname", max_length=100)
+    geburtsdatum = EncryptedDateField(
+        "Geburtsdatum",
+        blank=True,
+        null=True,
+        help_text="Geburtsdatum des Mitarbeiters",
+    )
+    ahv_nummer = EncryptedCharField(
+        "AHV-Nummer",
+        max_length=50,
+        blank=True,
+        help_text="AHV-Nummer im Format 756.XXXX.XXXX.XX",
+    )
+    
+    # Adresse (verschlüsselt)
+    street = EncryptedCharField("Strasse", max_length=1000, blank=True)
+    zipcode = EncryptedCharField("PLZ", max_length=500, blank=True)
+    city = EncryptedCharField("Ort", max_length=1000, blank=True)
+    country = EncryptedCharField(
+        "Land",
+        max_length=10,
+        blank=True,
+        default="CH",
+        help_text="ISO-Code (CH, DE, FR, AT) für Grenzgänger",
+    )
+    
+    # Kontakt (verschlüsselt)
+    email = EncryptedEmailField("E-Mail", max_length=1000, blank=True, null=True)
+    phone = EncryptedCharField("Telefon", max_length=500, blank=True)
+    mobile = EncryptedCharField("Mobiltelefon", max_length=500, blank=True)
+    
+    # Zivilstand
+    ZIVILSTAND_CHOICES = [
+        ("LEDIG", "Ledig"),
+        ("VERHEIRATET", "Verheiratet"),
+        ("GESCHIEDEN", "Geschieden"),
+        ("VERWITWET", "Verwitwet"),
+        ("KONKUBINAT", "Konkubinat"),
+        ("UNBEKANNT", "Unbekannt"),
+    ]
+    zivilstand = models.CharField(
+        "Zivilstand",
+        max_length=20,
+        choices=ZIVILSTAND_CHOICES,
+        default="UNBEKANNT",
+        help_text="Zivilstand des Mitarbeiters",
+    )
+    
+    # Beschäftigung
+    eintrittsdatum = models.DateField(
+        "Eintrittsdatum",
+        blank=True,
+        null=True,
+        help_text="Datum des Eintritts in die Firma",
+    )
+    austrittsdatum = models.DateField(
+        "Austrittsdatum",
+        blank=True,
+        null=True,
+        help_text="Datum des Austritts aus der Firma",
+    )
+    
+    # Tätigkeit
+    role = models.CharField("Rolle/Tätigkeit", max_length=255, blank=True)
+    taetigkeit_branche = models.CharField(
+        "Tätigkeit/Branche",
+        max_length=255,
+        blank=True,
+        help_text="z.B. 'Coiffeur', 'Gastro'",
+    )
+    
+    # Lohn
     hourly_rate = models.DecimalField(
+        "Stundensatz (CHF)",
         max_digits=6,
         decimal_places=2,
         default=0,
+        help_text="Stundensatz für Stundenlöhne. Wenn 0, wird Monatslohn verwendet.",
+    )
+    monthly_salary = models.DecimalField(
+        "Monatslohn (CHF)",
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Monatlicher Bruttolohn für Monatslöhne. Wenn 0, wird Stundenlohn verwendet.",
     )
     is_rentner = models.BooleanField(
         default=False,

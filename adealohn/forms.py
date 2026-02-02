@@ -2,7 +2,10 @@ from django import forms
 from decimal import Decimal
 
 from adeacore.models import Employee, PayrollRecord
-from adealohn.models import FamilyAllowanceParameter, WageType
+from adealohn.models import (
+    FamilyAllowanceParameter, WageType, PayrollItem,
+    AHVParameter, ALVParameter, VKParameter, KTGParameter, UVGParameter, FAKParameter
+)
 
 
 class EmployeeForm(forms.ModelForm):
@@ -10,10 +13,25 @@ class EmployeeForm(forms.ModelForm):
         model = Employee
         fields = [
             "client",
+            "personalnummer",
             "first_name",
             "last_name",
+            "geburtsdatum",
+            "ahv_nummer",
+            "street",
+            "zipcode",
+            "city",
+            "country",
+            "email",
+            "phone",
+            "mobile",
+            "zivilstand",
+            "eintrittsdatum",
+            "austrittsdatum",
             "role",
+            "taetigkeit_branche",
             "hourly_rate",
+            "monthly_salary",
             "weekly_hours",
             "vacation_weeks",
             "nbu_pflichtig",
@@ -28,10 +46,25 @@ class EmployeeForm(forms.ModelForm):
         ]
         labels = {
             "client": "Mandant",
+            "personalnummer": "Personal-Nr.",
             "first_name": "Vorname",
             "last_name": "Nachname",
-            "role": "Rolle",
+            "geburtsdatum": "Geburtsdatum",
+            "ahv_nummer": "AHV-Nummer",
+            "street": "Strasse",
+            "zipcode": "PLZ",
+            "city": "Ort",
+            "country": "Land",
+            "email": "E-Mail",
+            "phone": "Telefon",
+            "mobile": "Mobiltelefon",
+            "zivilstand": "Zivilstand",
+            "eintrittsdatum": "Eintrittsdatum",
+            "austrittsdatum": "Austrittsdatum",
+            "role": "Rolle/Tätigkeit",
+            "taetigkeit_branche": "Tätigkeit/Branche",
             "hourly_rate": "Stundensatz (CHF)",
+            "monthly_salary": "Monatslohn (CHF)",
             "weekly_hours": "Wöchentliche Stunden",
             "vacation_weeks": "Ferienwochen (für Ferienentschädigung)",
             "nbu_pflichtig": "NBU-pflichtig (ab 8h/Woche)",
@@ -45,13 +78,34 @@ class EmployeeForm(forms.ModelForm):
         }
         widgets = {
             "client": forms.Select(attrs={"class": "adea-select"}),
+            "personalnummer": forms.TextInput(attrs={"class": "adea-input"}),
             "first_name": forms.TextInput(attrs={"class": "adea-input"}),
             "last_name": forms.TextInput(attrs={"class": "adea-input"}),
+            "geburtsdatum": forms.DateInput(attrs={"class": "adea-input", "type": "date"}),
+            "ahv_nummer": forms.TextInput(attrs={"class": "adea-input", "placeholder": "756.XXXX.XXXX.XX"}),
+            "street": forms.TextInput(attrs={"class": "adea-input"}),
+            "zipcode": forms.TextInput(attrs={"class": "adea-input"}),
+            "city": forms.TextInput(attrs={"class": "adea-input"}),
+            "country": forms.TextInput(attrs={"class": "adea-input", "placeholder": "CH"}),
+            "email": forms.EmailInput(attrs={"class": "adea-input"}),
+            "phone": forms.TextInput(attrs={"class": "adea-input"}),
+            "mobile": forms.TextInput(attrs={"class": "adea-input"}),
+            "zivilstand": forms.Select(attrs={"class": "adea-select"}),
+            "eintrittsdatum": forms.DateInput(attrs={"class": "adea-input", "type": "date"}),
+            "austrittsdatum": forms.DateInput(attrs={"class": "adea-input", "type": "date"}),
             "role": forms.TextInput(attrs={"class": "adea-input"}),
+            "taetigkeit_branche": forms.TextInput(attrs={"class": "adea-input", "placeholder": "z.B. Coiffeur, Gastro"}),
             "hourly_rate": forms.NumberInput(
                 attrs={
                     "class": "adea-input",
-                    "step": "0.1",
+                    "step": "0.01",
+                    "min": "0",
+                }
+            ),
+            "monthly_salary": forms.NumberInput(
+                attrs={
+                    "class": "adea-input",
+                    "step": "0.01",
                     "min": "0",
                 }
             ),
@@ -62,66 +116,36 @@ class EmployeeForm(forms.ModelForm):
                     "min": "0",
                 }
             ),
+            "vacation_weeks": forms.Select(attrs={"class": "adea-select"}),
             "nbu_pflichtig": forms.CheckboxInput(attrs={"class": "adea-checkbox"}),
             "is_rentner": forms.CheckboxInput(attrs={"class": "adea-checkbox"}),
             "ahv_freibetrag_aktiv": forms.CheckboxInput(attrs={"class": "adea-checkbox"}),
             "qst_pflichtig": forms.CheckboxInput(attrs={"class": "adea-checkbox"}),
             "qst_tarif": forms.TextInput(attrs={"class": "adea-input", "maxlength": "5"}),
-            "qst_kinder": forms.NumberInput(
-                attrs={
-                    "class": "adea-input",
-                    "min": "0",
-                }
-            ),
+            "qst_kinder": forms.NumberInput(attrs={"class": "adea-input", "min": "0", "max": "10"}),
             "qst_kirchensteuer": forms.CheckboxInput(attrs={"class": "adea-checkbox"}),
             "qst_fixbetrag": forms.NumberInput(
                 attrs={
                     "class": "adea-input",
-                    "step": "0.05",
+                    "step": "0.01",
                     "min": "0",
                 }
             ),
         }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # AHV-Freibetrag nur bei Rentnern anzeigen
-        if not (self.instance and self.instance.pk and self.instance.is_rentner):
-            # Wenn nicht Rentner, AHV-Freibetrag ausblenden
-            if 'ahv_freibetrag_aktiv' in self.fields:
-                self.fields['ahv_freibetrag_aktiv'].widget = forms.HiddenInput()
-                # Setze auf False, wenn nicht Rentner
-                if not self.instance.is_rentner:
-                    self.fields['ahv_freibetrag_aktiv'].initial = False
-        
-        # NBU-Hinweis: Nur ab 8h/Woche relevant
-        if 'nbu_pflichtig' in self.fields:
-            self.fields['nbu_pflichtig'].help_text = "NBU-Pflicht gilt ab 8 Stunden pro Woche. Wird automatisch aktiviert, wenn wöchentliche Stunden > 8 sind."
-    
     def clean(self):
         cleaned_data = super().clean()
-        from django.core.exceptions import ValidationError
-        from decimal import Decimal
-        
-        # NBU-Validierung: Nur ab 8h/Woche (nur wenn weekly_hours ausgefüllt ist)
+        is_rentner = cleaned_data.get('is_rentner')
+        ahv_freibetrag_aktiv = cleaned_data.get('ahv_freibetrag_aktiv')
         weekly_hours = cleaned_data.get('weekly_hours')
-        nbu_pflichtig = cleaned_data.get('nbu_pflichtig', False)
-        
-        # Nur validieren, wenn weekly_hours vorhanden ist (nicht None/leer)
-        if weekly_hours is not None and weekly_hours > 0:
-            if nbu_pflichtig and weekly_hours < Decimal('8'):
-                raise ValidationError({
-                    'nbu_pflichtig': 'NBU-Pflicht gilt nur ab 8 Stunden pro Woche. Bitte wöchentliche Stunden anpassen oder NBU-Pflicht deaktivieren.'
-                })
-        
-        # AHV-Freibetrag nur bei Rentnern
-        is_rentner = cleaned_data.get('is_rentner', False)
-        ahv_freibetrag_aktiv = cleaned_data.get('ahv_freibetrag_aktiv', False)
-        
+        nbu_pflichtig = cleaned_data.get('nbu_pflichtig')
+
         if ahv_freibetrag_aktiv and not is_rentner:
-            raise ValidationError({
-                'ahv_freibetrag_aktiv': 'AHV-Freibetrag kann nur bei Rentnern aktiviert werden.'
-            })
+            self.add_error('ahv_freibetrag_aktiv', 'AHV-Freibetrag kann nur bei Rentnern aktiviert werden.')
+        
+        # NBU-Validierung: Nur ab 8h/Woche, und nur wenn weekly_hours ausgefüllt ist
+        if nbu_pflichtig and weekly_hours is not None and weekly_hours > 0 and weekly_hours < Decimal("8"):
+            self.add_error('nbu_pflichtig', 'NBU-Pflicht gilt nur ab 8 Stunden pro Woche. Bitte wöchentliche Stunden anpassen oder NBU-Pflicht deaktivieren.')
         
         return cleaned_data
 
@@ -129,26 +153,19 @@ class EmployeeForm(forms.ModelForm):
 class PayrollRecordForm(forms.ModelForm):
     show_gross_salary_field = True
     hours_manual = forms.DecimalField(
-        required=False,
         max_digits=6,
         decimal_places=2,
+        required=False,
         min_value=Decimal("0"),
-        widget=forms.NumberInput(
-            attrs={"class": "adea-input", "step": "0.25", "min": "0"}
-        ),
+        widget=forms.NumberInput(attrs={"class": "adea-input", "step": "0.01", "min": "0"}),
         label="Stunden (manuell)",
-        help_text="Stunden manuell eingeben, falls keine Zeiteinträge vorhanden sind. Wird automatisch aus Zeiteinträgen berechnet, wenn vorhanden.",
+        help_text="Manuell erfasste Stunden für diesen Monat. Wird ignoriert, wenn Zeiteinträge vorhanden sind.",
     )
 
     class Meta:
         model = PayrollRecord
         fields = [
-            "employee",
-            "month",
-            "year",
-            "status",
-            "gross_salary",
-            "qst_prozent",
+            "employee", "month", "year", "status", "gross_salary", "qst_prozent",
         ]
         labels = {
             "employee": "Mitarbeiter",
@@ -160,193 +177,274 @@ class PayrollRecordForm(forms.ModelForm):
         }
         widgets = {
             "employee": forms.Select(attrs={"class": "adea-select"}),
-            "month": forms.NumberInput(
-                attrs={"class": "adea-input", "min": 1, "max": 12}
-            ),
-            "year": forms.NumberInput(
-                attrs={"class": "adea-input", "min": 2000, "max": 2100}
-            ),
+            "month": forms.Select(attrs={"class": "adea-select"}),
+            "year": forms.NumberInput(attrs={"class": "adea-input", "min": "2000", "max": "2100"}),
             "status": forms.Select(attrs={"class": "adea-select"}),
             "gross_salary": forms.NumberInput(
-                attrs={"class": "adea-input", "step": "0.05", "min": "0"}
+                attrs={
+                    "class": "adea-input",
+                    "step": "0.01",
+                    "min": "0",
+                }
             ),
             "qst_prozent": forms.NumberInput(
-                attrs={"class": "adea-input", "step": "0.01", "min": "0", "max": "100"}
+                attrs={
+                    "class": "adea-input",
+                    "step": "0.01",
+                    "min": "0",
+                    "max": "100",
+                }
             ),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        employee_id = self.data.get("employee") or self.initial.get("employee")
-        employee = None
-        if employee_id:
-            try:
-                employee = Employee.objects.get(pk=employee_id)
-            except Employee.DoesNotExist:
-                employee = None
-        elif self.instance and self.instance.pk:
-            employee = self.instance.employee
+        employee = self.instance.employee if self.instance and self.instance.pk else None
         
-        # Wenn gesperrt, Status-Feld readonly machen
-        if self.instance and self.instance.pk and self.instance.is_locked():
-            self.fields["status"].widget.attrs["readonly"] = True
-            self.fields["status"].widget.attrs["disabled"] = True
+        # QST-Prozent nur anzeigen, wenn Mitarbeiter QST-pflichtig ist
+        if employee and not employee.qst_pflichtig:
+            self.fields['qst_prozent'].widget = forms.HiddenInput()
+            self.fields['qst_prozent'].required = False
+        else:
+            self.fields['qst_prozent'].help_text = "QST-Prozentsatz für diesen Monat (z.B. 4.30 für 4.30%). Kann monatlich variieren bei Stundenlöhnen."
         
+        # Stunden-Feld nur bei Stundenlöhnen anzeigen
         if employee and employee.hourly_rate > 0:
             self.fields["gross_salary"].required = False
             self.fields["gross_salary"].widget = forms.HiddenInput()
             self.show_gross_salary_field = False
-            # Stunden-Feld nur bei Stundenlöhnen anzeigen
             self.fields["hours_manual"].help_text = "Stunden manuell eingeben, falls keine Zeiteinträge vorhanden sind. Wird automatisch aus Zeiteinträgen berechnet, wenn vorhanden."
-        else:
-            self.show_gross_salary_field = True
-            # Stunden-Feld bei Monatslöhnen ausblenden
+        elif employee and employee.monthly_salary > 0:
+            # Bei Monatslohn: Bruttolohn-Feld anzeigen (kann überschrieben werden)
+            if not self.instance.pk:  # Nur bei neuem PayrollRecord
+                self.fields["gross_salary"].initial = employee.monthly_salary
+            self.fields["gross_salary"].help_text = f"Monatslohn (Standard: {employee.monthly_salary} CHF vom Mitarbeiter). Kann für diesen Monat überschrieben werden."
             self.fields["hours_manual"].widget = forms.HiddenInput()
             self.fields["hours_manual"].required = False
-        
-        # QST-Prozent nur bei QST-pflichtigen Mitarbeitern anzeigen
-        if employee and not employee.qst_pflichtig:
-            self.fields["qst_prozent"].widget = forms.HiddenInput()
-            self.fields["qst_prozent"].required = False
+            self.show_gross_salary_field = True
         else:
-            self.fields["qst_prozent"].help_text = "QST-Prozentsatz für diesen Monat (z.B. 4.30 für 4.30%). Kann monatlich variieren bei Stundenlöhnen."
+            # Weder Stunden- noch Monatslohn definiert
+            self.fields["hours_manual"].widget = forms.HiddenInput()
+            self.fields["hours_manual"].required = False
+            self.show_gross_salary_field = True
 
 
-class FamilyAllowanceNachzahlungForm(forms.Form):
-    """Form für die Erfassung von Familienzulagen-Nachzahlungen."""
-    
-    ZULAGENART_CHOICES = [
-        ('KINDERZULAGE', 'Kinderzulage'),
-        ('AUSBILDUNGSZULAGE', 'Ausbildungszulage'),
-    ]
-    
-    zulagenart = forms.ChoiceField(
-        choices=ZULAGENART_CHOICES,
-        widget=forms.Select(attrs={"class": "adea-select"}),
-        label="Zulagenart",
+class FamilyAllowanceNachzahlungForm(forms.ModelForm):
+    class Meta:
+        model = PayrollItem
+        fields = ["wage_type", "amount", "description"]
+        labels = {
+            "wage_type": "Zulagenart",
+            "amount": "Betrag (CHF)",
+            "description": "Beschreibung",
+        }
+        widgets = {
+            "wage_type": forms.Select(attrs={"class": "adea-select"}),
+            "amount": forms.NumberInput(
+                attrs={
+                    "class": "adea-input",
+                    "step": "0.01",
+                    "min": "0",
+                }
+            ),
+            "description": forms.TextInput(attrs={"class": "adea-input"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Nur Familienzulagen-WageTypes anzeigen
+        self.fields["wage_type"].queryset = WageType.objects.filter(
+            code__in=["KINDERZULAGE", "AUSBILDUNGSZULAGE"]
+        )
+
+
+class PayrollItemSpesenForm(forms.ModelForm):
+    class Meta:
+        model = PayrollItem
+        fields = ["wage_type", "amount", "description"]
+        labels = {
+            "wage_type": "Spesenart",
+            "amount": "Betrag (CHF)",
+            "description": "Beschreibung",
+        }
+        widgets = {
+            "wage_type": forms.Select(attrs={"class": "adea-select"}),
+            "amount": forms.NumberInput(
+                attrs={
+                    "class": "adea-input",
+                    "step": "0.01",
+                    "min": "0",
+                }
+            ),
+            "description": forms.TextInput(attrs={"class": "adea-input"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Nur Spesen-WageTypes anzeigen
+        self.fields["wage_type"].queryset = WageType.objects.filter(
+            code__startswith="SPESEN_"
+        )
+
+
+class PayrollItemPrivatanteilForm(forms.ModelForm):
+    class Meta:
+        model = PayrollItem
+        fields = ["wage_type", "amount", "description"]
+        labels = {
+            "wage_type": "Privatanteil",
+            "amount": "Betrag (CHF)",
+            "description": "Beschreibung",
+        }
+        widgets = {
+            "wage_type": forms.Select(attrs={"class": "adea-select"}),
+            "amount": forms.NumberInput(
+                attrs={
+                    "class": "adea-input",
+                    "step": "0.01",
+                    "min": "0",
+                }
+            ),
+            "description": forms.TextInput(attrs={"class": "adea-input"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Nur Privatanteil-WageTypes anzeigen
+        self.fields["wage_type"].queryset = WageType.objects.filter(
+            code__startswith="PRIVATANTEIL_"
+        )
+
+
+class InsuranceRatesForm(forms.Form):
+    """
+    Formular für alle Versicherungsansätze (Arbeitgeber-Ebene) pro Jahr.
+    Kombiniert alle Parameter-Models in einem Formular.
+    """
+    year = forms.IntegerField(
+        label="Jahr",
+        min_value=2000,
+        max_value=2100,
+        widget=forms.NumberInput(attrs={"class": "adea-input"}),
+        help_text="Jahr für diese Versicherungsansätze",
     )
-    anzahl_monate = forms.IntegerField(
-        min_value=1,
-        max_value=24,
-        widget=forms.NumberInput(attrs={"class": "adea-input", "min": 1, "max": 24}),
-        label="Anzahl Monate",
-        help_text="Anzahl Monate für die Nachzahlung (z.B. 3 für April–Juni)",
+    
+    # AHV
+    ahv_rate_employee = forms.DecimalField(
+        label="AHV Rate Arbeitnehmer (%)",
+        max_digits=6,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={"class": "adea-input", "step": "0.01"}),
+        help_text="z.B. 5.3 für 5.3%",
     )
-    monatsbetrag = forms.DecimalField(
+    ahv_rate_employer = forms.DecimalField(
+        label="AHV Rate Arbeitgeber (%)",
+        max_digits=6,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={"class": "adea-input", "step": "0.01"}),
+        help_text="z.B. 5.3 für 5.3%",
+    )
+    ahv_rentner_freibetrag = forms.DecimalField(
+        label="AHV Rentnerfreibetrag (CHF/Monat)",
         max_digits=10,
         decimal_places=2,
-        min_value=Decimal("0"),
-        widget=forms.NumberInput(attrs={"class": "adea-input", "step": "0.05", "min": "0"}),
-        label="Monatsbetrag (CHF)",
-        help_text="Monatlicher Betrag der Zulage",
-    )
-    beschreibung = forms.CharField(
-        max_length=255,
-        required=False,
-        widget=forms.TextInput(attrs={"class": "adea-input"}),
-        label="Beschreibung",
-        help_text="Wird automatisch generiert, falls leer",
-    )
-    sva_entscheid = forms.CharField(
-        max_length=255,
-        required=False,
-        widget=forms.TextInput(attrs={"class": "adea-input"}),
-        label="SVA-Entscheid (optional)",
-        help_text="Referenz zum SVA-Entscheid (z.B. FAK-2025-12345)",
+        widget=forms.NumberInput(attrs={"class": "adea-input", "step": "0.01"}),
+        help_text="Standard: 1'400 CHF",
     )
     
-    def __init__(self, *args, payroll_record=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.payroll_record = payroll_record
-        
-        # Vorgabewert aus FamilyAllowanceParameter setzen
-        if payroll_record:
-            year = payroll_record.year
-            try:
-                params = FamilyAllowanceParameter.objects.get(year=year)
-                # Standardwert für Kinderzulage setzen
-                self.fields['monatsbetrag'].initial = params.monatlich_kinderzulage
-            except FamilyAllowanceParameter.DoesNotExist:
-                pass
-    
-    def clean(self):
-        cleaned_data = super().clean()
-        anzahl_monate = cleaned_data.get('anzahl_monate')
-        monatsbetrag = cleaned_data.get('monatsbetrag')
-        
-        if anzahl_monate and monatsbetrag:
-            # Gesamtbetrag berechnen
-            cleaned_data['gesamtbetrag'] = Decimal(str(anzahl_monate)) * monatsbetrag
-        
-        return cleaned_data
-
-
-class PayrollItemSpesenForm(forms.Form):
-    """Form für die Erfassung von Spesen als PayrollItem."""
-    
-    wage_type = forms.ModelChoiceField(
-        queryset=WageType.objects.filter(code__startswith='SPESEN_'),
-        widget=forms.Select(attrs={"class": "adea-select"}),
-        label="Spesenart",
-        help_text="Wählen Sie die Art der Spesen aus",
+    # ALV
+    alv_rate_employee = forms.DecimalField(
+        label="ALV Rate Arbeitnehmer (%)",
+        max_digits=6,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={"class": "adea-input", "step": "0.01"}),
+        help_text="z.B. 1.1 für 1.1%",
     )
-    amount = forms.DecimalField(
+    alv_rate_employer = forms.DecimalField(
+        label="ALV Rate Arbeitgeber (%)",
+        max_digits=6,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={"class": "adea-input", "step": "0.01"}),
+        help_text="z.B. 1.1 für 1.1%",
+    )
+    alv_max_annual = forms.DecimalField(
+        label="ALV Max. Jahreslohn (CHF)",
         max_digits=10,
         decimal_places=2,
-        min_value=Decimal("0"),
-        widget=forms.NumberInput(attrs={"class": "adea-input", "step": "0.05", "min": "0"}),
-        label="Betrag (CHF)",
-        help_text="Spesenbetrag",
+        widget=forms.NumberInput(attrs={"class": "adea-input", "step": "0.01"}),
+        help_text="Standard: 148'200 CHF",
     )
-    description = forms.CharField(
-        max_length=255,
+    
+    # FAK
+    fak_canton = forms.CharField(
+        label="FAK Kanton",
+        max_length=50,
         required=False,
-        widget=forms.TextInput(attrs={"class": "adea-input"}),
-        label="Beschreibung (optional)",
-        help_text="Zusätzliche Informationen zu den Spesen",
+        widget=forms.TextInput(attrs={"class": "adea-input", "placeholder": "DEFAULT oder z.B. AG, ZH"}),
+        help_text="Kanton oder 'DEFAULT' für Standard",
+    )
+    fak_rate_employer = forms.DecimalField(
+        label="FAK Rate Arbeitgeber (%)",
+        max_digits=6,
+        decimal_places=3,
+        widget=forms.NumberInput(attrs={"class": "adea-input", "step": "0.001"}),
+        help_text="z.B. 1.0 für 1.0% Standard, 1.450 für 1.450% Aargau",
     )
     
-    def __init__(self, *args, payroll_record=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.payroll_record = payroll_record
-        # Nur aktive Spesen-WageTypes anzeigen
-        self.fields['wage_type'].queryset = WageType.objects.filter(
-            code__startswith='SPESEN_',
-            is_active=True
-        ).order_by('code')
-
-
-class PayrollItemPrivatanteilForm(forms.Form):
-    """Form für die Erfassung von Privatanteilen (Auto/Telefon) als PayrollItem."""
-    
-    wage_type = forms.ModelChoiceField(
-        queryset=WageType.objects.filter(code__startswith='PRIVATANTEIL_'),
-        widget=forms.Select(attrs={"class": "adea-select"}),
-        label="Privatanteil",
-        help_text="Wählen Sie die Art des Privatanteils aus",
+    # VK
+    vk_rate_employer = forms.DecimalField(
+        label="VK Rate Arbeitgeber (%)",
+        max_digits=6,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={"class": "adea-input", "step": "0.01"}),
+        help_text="In % des Total AHV-Beitrags, z.B. 3.0 für 3.0%",
     )
-    amount = forms.DecimalField(
+    
+    # BU
+    bu_rate_employer = forms.DecimalField(
+        label="BU Rate Arbeitgeber (%)",
+        max_digits=6,
+        decimal_places=3,
+        widget=forms.NumberInput(attrs={"class": "adea-input", "step": "0.001"}),
+        help_text="z.B. 0.644 für 0.644%",
+    )
+    
+    # NBU
+    nbu_rate_employee = forms.DecimalField(
+        label="NBUV Rate Arbeitnehmer (%)",
+        max_digits=6,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={"class": "adea-input", "step": "0.01"}),
+        help_text="z.B. 2.3 für 2.3%",
+    )
+    uvg_max_annual = forms.DecimalField(
+        label="UVG Max. Jahreslohn (CHF)",
         max_digits=10,
         decimal_places=2,
-        min_value=Decimal("0"),
-        widget=forms.NumberInput(attrs={"class": "adea-input", "step": "0.05", "min": "0"}),
-        label="Betrag (CHF)",
-        help_text="Privatanteil-Betrag (voll AHV-/Steuer-/QST-pflichtig)",
-    )
-    description = forms.CharField(
-        max_length=255,
-        required=False,
-        widget=forms.TextInput(attrs={"class": "adea-input"}),
-        label="Beschreibung (optional)",
-        help_text="Zusätzliche Informationen zum Privatanteil",
+        widget=forms.NumberInput(attrs={"class": "adea-input", "step": "0.01"}),
+        help_text="Standard: 148'200 CHF",
     )
     
-    def __init__(self, *args, payroll_record=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.payroll_record = payroll_record
-        # Nur aktive Privatanteil-WageTypes anzeigen
-        self.fields['wage_type'].queryset = WageType.objects.filter(
-            code__startswith='PRIVATANTEIL_',
-            is_active=True
-        ).order_by('code')
-
+    # KTG
+    ktg_rate_employee = forms.DecimalField(
+        label="KTG Rate Arbeitnehmer (%)",
+        max_digits=6,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={"class": "adea-input", "step": "0.01"}),
+        help_text="z.B. 0.5 für 0.5%",
+    )
+    ktg_rate_employer = forms.DecimalField(
+        label="KTG Rate Arbeitgeber (%)",
+        max_digits=6,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={"class": "adea-input", "step": "0.01"}),
+        help_text="z.B. 0.5 für 0.5%",
+    )
+    ktg_max_basis = forms.DecimalField(
+        label="KTG Max. Basis (CHF)",
+        max_digits=10,
+        decimal_places=2,
+        required=False,
+        widget=forms.NumberInput(attrs={"class": "adea-input", "step": "0.01"}),
+        help_text="Optional, z.B. 300'000 CHF",
+    )

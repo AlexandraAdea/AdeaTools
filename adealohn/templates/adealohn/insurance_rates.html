@@ -1,0 +1,249 @@
+{% extends 'base.html' %}
+
+{% block title %}Versicherungsansätze – AdeaLohn{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <div class="adea-d-flex-between">
+        <div>
+            <h1 style="margin-bottom: 8px;">Versicherungsansätze</h1>
+            <p class="lead">Alle Arbeitgeber-Ansätze für Sozialversicherungen pro Jahr eingeben (wie in Excel-Vorlage).</p>
+        </div>
+        <div style="display:flex; gap:12px;">
+            <a class="adea-button-secondary" href="{% url 'adealohn:payroll-list' %}">Zurück zur Payroll-Liste</a>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div style="margin-top: 20px;">
+        {% for message in messages %}
+        <div style="padding: 12px; background: {% if message.tags == 'success' %}#d4edda{% else %}#f8d7da{% endif %}; border-left: 4px solid {% if message.tags == 'success' %}#28a745{% else %}#dc3545{% endif %}; border-radius: 4px; margin-bottom: 12px;">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" novalidate style="margin-top: 24px;">
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+        <div style="color:#ff5f57; margin-bottom:16px;">{{ form.non_field_errors|striptags }}</div>
+        {% endif %}
+
+        <!-- Jahr-Auswahl -->
+        <div style="margin-bottom: 32px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+            <h2 style="margin-bottom: 16px; font-size: 1.2em;">Jahr</h2>
+            <div class="feature-item" style="box-shadow:none; background:transparent; border:none; padding:0;">
+                <label for="{{ form.year.id_for_label }}" style="display:block; font-weight:600; margin-bottom:8px;">{{ form.year.label }}</label>
+                {{ form.year }}
+                {% if form.year.help_text %}
+                <small style="color:#6e6e73;">{{ form.year.help_text }}</small>
+                {% endif %}
+                {% if form.year.errors %}
+                <div style="color:#ff5f57; margin-top:6px; font-size:13px;">
+                    {{ form.year.errors|striptags }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- AHV -->
+        <div style="margin-bottom: 32px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+            <h2 style="margin-bottom: 16px; font-size: 1.2em;">AHV (Alters- und Hinterlassenenversicherung)</h2>
+            <div class="feature-grid">
+                <div class="feature-item" style="box-shadow:none; background:transparent; border:none; padding:0;">
+                    <label for="{{ form.ahv_rate_employee.id_for_label }}" style="display:block; font-weight:600; margin-bottom:8px;">{{ form.ahv_rate_employee.label }}</label>
+                    {{ form.ahv_rate_employee }}
+                    {% if form.ahv_rate_employee.help_text %}
+                    <small style="color:#6e6e73;">{{ form.ahv_rate_employee.help_text }}</small>
+                    {% endif %}
+                    {% if form.ahv_rate_employee.errors %}
+                    <div style="color:#ff5f57; margin-top:6px; font-size:13px;">{{ form.ahv_rate_employee.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+                <div class="feature-item" style="box-shadow:none; background:transparent; border:none; padding:0;">
+                    <label for="{{ form.ahv_rate_employer.id_for_label }}" style="display:block; font-weight:600; margin-bottom:8px;">{{ form.ahv_rate_employer.label }}</label>
+                    {{ form.ahv_rate_employer }}
+                    {% if form.ahv_rate_employer.help_text %}
+                    <small style="color:#6e6e73;">{{ form.ahv_rate_employer.help_text }}</small>
+                    {% endif %}
+                    {% if form.ahv_rate_employer.errors %}
+                    <div style="color:#ff5f57; margin-top:6px; font-size:13px;">{{ form.ahv_rate_employer.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+                <div class="feature-item" style="box-shadow:none; background:transparent; border:none; padding:0;">
+                    <label for="{{ form.ahv_rentner_freibetrag.id_for_label }}" style="display:block; font-weight:600; margin-bottom:8px;">{{ form.ahv_rentner_freibetrag.label }}</label>
+                    {{ form.ahv_rentner_freibetrag }}
+                    {% if form.ahv_rentner_freibetrag.help_text %}
+                    <small style="color:#6e6e73;">{{ form.ahv_rentner_freibetrag.help_text }}</small>
+                    {% endif %}
+                    {% if form.ahv_rentner_freibetrag.errors %}
+                    <div style="color:#ff5f57; margin-top:6px; font-size:13px;">{{ form.ahv_rentner_freibetrag.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ALV -->
+        <div style="margin-bottom: 32px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+            <h2 style="margin-bottom: 16px; font-size: 1.2em;">ALV (Arbeitslosenversicherung)</h2>
+            <div class="feature-grid">
+                <div class="feature-item" style="box-shadow:none; background:transparent; border:none; padding:0;">
+                    <label for="{{ form.alv_rate_employee.id_for_label }}" style="display:block; font-weight:600; margin-bottom:8px;">{{ form.alv_rate_employee.label }}</label>
+                    {{ form.alv_rate_employee }}
+                    {% if form.alv_rate_employee.help_text %}
+                    <small style="color:#6e6e73;">{{ form.alv_rate_employee.help_text }}</small>
+                    {% endif %}
+                    {% if form.alv_rate_employee.errors %}
+                    <div style="color:#ff5f57; margin-top:6px; font-size:13px;">{{ form.alv_rate_employee.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+                <div class="feature-item" style="box-shadow:none; background:transparent; border:none; padding:0;">
+                    <label for="{{ form.alv_rate_employer.id_for_label }}" style="display:block; font-weight:600; margin-bottom:8px;">{{ form.alv_rate_employer.label }}</label>
+                    {{ form.alv_rate_employer }}
+                    {% if form.alv_rate_employer.help_text %}
+                    <small style="color:#6e6e73;">{{ form.alv_rate_employer.help_text }}</small>
+                    {% endif %}
+                    {% if form.alv_rate_employer.errors %}
+                    <div style="color:#ff5f57; margin-top:6px; font-size:13px;">{{ form.alv_rate_employer.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+                <div class="feature-item" style="box-shadow:none; background:transparent; border:none; padding:0;">
+                    <label for="{{ form.alv_max_annual.id_for_label }}" style="display:block; font-weight:600; margin-bottom:8px;">{{ form.alv_max_annual.label }}</label>
+                    {{ form.alv_max_annual }}
+                    {% if form.alv_max_annual.help_text %}
+                    <small style="color:#6e6e73;">{{ form.alv_max_annual.help_text }}</small>
+                    {% endif %}
+                    {% if form.alv_max_annual.errors %}
+                    <div style="color:#ff5f57; margin-top:6px; font-size:13px;">{{ form.alv_max_annual.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- FAK -->
+        <div style="margin-bottom: 32px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+            <h2 style="margin-bottom: 16px; font-size: 1.2em;">FAK (Familienausgleichskasse)</h2>
+            <div class="feature-grid">
+                <div class="feature-item" style="box-shadow:none; background:transparent; border:none; padding:0;">
+                    <label for="{{ form.fak_canton.id_for_label }}" style="display:block; font-weight:600; margin-bottom:8px;">{{ form.fak_canton.label }}</label>
+                    {{ form.fak_canton }}
+                    {% if form.fak_canton.help_text %}
+                    <small style="color:#6e6e73;">{{ form.fak_canton.help_text }}</small>
+                    {% endif %}
+                    {% if form.fak_canton.errors %}
+                    <div style="color:#ff5f57; margin-top:6px; font-size:13px;">{{ form.fak_canton.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+                <div class="feature-item" style="box-shadow:none; background:transparent; border:none; padding:0;">
+                    <label for="{{ form.fak_rate_employer.id_for_label }}" style="display:block; font-weight:600; margin-bottom:8px;">{{ form.fak_rate_employer.label }}</label>
+                    {{ form.fak_rate_employer }}
+                    {% if form.fak_rate_employer.help_text %}
+                    <small style="color:#6e6e73;">{{ form.fak_rate_employer.help_text }}</small>
+                    {% endif %}
+                    {% if form.fak_rate_employer.errors %}
+                    <div style="color:#ff5f57; margin-top:6px; font-size:13px;">{{ form.fak_rate_employer.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- VK -->
+        <div style="margin-bottom: 32px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+            <h2 style="margin-bottom: 16px; font-size: 1.2em;">VK (Verwaltungskosten)</h2>
+            <div class="feature-grid">
+                <div class="feature-item" style="box-shadow:none; background:transparent; border:none; padding:0;">
+                    <label for="{{ form.vk_rate_employer.id_for_label }}" style="display:block; font-weight:600; margin-bottom:8px;">{{ form.vk_rate_employer.label }}</label>
+                    {{ form.vk_rate_employer }}
+                    {% if form.vk_rate_employer.help_text %}
+                    <small style="color:#6e6e73;">{{ form.vk_rate_employer.help_text }}</small>
+                    {% endif %}
+                    {% if form.vk_rate_employer.errors %}
+                    <div style="color:#ff5f57; margin-top:6px; font-size:13px;">{{ form.vk_rate_employer.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- UVG (BU/NBU) -->
+        <div style="margin-bottom: 32px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+            <h2 style="margin-bottom: 16px; font-size: 1.2em;">UVG (Unfallversicherung)</h2>
+            <div class="feature-grid">
+                <div class="feature-item" style="box-shadow:none; background:transparent; border:none; padding:0;">
+                    <label for="{{ form.bu_rate_employer.id_for_label }}" style="display:block; font-weight:600; margin-bottom:8px;">{{ form.bu_rate_employer.label }}</label>
+                    {{ form.bu_rate_employer }}
+                    {% if form.bu_rate_employer.help_text %}
+                    <small style="color:#6e6e73;">{{ form.bu_rate_employer.help_text }}</small>
+                    {% endif %}
+                    {% if form.bu_rate_employer.errors %}
+                    <div style="color:#ff5f57; margin-top:6px; font-size:13px;">{{ form.bu_rate_employer.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+                <div class="feature-item" style="box-shadow:none; background:transparent; border:none; padding:0;">
+                    <label for="{{ form.nbu_rate_employee.id_for_label }}" style="display:block; font-weight:600; margin-bottom:8px;">{{ form.nbu_rate_employee.label }}</label>
+                    {{ form.nbu_rate_employee }}
+                    {% if form.nbu_rate_employee.help_text %}
+                    <small style="color:#6e6e73;">{{ form.nbu_rate_employee.help_text }}</small>
+                    {% endif %}
+                    {% if form.nbu_rate_employee.errors %}
+                    <div style="color:#ff5f57; margin-top:6px; font-size:13px;">{{ form.nbu_rate_employee.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+                <div class="feature-item" style="box-shadow:none; background:transparent; border:none; padding:0;">
+                    <label for="{{ form.uvg_max_annual.id_for_label }}" style="display:block; font-weight:600; margin-bottom:8px;">{{ form.uvg_max_annual.label }}</label>
+                    {{ form.uvg_max_annual }}
+                    {% if form.uvg_max_annual.help_text %}
+                    <small style="color:#6e6e73;">{{ form.uvg_max_annual.help_text }}</small>
+                    {% endif %}
+                    {% if form.uvg_max_annual.errors %}
+                    <div style="color:#ff5f57; margin-top:6px; font-size:13px;">{{ form.uvg_max_annual.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- KTG -->
+        <div style="margin-bottom: 32px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+            <h2 style="margin-bottom: 16px; font-size: 1.2em;">KTG (Krankentaggeldversicherung)</h2>
+            <div class="feature-grid">
+                <div class="feature-item" style="box-shadow:none; background:transparent; border:none; padding:0;">
+                    <label for="{{ form.ktg_rate_employee.id_for_label }}" style="display:block; font-weight:600; margin-bottom:8px;">{{ form.ktg_rate_employee.label }}</label>
+                    {{ form.ktg_rate_employee }}
+                    {% if form.ktg_rate_employee.help_text %}
+                    <small style="color:#6e6e73;">{{ form.ktg_rate_employee.help_text }}</small>
+                    {% endif %}
+                    {% if form.ktg_rate_employee.errors %}
+                    <div style="color:#ff5f57; margin-top:6px; font-size:13px;">{{ form.ktg_rate_employee.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+                <div class="feature-item" style="box-shadow:none; background:transparent; border:none; padding:0;">
+                    <label for="{{ form.ktg_rate_employer.id_for_label }}" style="display:block; font-weight:600; margin-bottom:8px;">{{ form.ktg_rate_employer.label }}</label>
+                    {{ form.ktg_rate_employer }}
+                    {% if form.ktg_rate_employer.help_text %}
+                    <small style="color:#6e6e73;">{{ form.ktg_rate_employer.help_text }}</small>
+                    {% endif %}
+                    {% if form.ktg_rate_employer.errors %}
+                    <div style="color:#ff5f57; margin-top:6px; font-size:13px;">{{ form.ktg_rate_employer.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+                <div class="feature-item" style="box-shadow:none; background:transparent; border:none; padding:0;">
+                    <label for="{{ form.ktg_max_basis.id_for_label }}" style="display:block; font-weight:600; margin-bottom:8px;">{{ form.ktg_max_basis.label }}</label>
+                    {{ form.ktg_max_basis }}
+                    {% if form.ktg_max_basis.help_text %}
+                    <small style="color:#6e6e73;">{{ form.ktg_max_basis.help_text }}</small>
+                    {% endif %}
+                    {% if form.ktg_max_basis.errors %}
+                    <div style="color:#ff5f57; margin-top:6px; font-size:13px;">{{ form.ktg_max_basis.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 32px; display:flex; gap:12px; flex-wrap:wrap;">
+            <button type="submit" class="adea-button-primary">Speichern</button>
+            <a href="{% url 'adealohn:payroll-list' %}" class="adea-button-secondary">Abbrechen</a>
+        </div>
+    </form>
+</section>
+{% endblock %}
