@@ -48,17 +48,17 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for record in time_records %}
-                    <tr>
-                        <td>{{ record.date|date:"d.m.Y" }}</td>
-                        <td>{{ record.client.name }}</td>
-                        <td>{{ record.project.name if record.project else "Allgemein" }}</td>
-                        <td>{{ record.hours|floatformat:2 }}</td>
-                        <td class="adea-table-actions">
-                            <a href="{% url 'adeazeit:timerecord-detail' record.pk %}">Detail</a>
-                        </td>
-                    </tr>
-                    {% empty %}
+      {% for record in time_records %}
+      <tr>
+          <td>{{ record.date|date:"d.m.Y" }}</td>
+          <td>{{ record.client.name }}</td>
+          <td>{% if record.project %}{{ record.project.name }}{% else %}Allgemein{% endif %}</td>
+          <td>{{ record.hours|floatformat:2 }}</td>
+          <td class="adea-table-actions">
+              <a href="{% url 'adeazeit:timerecord-detail' record.pk %}">Detail</a>
+          </td>
+      </tr>
+      {% empty %}
                     <tr>
                         <td colspan="5">Noch keine Zeiteinträge.</td>
                     </tr>
