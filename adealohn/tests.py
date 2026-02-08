@@ -30,7 +30,7 @@ class CalculatorTestCase(TestCase):
             employee=self.employee,
             month=1,
             year=2025,
-            gross_salary=Decimal("5000.00"),
+            bruttolohn=Decimal("5000.00"),
             ahv_basis=Decimal("5000.00"),
             alv_basis=Decimal("5000.00"),
             uv_basis=Decimal("5000.00"),
@@ -155,7 +155,7 @@ class CalculatorTestCase(TestCase):
         
         calc = QSTCalculator()
         calc.calculate_for_payroll(self.payroll)
-        self.assertEqual(self.payroll.qst_amount, Decimal("0.00"))
+        self.assertEqual(self.payroll.qst_abzug, Decimal("0.00"))
 
     def test_qst_calculator_fixbetrag(self):
         """Test QST Calculator mit Fixbetrag."""
@@ -165,7 +165,7 @@ class CalculatorTestCase(TestCase):
         
         calc = QSTCalculator()
         calc.calculate_for_payroll(self.payroll)
-        self.assertEqual(self.payroll.qst_amount, Decimal("100.00"))
+        self.assertEqual(self.payroll.qst_abzug, Decimal("100.00"))
 
 
 class PayrollRecordTestCase(TestCase):

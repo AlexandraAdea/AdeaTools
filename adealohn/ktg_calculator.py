@@ -1,6 +1,8 @@
 from decimal import Decimal
 
 from adeacore.money import round_to_5_rappen
+from .helpers import get_parameter_for_year, safe_decimal
+from adealohn.models import KTGParameter
 
 
 class KTGCalculator:
@@ -10,10 +12,8 @@ class KTGCalculator:
     """
 
     def calculate_for_payroll(self, payroll):
-        from decimal import Decimal
-        from adealohn.models import KTGParameter
-
-        params = KTGParameter.objects.filter(year=payroll.year).first()
+        # Parameter mit Fallback laden (mit Caching)
+        params = get_parameter_for_year(KTGParameter, payroll.year)
 
         if not params:
             return {
@@ -22,7 +22,7 @@ class KTGCalculator:
                 "ktg_employer": Decimal("0.00"),
             }
 
-        basis = payroll.uv_basis or Decimal("0.00")
+        basis = safe_decimal(payroll.uv_basis)
 
         # Optional: Kappung anwenden
         if params.ktg_max_basis:

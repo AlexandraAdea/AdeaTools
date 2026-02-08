@@ -1,6 +1,8 @@
 from decimal import Decimal
 
 from adeacore.money import round_to_5_rappen
+from .helpers import get_parameter_for_year, safe_decimal
+from adealohn.models import VKParameter
 
 
 class VKCalculator:
@@ -24,18 +26,16 @@ class VKCalculator:
             dict mit:
                 - vk_employer: Arbeitgeberbeitrag (gerundet auf 0.05)
         """
-        from adealohn.models import VKParameter
-
-        params = VKParameter.objects.filter(year=payroll.year).first()
+        # Parameter mit Fallback laden (mit Caching)
+        defaults = {
+            "rate_employer": Decimal("0.03"),  # 3.0% Standard (gemäss Excel-Vorlage)
+        }
+        params = get_parameter_for_year(VKParameter, payroll.year, defaults=defaults)
         
-        # Fallback auf Standardwert wenn keine Parameter gefunden
-        if not params:
-            rate_employer = Decimal("0.03")  # 3.0% Standard (gemäss Excel-Vorlage)
-        else:
-            rate_employer = params.rate_employer
+        rate_employer = params.rate_employer if params else defaults["rate_employer"]
 
         # Total AHV-Beitrag = AN + AG
-        total_ahv = (payroll.ahv_employee or Decimal("0.00")) + (payroll.ahv_employer or Decimal("0.00"))
+        total_ahv = safe_decimal(payroll.ahv_employee) + safe_decimal(payroll.ahv_employer)
 
         # VK-Beitrag berechnen
         vk_employer_raw = total_ahv * rate_employer

@@ -32,7 +32,7 @@ class FAKCalculator:
         """
         from adealohn.models import FAKParameter
 
-        gross_salary = payroll.gross_salary or Decimal("0.00")
+        gross_salary = payroll.bruttolohn or Decimal("0.00")
         
         # Kanton des FIRMENSITZES des Mandanten (Client) ermitteln
         # PayrollRecord → Employee → Client → work_canton

@@ -1,6 +1,8 @@
 from decimal import Decimal
 
 from adeacore.money import round_to_5_rappen
+from .helpers import get_parameter_for_year, safe_decimal, get_ytd_basis
+from adealohn.models import BVGParameter
 
 
 class BVGCalculator:
@@ -10,10 +12,8 @@ class BVGCalculator:
     """
 
     def calculate_for_payroll(self, payroll):
-        from decimal import Decimal
-        from adealohn.models import BVGParameter
-
-        params = BVGParameter.objects.filter(year=payroll.year).first()
+        # Parameter mit Fallback laden (mit Caching)
+        params = get_parameter_for_year(BVGParameter, payroll.year)
 
         if not params:
             return {
@@ -22,12 +22,11 @@ class BVGCalculator:
                 "bvg_employer": Decimal("0.00"),
             }
 
-        basis = payroll.bvg_basis or Decimal("0.00")
+        basis = safe_decimal(payroll.bvg_basis)
         employee = getattr(payroll, "employee", None)
 
         # YTD-Logik: Jahreslohn = YTD-Basis + aktuelle Basis
-        ytd_basis = getattr(employee, "bvg_ytd_basis", Decimal("0.00")) or Decimal("0.00")
-        ytd_basis = Decimal(str(ytd_basis))
+        ytd_basis = get_ytd_basis(employee, "bvg_ytd_basis")
         annual_salary = ytd_basis + basis
 
         # Eintrittsschwelle prüfen
@@ -46,8 +45,7 @@ class BVGCalculator:
         insured_annual = min(insured_annual, params.max_insured_salary)
 
         # YTD versicherter Lohn
-        ytd_insured = getattr(employee, "bvg_ytd_insured_salary", Decimal("0.00")) or Decimal("0.00")
-        ytd_insured = Decimal(str(ytd_insured))
+        ytd_insured = get_ytd_basis(employee, "bvg_ytd_insured_salary")
 
         # Versicherter Lohn des Monats = Gesamt versichert - YTD versichert
         insured_month = insured_annual - ytd_insured

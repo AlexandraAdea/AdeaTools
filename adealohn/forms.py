@@ -33,6 +33,8 @@ class EmployeeForm(forms.ModelForm):
             "hourly_rate",
             "monthly_salary",
             "weekly_hours",
+            "pensum",
+            "iban",
             "vacation_weeks",
             "nbu_pflichtig",
             "is_rentner",
@@ -57,7 +59,7 @@ class EmployeeForm(forms.ModelForm):
             "country": "Land",
             "email": "E-Mail",
             "phone": "Telefon",
-            "mobile": "Mobiltelefon",
+            "mobile": "Mobil",
             "zivilstand": "Zivilstand",
             "eintrittsdatum": "Eintrittsdatum",
             "austrittsdatum": "Austrittsdatum",
@@ -66,14 +68,16 @@ class EmployeeForm(forms.ModelForm):
             "hourly_rate": "Stundensatz (CHF)",
             "monthly_salary": "Monatslohn (CHF)",
             "weekly_hours": "Wöchentliche Stunden",
-            "vacation_weeks": "Ferienwochen (für Ferienentschädigung)",
-            "nbu_pflichtig": "NBU-pflichtig (ab 8h/Woche)",
+            "pensum": "Arbeitspensum (%)",
+            "iban": "IBAN",
+            "vacation_weeks": "Ferienwochen",
+            "nbu_pflichtig": "NBU-pflichtig",
             "is_rentner": "Rentner/in",
-            "ahv_freibetrag_aktiv": "AHV-Freibetrag aktiv (nur bei Rentnern)",
+            "ahv_freibetrag_aktiv": "AHV-Freibetrag aktiv",
             "qst_pflichtig": "QST-pflichtig",
             "qst_tarif": "QST-Tarif",
-            "qst_kinder": "QST-Kinder",
-            "qst_kirchensteuer": "QST-Kirchensteuer",
+            "qst_kinder": "Anzahl Kinder",
+            "qst_kirchensteuer": "Kirchensteuer",
             "qst_fixbetrag": "QST-Fixbetrag (CHF)",
         }
         widgets = {
@@ -82,11 +86,11 @@ class EmployeeForm(forms.ModelForm):
             "first_name": forms.TextInput(attrs={"class": "adea-input"}),
             "last_name": forms.TextInput(attrs={"class": "adea-input"}),
             "geburtsdatum": forms.DateInput(attrs={"class": "adea-input", "type": "date"}),
-            "ahv_nummer": forms.TextInput(attrs={"class": "adea-input", "placeholder": "756.XXXX.XXXX.XX"}),
+            "ahv_nummer": forms.TextInput(attrs={"class": "adea-input"}),
             "street": forms.TextInput(attrs={"class": "adea-input"}),
             "zipcode": forms.TextInput(attrs={"class": "adea-input"}),
             "city": forms.TextInput(attrs={"class": "adea-input"}),
-            "country": forms.TextInput(attrs={"class": "adea-input", "placeholder": "CH"}),
+            "country": forms.TextInput(attrs={"class": "adea-input"}),
             "email": forms.EmailInput(attrs={"class": "adea-input"}),
             "phone": forms.TextInput(attrs={"class": "adea-input"}),
             "mobile": forms.TextInput(attrs={"class": "adea-input"}),
@@ -151,7 +155,7 @@ class EmployeeForm(forms.ModelForm):
 
 
 class PayrollRecordForm(forms.ModelForm):
-    show_gross_salary_field = True
+    show_bruttolohn_field = True
     hours_manual = forms.DecimalField(
         max_digits=6,
         decimal_places=2,
@@ -165,22 +169,29 @@ class PayrollRecordForm(forms.ModelForm):
     class Meta:
         model = PayrollRecord
         fields = [
-            "employee", "month", "year", "status", "gross_salary", "qst_prozent",
+            "employee", "month", "year", "status", "bruttolohn", "qst_prozent",
+            "manual_bvg_employee", "manual_bvg_employer",
         ]
         labels = {
             "employee": "Mitarbeiter",
             "month": "Monat",
             "year": "Jahr",
             "status": "Status",
-            "gross_salary": "Bruttolohn (CHF)",
+            "bruttolohn": "Bruttolohn (CHF)",
             "qst_prozent": "QST-Prozentsatz (%)",
+            "manual_bvg_employee": "BVG Arbeitnehmer (manuell, CHF)",
+            "manual_bvg_employer": "BVG Arbeitgeber (manuell, CHF)",
         }
         widgets = {
             "employee": forms.Select(attrs={"class": "adea-select"}),
-            "month": forms.Select(attrs={"class": "adea-select"}),
+            "month": forms.Select(attrs={"class": "adea-select"}, choices=[
+                (1, "Januar"), (2, "Februar"), (3, "März"), (4, "April"),
+                (5, "Mai"), (6, "Juni"), (7, "Juli"), (8, "August"),
+                (9, "September"), (10, "Oktober"), (11, "November"), (12, "Dezember")
+            ]),
             "year": forms.NumberInput(attrs={"class": "adea-input", "min": "2000", "max": "2100"}),
             "status": forms.Select(attrs={"class": "adea-select"}),
-            "gross_salary": forms.NumberInput(
+            "bruttolohn": forms.NumberInput(
                 attrs={
                     "class": "adea-input",
                     "step": "0.01",
@@ -193,6 +204,20 @@ class PayrollRecordForm(forms.ModelForm):
                     "step": "0.01",
                     "min": "0",
                     "max": "100",
+                }
+            ),
+            "manual_bvg_employee": forms.NumberInput(
+                attrs={
+                    "class": "adea-input",
+                    "step": "0.05",
+                    "min": "0",
+                }
+            ),
+            "manual_bvg_employer": forms.NumberInput(
+                attrs={
+                    "class": "adea-input",
+                    "step": "0.05",
+                    "min": "0",
                 }
             ),
         }
@@ -208,53 +233,79 @@ class PayrollRecordForm(forms.ModelForm):
         else:
             self.fields['qst_prozent'].help_text = "QST-Prozentsatz für diesen Monat (z.B. 4.30 für 4.30%). Kann monatlich variieren bei Stundenlöhnen."
         
+        # BVG-Felder: Hilfe-Text hinzufügen
+        self.fields['manual_bvg_employee'].help_text = "Manueller BVG-Arbeitnehmerbeitrag (falls nicht automatisch berechnet). Wird zu berechneten Beiträgen addiert."
+        self.fields['manual_bvg_employer'].help_text = "Manueller BVG-Arbeitgeberbeitrag (falls nicht automatisch berechnet). Wird zu berechneten Beiträgen addiert."
+        self.fields['manual_bvg_employee'].required = False
+        self.fields['manual_bvg_employer'].required = False
+        
         # Stunden-Feld nur bei Stundenlöhnen anzeigen
         if employee and employee.hourly_rate > 0:
-            self.fields["gross_salary"].required = False
-            self.fields["gross_salary"].widget = forms.HiddenInput()
-            self.show_gross_salary_field = False
+            self.fields["bruttolohn"].required = False
+            self.fields["bruttolohn"].widget = forms.HiddenInput()
+            self.show_bruttolohn_field = False
             self.fields["hours_manual"].help_text = "Stunden manuell eingeben, falls keine Zeiteinträge vorhanden sind. Wird automatisch aus Zeiteinträgen berechnet, wenn vorhanden."
         elif employee and employee.monthly_salary > 0:
             # Bei Monatslohn: Bruttolohn-Feld anzeigen (kann überschrieben werden)
             if not self.instance.pk:  # Nur bei neuem PayrollRecord
-                self.fields["gross_salary"].initial = employee.monthly_salary
-            self.fields["gross_salary"].help_text = f"Monatslohn (Standard: {employee.monthly_salary} CHF vom Mitarbeiter). Kann für diesen Monat überschrieben werden."
+                self.fields["bruttolohn"].initial = employee.monthly_salary
+            self.fields["bruttolohn"].help_text = f"Monatslohn (Standard: {employee.monthly_salary} CHF vom Mitarbeiter). Kann für diesen Monat überschrieben werden."
             self.fields["hours_manual"].widget = forms.HiddenInput()
             self.fields["hours_manual"].required = False
-            self.show_gross_salary_field = True
+            self.show_bruttolohn_field = True
         else:
             # Weder Stunden- noch Monatslohn definiert
             self.fields["hours_manual"].widget = forms.HiddenInput()
             self.fields["hours_manual"].required = False
-            self.show_gross_salary_field = True
+            self.show_bruttolohn_field = True
 
 
 class FamilyAllowanceNachzahlungForm(forms.ModelForm):
     class Meta:
         model = PayrollItem
-        fields = ["wage_type", "amount", "description"]
+        fields = ["wage_type", "quantity", "amount", "description"]
         labels = {
             "wage_type": "Zulagenart",
-            "amount": "Betrag (CHF)",
+            "quantity": "Anzahl Monate",
+            "amount": "Monatsbetrag (CHF)",
             "description": "Beschreibung",
         }
         widgets = {
             "wage_type": forms.Select(attrs={"class": "adea-select"}),
-            "amount": forms.NumberInput(
-                attrs={
-                    "class": "adea-input",
-                    "step": "0.01",
-                    "min": "0",
-                }
-            ),
+            "quantity": forms.NumberInput(attrs={"class": "adea-input", "min": "1", "step": "1"}),
+            "amount": forms.NumberInput(attrs={"class": "adea-input", "step": "0.01", "min": "0"}),
             "description": forms.TextInput(attrs={"class": "adea-input"}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Nur Familienzulagen-WageTypes anzeigen
+        # Nur Kinderzulage anzeigen (vereinfacht - keine Unterscheidung mehr)
         self.fields["wage_type"].queryset = WageType.objects.filter(
-            code__in=["KINDERZULAGE", "AUSBILDUNGSZULAGE"]
+            code__in=["KINDERZULAGE", "FAMILIENZULAGE"]  # FAMILIENZULAGE für Rückwärtskompatibilität
+        )
+
+
+class FamilyAllowanceLaufendForm(forms.ModelForm):
+    """Formular für laufende Familienzulagen (nicht Nachzahlungen)."""
+    class Meta:
+        model = PayrollItem
+        fields = ["wage_type", "amount", "description"]
+        labels = {
+            "wage_type": "Zulagenart",
+            "amount": "Monatsbetrag (CHF)",
+            "description": "Beschreibung (z.B. Name des Kindes)",
+        }
+        widgets = {
+            "wage_type": forms.Select(attrs={"class": "adea-select"}),
+            "amount": forms.NumberInput(attrs={"class": "adea-input", "step": "0.01", "min": "0"}),
+            "description": forms.TextInput(attrs={"class": "adea-input"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Nur Kinderzulage anzeigen
+        self.fields["wage_type"].queryset = WageType.objects.filter(
+            code__in=["KINDERZULAGE", "FAMILIENZULAGE"]  # FAMILIENZULAGE für Rückwärtskompatibilität
         )
 
 
@@ -316,6 +367,57 @@ class PayrollItemPrivatanteilForm(forms.ModelForm):
         )
 
 
+class PayrollItemGeneralForm(forms.ModelForm):
+    """Allgemeines Formular zum Hinzufügen von PayrollItems (Prämien, Trinkgeld, BVG-Zusatzbeiträge, etc.)"""
+    class Meta:
+        model = PayrollItem
+        fields = ["wage_type", "quantity", "amount", "description"]
+        labels = {
+            "wage_type": "Lohnart",
+            "quantity": "Menge",
+            "amount": "Betrag (CHF)",
+            "description": "Beschreibung",
+        }
+        widgets = {
+            "wage_type": forms.Select(attrs={"class": "adea-select"}),
+            "quantity": forms.NumberInput(
+                attrs={
+                    "class": "adea-input",
+                    "step": "0.01",
+                    "min": "0",
+                }
+            ),
+            "amount": forms.NumberInput(
+                attrs={
+                    "class": "adea-input",
+                    "step": "0.01",
+                    "min": "0",
+                }
+            ),
+            "description": forms.TextInput(attrs={"class": "adea-input"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Zeige alle WageTypes außer den speziellen (Grundlohn, Ferienentschädigung, Spesen, Privatanteil, Familienzulagen)
+        # Verwende Helper-Funktion für konsistente Filterung
+        from .helpers import filter_wage_types_by_code
+        
+        excluded_codes = [
+            "GRUNDLOHN_STUNDEN", "GRUNDLOHN_MONAT", "FERIENENTSCHAEDIGUNG",
+            "KINDERZULAGE", "FAMILIENZULAGE",  # Familienzulagen werden separat erfasst
+            "BVG_AN", "BVG_AG",  # BVG-Beiträge sind keine Lohnarten - werden direkt im PayrollRecord erfasst
+        ]
+        excluded_prefixes = ["SPESEN_", "PRIVATANTEIL_"]
+        
+        queryset = WageType.objects.filter(is_active=True)  # Nur aktive WageTypes
+        queryset = filter_wage_types_by_code(queryset, excluded_codes, excluded_prefixes)
+        
+        self.fields["wage_type"].queryset = queryset.order_by("name")
+        self.fields["quantity"].initial = Decimal("1")
+        self.fields["quantity"].help_text = "Menge (z.B. 1 für einmalige Zahlung, Stunden für stundenbasierte Zulagen)"
+
+
 class InsuranceRatesForm(forms.Form):
     """
     Formular für alle Versicherungsansätze (Arbeitgeber-Ebene) pro Jahr.
@@ -368,7 +470,7 @@ class InsuranceRatesForm(forms.Form):
         help_text="z.B. 1.1 für 1.1%",
     )
     alv_max_annual = forms.DecimalField(
-        label="ALV Max. Jahreslohn (CHF)",
+        label="ALV Max. versichertes Jahreseinkommen (CHF)",
         max_digits=10,
         decimal_places=2,
         widget=forms.NumberInput(attrs={"class": "adea-input", "step": "0.01"}),
@@ -377,18 +479,18 @@ class InsuranceRatesForm(forms.Form):
     
     # FAK
     fak_canton = forms.CharField(
-        label="FAK Kanton",
+        label="Kanton (FAK)",
         max_length=50,
         required=False,
-        widget=forms.TextInput(attrs={"class": "adea-input", "placeholder": "DEFAULT oder z.B. AG, ZH"}),
-        help_text="Kanton oder 'DEFAULT' für Standard",
+        widget=forms.TextInput(attrs={"class": "adea-input"}),
+        help_text="Kanton für FAK-Rate (z.B. 'AG', 'ZH'). Leer = DEFAULT",
     )
     fak_rate_employer = forms.DecimalField(
         label="FAK Rate Arbeitgeber (%)",
         max_digits=6,
-        decimal_places=3,
-        widget=forms.NumberInput(attrs={"class": "adea-input", "step": "0.001"}),
-        help_text="z.B. 1.0 für 1.0% Standard, 1.450 für 1.450% Aargau",
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={"class": "adea-input", "step": "0.01"}),
+        help_text="z.B. 1.0 für 1.0%",
     )
     
     # VK
@@ -397,28 +499,26 @@ class InsuranceRatesForm(forms.Form):
         max_digits=6,
         decimal_places=2,
         widget=forms.NumberInput(attrs={"class": "adea-input", "step": "0.01"}),
-        help_text="In % des Total AHV-Beitrags, z.B. 3.0 für 3.0%",
+        help_text="z.B. 3.0 für 3.0%",
     )
     
-    # BU
+    # UVG
     bu_rate_employer = forms.DecimalField(
         label="BU Rate Arbeitgeber (%)",
         max_digits=6,
-        decimal_places=3,
-        widget=forms.NumberInput(attrs={"class": "adea-input", "step": "0.001"}),
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={"class": "adea-input", "step": "0.01"}),
         help_text="z.B. 0.644 für 0.644%",
     )
-    
-    # NBU
     nbu_rate_employee = forms.DecimalField(
-        label="NBUV Rate Arbeitnehmer (%)",
+        label="NBU Rate Arbeitnehmer (%)",
         max_digits=6,
         decimal_places=2,
         widget=forms.NumberInput(attrs={"class": "adea-input", "step": "0.01"}),
         help_text="z.B. 2.3 für 2.3%",
     )
     uvg_max_annual = forms.DecimalField(
-        label="UVG Max. Jahreslohn (CHF)",
+        label="UVG Max. versichertes Jahreseinkommen (CHF)",
         max_digits=10,
         decimal_places=2,
         widget=forms.NumberInput(attrs={"class": "adea-input", "step": "0.01"}),
@@ -444,7 +544,6 @@ class InsuranceRatesForm(forms.Form):
         label="KTG Max. Basis (CHF)",
         max_digits=10,
         decimal_places=2,
-        required=False,
         widget=forms.NumberInput(attrs={"class": "adea-input", "step": "0.01"}),
-        help_text="Optional, z.B. 300'000 CHF",
+        help_text="Standard: 300'000 CHF",
     )

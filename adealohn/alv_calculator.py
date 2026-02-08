@@ -2,6 +2,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from adeacore.money import round_to_5_rappen
+from .helpers import get_parameter_for_year, safe_decimal, get_ytd_basis
 
 if TYPE_CHECKING:
     from adeacore.models import PayrollRecord
@@ -16,24 +17,23 @@ class ALVCalculator:
     """
 
     def calculate_for_payroll(self, payroll: "PayrollRecord") -> dict:
-        from decimal import Decimal
         from adealohn.models import ALVParameter
 
-        params = ALVParameter.objects.filter(year=payroll.year).first()
+        # Parameter mit Fallback laden (mit Caching)
+        defaults = {
+            "rate_employee": Decimal("0.011"),  # 1.1% Standard
+            "rate_employer": Decimal("0.011"),  # 1.1% Standard
+            "max_annual_insured_salary": Decimal("148200.00"),
+        }
+        params = get_parameter_for_year(ALVParameter, payroll.year, defaults=defaults)
         
-        # Fallback auf Standardwerte wenn keine Parameter gefunden
-        if not params:
-            rate_employee = Decimal("0.011")  # 1.1% Standard
-            rate_employer = Decimal("0.011")  # 1.1% Standard
-            max_year = Decimal("148200.00")
-        else:
-            rate_employee = params.rate_employee
-            rate_employer = params.rate_employer
-            max_year = params.max_annual_insured_salary
+        rate_employee = params.rate_employee if params else defaults["rate_employee"]
+        rate_employer = params.rate_employer if params else defaults["rate_employer"]
+        max_year = params.max_annual_insured_salary if params else defaults["max_annual_insured_salary"]
 
-        basis = payroll.alv_basis or Decimal("0.00")
+        basis = safe_decimal(payroll.alv_basis)
         employee = getattr(payroll, "employee", None)
-        is_rentner = getattr(employee, "is_rentner", False)
+        is_rentner = getattr(employee, "is_rentner", False) if employee else False
 
         # Keine ALV für Rentner
         if is_rentner:
@@ -44,8 +44,7 @@ class ALVCalculator:
             }
 
         # YTD-Logik: Berechne YTD-Basis + aktuelle Basis
-        ytd_basis = getattr(employee, "alv_ytd_basis", Decimal("0.00")) or Decimal("0.00")
-        ytd_basis = Decimal(str(ytd_basis))
+        ytd_basis = get_ytd_basis(employee, "alv_ytd_basis")
         
         # Prüfe ob YTD-Basis bereits über Maximum liegt
         if ytd_basis >= max_year:

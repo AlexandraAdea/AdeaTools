@@ -324,6 +324,19 @@ class Employee(models.Model):
         default=0,
         help_text="Wöchentliche Arbeitsstunden",
     )
+    pensum = models.DecimalField(
+        "Arbeitspensum (%)",
+        max_digits=5,
+        decimal_places=1,
+        default=100,
+        help_text="Arbeitspensum in Prozent (z.B. 80 für 80%, 100 für 100%)",
+    )
+    iban = EncryptedCharField(
+        "IBAN",
+        max_length=100,
+        blank=True,
+        help_text="IBAN für Lohnauszahlung",
+    )
     vacation_weeks = models.IntegerField(
         default=5,
         choices=[(4, "4 Wochen"), (5, "5 Wochen"), (6, "6 Wochen")],
@@ -519,7 +532,7 @@ class PayrollRecord(models.Model):
         default="ENTWURF",
         help_text="Status des Lohnlaufs. Gesperrte Löhne können nicht mehr bearbeitet werden.",
     )
-    gross_salary = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    bruttolohn = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     ahv_basis = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     alv_basis = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     bvg_basis = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -541,7 +554,19 @@ class PayrollRecord(models.Model):
     bvg_insured_salary = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     bvg_employee = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     bvg_employer = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    qst_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    manual_bvg_employee = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        help_text="Manueller BVG-Arbeitnehmerbeitrag (falls nicht automatisch berechnet). Wird zu berechneten Beiträgen addiert."
+    )
+    manual_bvg_employer = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        help_text="Manueller BVG-Arbeitgeberbeitrag (falls nicht automatisch berechnet). Wird zu berechneten Beiträgen addiert."
+    )
+    qst_abzug = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     qst_prozent = models.DecimalField(
         max_digits=5,
         decimal_places=2,
@@ -561,7 +586,7 @@ class PayrollRecord(models.Model):
         default=0,
         help_text="Verwaltungskosten Arbeitgeber (3.0% vom Total AHV-Beitrag, gemäss Excel-Vorlage)",
     )
-    net_salary = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    nettolohn = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -628,7 +653,13 @@ class PayrollRecord(models.Model):
                     )
 
     def recompute_bases_from_items(self):
-        from decimal import Decimal
+        """
+        Berechnet alle Basen aus PayrollItems und rundet auf 2 Dezimalstellen.
+        
+        WICHTIG: Alle Werte müssen auf 2 Dezimalstellen gerundet werden,
+        da die DecimalField-Felder max. 2 Dezimalstellen erlauben.
+        """
+        from decimal import Decimal, ROUND_HALF_UP
 
         gross = Decimal("0.00")
         ahv = Decimal("0.00")
@@ -656,45 +687,66 @@ class PayrollRecord(models.Model):
             if wt.qst_relevant:
                 qst += total
 
-        self.gross_salary = gross
-        self.ahv_basis = ahv
-        self.alv_basis = alv
-        self.bvg_basis = bvg
-        self.uv_basis = uv
-        self.qst_basis = qst
+        # Auf 2 Dezimalstellen runden (für DecimalField mit decimal_places=2)
+        def round_to_2_decimals(value):
+            """Rundet Decimal-Wert auf 2 Dezimalstellen."""
+            return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
-    @transaction.atomic
-    def save(self, *args, **kwargs):
+        self.bruttolohn = round_to_2_decimals(gross)
+        self.ahv_basis = round_to_2_decimals(ahv)
+        self.alv_basis = round_to_2_decimals(alv)
+        self.bvg_basis = round_to_2_decimals(bvg)
+        self.uv_basis = round_to_2_decimals(uv)
+        self.qst_basis = round_to_2_decimals(qst)
+        
+        # Manuelle BVG-Beiträge werden jetzt direkt im PayrollRecord gespeichert (manual_bvg_employee, manual_bvg_employer)
+        # Keine Extraktion aus PayrollItems mehr nötig
+    
+    def _handle_january_ytd_reset(self):
+        """
+        Setzt YTD-Basen für Januar zurück (Jahresreset).
+        
+        Verwendet select_for_update() um Race Conditions zu vermeiden.
+        """
+        from decimal import Decimal
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        
+        if self.month != 1:
+            return
+        
+        # Lock Employee für Update (verhindert Race Conditions)
+        employee = Employee.objects.select_for_update().get(pk=self.employee.pk)
+        
+        # Prüfe ob bereits zurückgesetzt wurde (verhindert doppelte Resets)
+        if employee.alv_ytd_basis != Decimal("0.00") or employee.uvg_ytd_basis != Decimal("0.00"):
+            logger.info(f"YTD-Reset für {employee} im Monat {self.month}/{self.year}")
+            employee.alv_ytd_basis = Decimal("0.00")
+            employee.uvg_ytd_basis = Decimal("0.00")
+            employee.bvg_ytd_basis = Decimal("0.00")
+            employee.bvg_ytd_insured_salary = Decimal("0.00")
+            employee.save(update_fields=[
+                'alv_ytd_basis', 'uvg_ytd_basis', 'bvg_ytd_basis', 'bvg_ytd_insured_salary'
+            ])
+    
+    def _calculate_social_insurances(self):
+        """
+        Berechnet alle Sozialversicherungen (AHV, ALV, UVG, KTG, BVG, FAK, VK).
+        
+        Returns:
+            dict: Enthält 'bvg_result' für spätere YTD-Updates
+        
+        Raises:
+            ValidationError: Falls eine Berechnung fehlschlägt
+        """
         from decimal import Decimal
         import logging
         from django.core.exceptions import ValidationError
         
         logger = logging.getLogger(__name__)
+        bvg_result = {}
         
-        # Validierung durchführen
-        self.full_clean()
-        
-        # Jahresreset für Januar: YTD-Basen zurücksetzen (mit Lock)
-        if self.month == 1:
-            # Lock Employee für Update (verhindert Race Conditions)
-            employee = Employee.objects.select_for_update().get(pk=self.employee.pk)
-            # Prüfe ob bereits zurückgesetzt wurde (verhindert doppelte Resets)
-            if employee.alv_ytd_basis != Decimal("0.00") or employee.uvg_ytd_basis != Decimal("0.00"):
-                logger.info(f"YTD-Reset für {employee} im Monat {self.month}/{self.year}")
-                employee.alv_ytd_basis = Decimal("0.00")
-                employee.uvg_ytd_basis = Decimal("0.00")
-                employee.bvg_ytd_basis = Decimal("0.00")
-                employee.bvg_ytd_insured_salary = Decimal("0.00")
-                employee.save(update_fields=[
-                    'alv_ytd_basis', 'uvg_ytd_basis', 'bvg_ytd_basis', 'bvg_ytd_insured_salary'
-                ])
-        
-        items_qs = None
-        if self.pk and self.items.exists():
-            items_qs = list(self.items.select_related("wage_type"))
-            self._items_qs = items_qs
-            self.recompute_bases_from_items()
-
         # AHV-Berechnung durchführen
         try:
             from adealohn.ahv_calculator import AHVCalculator
@@ -761,33 +813,80 @@ class PayrollRecord(models.Model):
             logger.error(f"KTG-Berechnung fehlgeschlagen für PayrollRecord {self.pk}: {e}", exc_info=True)
             raise ValidationError(f"KTG-Berechnung fehlgeschlagen: {e}")
 
-        # BVG-Berechnung durchführen
-        try:
-            from adealohn.bvg_calculator import BVGCalculator
-            bvg_calc = BVGCalculator()
-            bvg_result = bvg_calc.calculate_for_payroll(self)
-            self.bvg_insured_salary = bvg_result["bvg_insured_salary"]
-            self.bvg_employee = bvg_result["bvg_employee"]
-            self.bvg_employer = bvg_result["bvg_employer"]
-        except Exception as e:
-            logger.error(f"BVG-Berechnung fehlgeschlagen für PayrollRecord {self.pk}: {e}", exc_info=True)
-            raise ValidationError(f"BVG-Berechnung fehlgeschlagen: {e}")
-
-        # QST-Basis neu berechnen (gemäss Excel-Logik: ALV-Basis - AN-Sozialabzüge auf ALV-Basis)
-        # AN-Sozialabzüge auf ALV-Basis müssen direkt auf ALV-Basis berechnet werden (nicht proportional!)
-        # WICHTIG: Diese Berechnung muss NACH allen anderen Berechnungen erfolgen!
+        # BVG-Berechnung durchführen (optional - nur wenn Parameter vorhanden)
+        from adealohn.helpers import safe_decimal
+        from decimal import Decimal, ROUND_HALF_UP
+        from adeacore.money import round_to_5_rappen
+        
+        def round_to_2_decimals(value):
+            """Rundet Decimal-Wert auf 2 Dezimalstellen."""
+            return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        
+        # Manuelle BVG-Beiträge aus PayrollRecord-Feldern lesen
+        manual_bvg_employee = safe_decimal(self.manual_bvg_employee)
+        manual_bvg_employer = safe_decimal(self.manual_bvg_employer)
+        
+        # Prüfe ob BVG-Parameter vorhanden sind
+        from adealohn.models import BVGParameter
+        from adealohn.helpers import get_parameter_for_year
+        bvg_params = get_parameter_for_year(BVGParameter, self.year)
+        
+        if bvg_params:
+            # Automatische Berechnung vorhanden - verwende Calculator
+            try:
+                from adealohn.bvg_calculator import BVGCalculator
+                bvg_calc = BVGCalculator()
+                bvg_result = bvg_calc.calculate_for_payroll(self)
+                self.bvg_insured_salary = bvg_result["bvg_insured_salary"]
+                
+                # Manuelle Beiträge auf 5 Rappen runden und zu berechneten Beiträgen addieren
+                manual_bvg_employee_rounded = round_to_5_rappen(manual_bvg_employee)
+                manual_bvg_employer_rounded = round_to_5_rappen(manual_bvg_employer)
+                
+                self.bvg_employee = round_to_2_decimals(bvg_result["bvg_employee"] + manual_bvg_employee_rounded)
+                self.bvg_employer = round_to_2_decimals(bvg_result["bvg_employer"] + manual_bvg_employer_rounded)
+                
+                return bvg_result
+            except Exception as e:
+                logger.error(f"BVG-Berechnung fehlgeschlagen für PayrollRecord {self.pk}: {e}", exc_info=True)
+                raise ValidationError(f"BVG-Berechnung fehlgeschlagen: {e}")
+        else:
+            # Keine BVG-Parameter - nur manuelle Beiträge verwenden
+            self.bvg_insured_salary = Decimal("0.00")
+            manual_bvg_employee_rounded = round_to_5_rappen(manual_bvg_employee)
+            manual_bvg_employer_rounded = round_to_5_rappen(manual_bvg_employer)
+            
+            self.bvg_employee = round_to_2_decimals(manual_bvg_employee_rounded)
+            self.bvg_employer = round_to_2_decimals(manual_bvg_employer_rounded)
+            
+            return {
+                "bvg_insured_salary": Decimal("0.00"),
+                "bvg_insured_month": Decimal("0.00"),
+                "bvg_employee": manual_bvg_employee_rounded,
+                "bvg_employer": manual_bvg_employer_rounded,
+            }
+    
+    def _calculate_qst_basis(self):
+        """
+        Berechnet QST-Basis gemäss Excel-Logik: ALV-Basis - AN-Sozialabzüge auf ALV-Basis.
+        
+        WICHTIG: Diese Berechnung muss NACH allen anderen Berechnungen erfolgen!
+        AN-Sozialabzüge auf ALV-Basis müssen direkt auf ALV-Basis berechnet werden (nicht proportional!).
+        """
         from decimal import Decimal
         from adealohn.ktg_calculator import KTGCalculator
         from adealohn.uvg_calculator import UVGCalculator
         from adealohn.models import KTGParameter, UVGParameter, AHVParameter
         from adeacore.money import round_to_5_rappen
+        from adealohn.helpers import get_parameter_for_year, get_ytd_basis, safe_decimal
         
-        alv_basis_for_qst = self.alv_basis or Decimal("0.00")
+        alv_basis_for_qst = safe_decimal(self.alv_basis)
         employee = getattr(self, "employee", None)
         
         # AHV-Parameter für Jahr holen
-        ahv_params = AHVParameter.objects.filter(year=self.year).first()
-        ahv_rate_employee = ahv_params.rate_employee if ahv_params else Decimal("0.053")  # Fallback 5.3%
+        defaults_ahv = {"rate_employee": Decimal("0.053")}
+        ahv_params = get_parameter_for_year(AHVParameter, self.year, defaults=defaults_ahv)
+        ahv_rate_employee = ahv_params.rate_employee if ahv_params else defaults_ahv["rate_employee"]
         
         # AHV-AN auf ALV-Basis: Berechne AHV direkt mit ALV-Basis (ohne Rentnerfreibetrag für QST)
         # Für QST-Basis wird Rentnerfreibetrag nicht berücksichtigt (wie im alten System)
@@ -795,27 +894,28 @@ class PayrollRecord(models.Model):
         ahv_an_on_alv_basis = round_to_5_rappen(ahv_an_on_alv_basis)
         
         # ALV-AN ist bereits auf ALV-Basis (bereits korrekt berechnet)
-        alv_an_on_alv_basis = self.alv_employee or Decimal("0.00")
+        alv_an_on_alv_basis = safe_decimal(self.alv_employee)
         
         # NBU-AN auf ALV-Basis: Berechne NBU direkt mit ALV-Basis
         nbu_on_alv_basis = Decimal("0.00")
         if employee and getattr(employee, "nbu_pflichtig", False):
-            uvg_params = UVGParameter.objects.filter(year=self.year).first()
+            defaults_uvg = {"max_annual_insured_salary": Decimal("148200.00"), "nbu_rate_employee": Decimal("0.023")}
+            uvg_params = get_parameter_for_year(UVGParameter, self.year, defaults=defaults_uvg)
             if uvg_params:
                 # YTD-Logik für NBU (gleiche wie für BU)
-                ytd_basis = getattr(employee, "uvg_ytd_basis", Decimal("0.00")) or Decimal("0.00")
-                ytd_basis = Decimal(str(ytd_basis))
-                max_year = uvg_params.max_annual_insured_salary
+                ytd_basis = get_ytd_basis(employee, "uvg_ytd_basis")
+                max_year = uvg_params.max_annual_insured_salary if uvg_params else defaults_uvg["max_annual_insured_salary"]
                 
                 if ytd_basis < max_year:
                     remaining = max_year - ytd_basis
                     capped_alv_basis = min(alv_basis_for_qst, remaining)
-                    nbu_raw = capped_alv_basis * uvg_params.nbu_rate_employee
+                    nbu_rate = uvg_params.nbu_rate_employee if uvg_params else defaults_uvg["nbu_rate_employee"]
+                    nbu_raw = capped_alv_basis * nbu_rate
                     nbu_on_alv_basis = round_to_5_rappen(nbu_raw)
         
         # KTG-AN auf ALV-Basis: Berechne KTG direkt mit ALV-Basis
         ktg_on_alv_basis = Decimal("0.00")
-        ktg_params = KTGParameter.objects.first()
+        ktg_params = get_parameter_for_year(KTGParameter, self.year)
         if ktg_params and ktg_params.ktg_rate_employee > 0:
             # Optional: Kappung anwenden
             if ktg_params.ktg_max_basis:
@@ -823,13 +923,17 @@ class PayrollRecord(models.Model):
             else:
                 effective_alv_basis = alv_basis_for_qst
             
-            ktg_total_on_alv = effective_alv_basis * (ktg_params.ktg_rate_employee + ktg_params.ktg_rate_employer)
+            total_rate = ktg_params.ktg_rate_employee + ktg_params.ktg_rate_employer
+            ktg_total_on_alv = effective_alv_basis * total_rate
             # AN-Anteil (50/50 Split, falls nicht anders konfiguriert)
-            ktg_on_alv_basis = ktg_total_on_alv * (ktg_params.ktg_rate_employee / (ktg_params.ktg_rate_employee + ktg_params.ktg_rate_employer)) if (ktg_params.ktg_rate_employee + ktg_params.ktg_rate_employer) > 0 else Decimal("0.00")
+            if total_rate > 0:
+                ktg_on_alv_basis = ktg_total_on_alv * (ktg_params.ktg_rate_employee / total_rate)
+            else:
+                ktg_on_alv_basis = Decimal("0.00")
             ktg_on_alv_basis = round_to_5_rappen(ktg_on_alv_basis)
         
         # BVG ist unabhängig von Basis (wird direkt verwendet)
-        bvg_an = self.bvg_employee or Decimal("0.00")
+        bvg_an = safe_decimal(self.bvg_employee)
         
         # AN-Sozialabzüge auf ALV-Basis
         sozialabzuege_auf_alv_basis = (
@@ -842,8 +946,19 @@ class PayrollRecord(models.Model):
         
         # QST-Basis = ALV-Basis - AN-Sozialabzüge auf ALV-Basis
         self.qst_basis = max(alv_basis_for_qst - sozialabzuege_auf_alv_basis, Decimal("0.00"))
+    
+    def _calculate_qst(self):
+        """
+        Berechnet QST (Quellensteuer) basierend auf qst_basis.
         
-        # QST-Berechnung durchführen (verwendet jetzt korrekte qst_basis)
+        Raises:
+            ValidationError: Falls QST-Berechnung fehlschlägt
+        """
+        import logging
+        from django.core.exceptions import ValidationError
+        
+        logger = logging.getLogger(__name__)
+        
         try:
             from adealohn.qst_calculator import QSTCalculator
             qst_calc = QSTCalculator()
@@ -851,40 +966,112 @@ class PayrollRecord(models.Model):
         except Exception as e:
             logger.error(f"QST-Berechnung fehlgeschlagen für PayrollRecord {self.pk}: {e}", exc_info=True)
             raise ValidationError(f"QST-Berechnung fehlgeschlagen: {e}")
-
-        # Netto-Lohn berechnen (AHV + ALV + NBU + KTG + BVG + QST abziehen)
-        self.net_salary = (
-            self.gross_salary
-            - self.ahv_employee
-            - self.alv_employee
-            - self.nbu_employee
-            - self.ktg_employee
-            - self.bvg_employee
-            - self.qst_amount
+    
+    def _calculate_nettolohn(self):
+        """
+        Berechnet Nettolohn: Bruttolohn - alle AN-Abzüge (AHV + ALV + NBU + KTG + BVG + QST).
+        Rundet auf 2 Dezimalstellen und verhindert negative Werte.
+        """
+        from decimal import Decimal, ROUND_HALF_UP
+        from adealohn.helpers import safe_decimal
+        
+        netto = (
+            safe_decimal(self.bruttolohn)
+            - safe_decimal(self.ahv_employee)
+            - safe_decimal(self.alv_employee)
+            - safe_decimal(self.nbu_employee)
+            - safe_decimal(self.ktg_employee)
+            - safe_decimal(self.bvg_employee)
+            - safe_decimal(self.qst_abzug)
         )
+        
+        # Sicherstellen dass Netto nicht negativ ist und auf 2 Dezimalstellen gerundet
+        self.nettolohn = max(netto, Decimal("0.00")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    
+    def _update_ytd_if_abgerechnet(self, bvg_result):
+        """
+        Aktualisiert YTD-Basen nur wenn Status = "ABGERECHNET".
+        
+        Verwendet select_for_update() um Race Conditions zu vermeiden.
+        
+        Args:
+            bvg_result: Ergebnis der BVG-Berechnung (enthält bvg_insured_month)
+        """
+        from decimal import Decimal
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        
+        if self.status != "ABGERECHNET":
+            return
+        
+        # Lock Employee für Update (verhindert Race Conditions bei gleichzeitigen Updates)
+        employee = Employee.objects.select_for_update().get(pk=self.employee.pk)
+        
+        # Prüfe ob bereits aktualisiert wurde (verhindert doppelte Updates bei Status-Änderungen)
+        # Speichere alten Status in _old_status (wird in __init__ gesetzt)
+        old_status = getattr(self, '_old_status', None)
+        if old_status != "ABGERECHNET":
+            logger.info(f"YTD-Update für {employee} - PayrollRecord {self.pk} ({self.month}/{self.year})")
+            # WICHTIG: Verwende effective_basis (nach YTD-Kappung) für YTD-Updates
+            employee.alv_ytd_basis += self.alv_effective_basis
+            employee.uvg_ytd_basis += self.uvg_effective_basis
+            employee.bvg_ytd_basis += self.bvg_basis
+            # bvg_ytd_insured_salary aktualisieren (monatlicher versicherter Lohn)
+            bvg_insured_month = bvg_result.get("bvg_insured_month", Decimal("0.00")) if bvg_result else Decimal("0.00")
+            employee.bvg_ytd_insured_salary += bvg_insured_month
+            employee.save(update_fields=[
+                'alv_ytd_basis', 'uvg_ytd_basis', 'bvg_ytd_basis', 'bvg_ytd_insured_salary'
+            ])
 
+    @transaction.atomic
+    def save(self, *args, **kwargs):
+        """
+        Speichert PayrollRecord und führt alle Berechnungen durch.
+        
+        Ablauf:
+        1. Validierung
+        2. YTD-Reset für Januar
+        3. Basis-Berechnung aus Items
+        4. Sozialversicherungen berechnen
+        5. QST-Basis berechnen
+        6. QST berechnen
+        7. Netto-Lohn berechnen
+        8. Speichern
+        9. YTD aktualisieren (wenn Status = ABGERECHNET)
+        """
+        # Validierung durchführen
+        self.full_clean()
+        
+        # Jahresreset für Januar: YTD-Basen zurücksetzen
+        self._handle_january_ytd_reset()
+        
+        # Basis-Berechnung aus Items (falls vorhanden)
+        items_qs = None
+        if self.pk and self.items.exists():
+            items_qs = list(self.items.select_related("wage_type"))
+            self._items_qs = items_qs
+            self.recompute_bases_from_items()
+
+        # Alle Sozialversicherungen berechnen
+        bvg_result = self._calculate_social_insurances()
+        
+        # QST-Basis berechnen (muss nach allen anderen Berechnungen erfolgen)
+        self._calculate_qst_basis()
+        
+        # QST-Berechnung durchführen
+        self._calculate_qst()
+
+        # Netto-Lohn berechnen
+        self._calculate_nettolohn()
+
+        # Speichern
         super().save(*args, **kwargs)
         
-        # YTD aktualisieren nur wenn Status = "ABGERECHNET" (mit Lock gegen Race Conditions)
-        if self.status == "ABGERECHNET":
-            # Lock Employee für Update (verhindert Race Conditions bei gleichzeitigen Updates)
-            employee = Employee.objects.select_for_update().get(pk=self.employee.pk)
-            
-            # Prüfe ob bereits aktualisiert wurde (verhindert doppelte Updates bei Status-Änderungen)
-            # Speichere alten Status in _old_status (wird in __init__ gesetzt)
-            old_status = getattr(self, '_old_status', None)
-            if old_status != "ABGERECHNET":
-                logger.info(f"YTD-Update für {employee} - PayrollRecord {self.pk} ({self.month}/{self.year})")
-                employee.alv_ytd_basis += self.alv_basis
-                employee.uvg_ytd_basis += self.uv_basis
-                employee.bvg_ytd_basis += self.bvg_basis
-                # bvg_ytd_insured_salary aktualisieren (monatlicher versicherter Lohn)
-                bvg_insured_month = bvg_result.get("bvg_insured_month", Decimal("0.00"))
-                employee.bvg_ytd_insured_salary += bvg_insured_month
-                employee.save(update_fields=[
-                    'alv_ytd_basis', 'uvg_ytd_basis', 'bvg_ytd_basis', 'bvg_ytd_insured_salary'
-                ])
+        # YTD aktualisieren nur wenn Status = "ABGERECHNET"
+        self._update_ytd_if_abgerechnet(bvg_result)
         
+        # Cleanup
         if items_qs is not None:
             self._items_qs = None
 

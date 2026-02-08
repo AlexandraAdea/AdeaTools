@@ -17,12 +17,12 @@ class QSTCalculator:
 
         # 1. Wenn nicht QST-pflichtig → 0.00
         if not employee or not getattr(employee, "qst_pflichtig", False):
-            payroll.qst_amount = Decimal("0.00")
+            payroll.qst_abzug = Decimal("0.00")
             return
 
         # Basis bestimmen: qst_basis (bereits korrekt berechnet als ALV-Basis - AN-Sozialabzüge)
         # Fallback auf gross_salary nur wenn qst_basis nicht gesetzt
-        basis = payroll.qst_basis if payroll.qst_basis and payroll.qst_basis > 0 else (payroll.gross_salary or Decimal("0.00"))
+        basis = payroll.qst_basis if payroll.qst_basis and payroll.qst_basis > 0 else (payroll.bruttolohn or Decimal("0.00"))
 
         qst_amount = Decimal("0.00")
 
@@ -52,6 +52,6 @@ class QSTCalculator:
         # Rundung auf 0.05 CHF
         qst_amount = round_to_5_rappen(qst_amount)
 
-        payroll.qst_amount = qst_amount
+        payroll.qst_abzug = qst_amount
 
 

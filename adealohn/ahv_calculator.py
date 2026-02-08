@@ -1,6 +1,8 @@
 from decimal import Decimal
 
 from adeacore.money import round_to_5_rappen
+from .helpers import get_parameter_for_year, safe_decimal
+from adealohn.models import AHVParameter
 
 
 class AHVCalculator:
@@ -24,19 +26,17 @@ class AHVCalculator:
                 - ahv_employee: Arbeitnehmerbeitrag (gerundet auf 0.05)
                 - ahv_employer: Arbeitgeberbeitrag (gerundet auf 0.05)
         """
-        from adealohn.models import AHVParameter
-
-        params = AHVParameter.objects.filter(year=payroll.year).first()
+        # Parameter mit Fallback laden (mit Caching)
+        defaults = {
+            "rate_employee": Decimal("0.053"),  # 5.3% Standard
+            "rate_employer": Decimal("0.053"),  # 5.3% Standard
+            "rentner_freibetrag_monat": Decimal("1400.00"),
+        }
+        params = get_parameter_for_year(AHVParameter, payroll.year, defaults=defaults)
         
-        # Fallback auf Standardwerte wenn keine Parameter gefunden
-        if not params:
-            rate_employee = Decimal("0.053")  # 5.3% Standard
-            rate_employer = Decimal("0.053")  # 5.3% Standard
-            rentner_freibetrag = Decimal("1400.00")
-        else:
-            rate_employee = params.rate_employee
-            rate_employer = params.rate_employer
-            rentner_freibetrag = params.rentner_freibetrag_monat
+        rate_employee = params.rate_employee if params else defaults["rate_employee"]
+        rate_employer = params.rate_employer if params else defaults["rate_employer"]
+        rentner_freibetrag = params.rentner_freibetrag_monat if params else defaults["rentner_freibetrag_monat"]
 
         basis = payroll.ahv_basis
         employee = payroll.employee

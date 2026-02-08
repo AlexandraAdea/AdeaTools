@@ -14,7 +14,8 @@
             </p>
         </div>
         <div style="display:flex; gap:12px; flex-wrap:wrap;">
-            <a class="adea-button-primary" href="{% url 'adealohn:employee-update' employee.pk %}">Bearbeiten</a>
+            <a class="adea-button-primary" href="{% url 'adealohn:payroll-create' %}?employee={{ employee.pk }}">Neuer Payroll-Eintrag</a>
+            <a class="adea-button-secondary" href="{% url 'adealohn:employee-update' employee.pk %}">Bearbeiten</a>
             <a class="adea-button-primary" style="background:#ff5f57;" href="{% url 'adealohn:employee-delete' employee.pk %}">Löschen</a>
         </div>
     </div>
@@ -184,8 +185,10 @@
         {% endif %}
     </div>
 
-    <div style="margin-top:24px;">
-        <a href="{% url 'adealohn:employee-list' %}">&larr; Zurück zur Übersicht</a>
+    <div style="margin-top:24px; display:flex; gap:12px; flex-wrap:wrap;">
+        <a class="adea-button-secondary" href="{% url 'adealohn:employee-list' %}">&larr; Zurück zur Mitarbeiter-Liste</a>
+        <a class="adea-button-secondary" href="{% url 'adealohn:payroll-list' %}">Zur Payroll-Liste</a>
+        <a class="adea-button-primary" href="{% url 'adealohn:payroll-create' %}?employee={{ employee.pk }}">Neuer Payroll-Eintrag</a>
     </div>
 </section>
 {% endblock %}

@@ -5,14 +5,31 @@
 {% block content %}
 <section class="content-card">
     <h1>Payroll löschen</h1>
-    <p class="lead">Soll der Payroll-Eintrag von {{ record.employee.first_name }} {{ record.employee.last_name }} für {{ record.month }}/{{ record.year }} endgültig entfernt werden?</p>
+    
+    <div style="padding: 16px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px; margin-bottom: 24px;">
+        <strong>⚠️ Achtung:</strong> Diese Aktion kann nicht rückgängig gemacht werden!
+    </div>
+    
+    <p class="lead">Soll der Payroll-Eintrag von <strong>{{ record.employee.first_name }} {{ record.employee.last_name }}</strong> für <strong>{{ record.month }}/{{ record.year }}</strong> endgültig gelöscht werden?</p>
+    
+    <div style="margin-top: 24px; padding: 16px; background: #f5f5f5; border-radius: 4px;">
+        <h3 style="margin-top: 0; font-size: 1em;">Details:</h3>
+        <ul style="margin: 8px 0; padding-left: 20px;">
+            <li><strong>Mitarbeiter:</strong> {{ record.employee.first_name }} {{ record.employee.last_name }}</li>
+            <li><strong>Zeitraum:</strong> {{ record.month }}/{{ record.year }}</li>
+            <li><strong>Status:</strong> {{ record.get_status_display }}</li>
+            <li><strong>Bruttolohn:</strong> {{ record.bruttolohn|floatformat:2 }} CHF</li>
+        </ul>
+    </div>
 
     <form method="post" style="margin-top:28px;">
         {% csrf_token %}
         <div style="display:flex; gap:12px; flex-wrap:wrap;">
-            <button type="submit" class="adea-button-primary" style="background:#ff5f57;">Ja, löschen</button>
-            <a href="{% url 'adealohn:payroll-detail' record.pk %}" class="adea-button-secondary">
-                Abbrechen
+            <button type="submit" class="adea-button-primary" style="background:#ff5f57;" onclick="return confirm('Sind Sie sicher, dass Sie diesen Payroll-Eintrag löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.');">
+                Ja, endgültig löschen
+            </button>
+            <a href="{% url 'adealohn:payroll-detail' object.pk %}" class="adea-button-secondary">
+                Nein, abbrechen
             </a>
         </div>
     </form>

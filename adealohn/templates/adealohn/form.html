@@ -182,6 +182,9 @@
             <a href="{% if object %}{% url 'adealohn:employee-detail' object.pk %}{% else %}{% url 'adealohn:employee-list' %}{% endif %}" class="adea-button-secondary">
                 Abbrechen
             </a>
+            {% if object %}
+            <a class="adea-button-secondary" href="{% url 'adealohn:payroll-create' %}?employee={{ object.pk }}">Neuer Payroll-Eintrag</a>
+            {% endif %}
         </div>
     </form>
 </section>

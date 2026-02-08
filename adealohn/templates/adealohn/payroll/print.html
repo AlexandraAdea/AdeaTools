@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lohnabrechnung {{ month_name_de }} {{ record.year }} – {{ record.employee.first_name }} {{ record.employee.last_name }}</title>
+    <style>
+        @media print {
+            body { margin: 0; padding: 0; }
+            .no-print { display: none; }
+            @page { margin: 1.5cm; }
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 11pt;
+            line-height: 1.4;
+            color: #000;
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 20px;
+            background: #fff;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 15px;
+        }
+        
+        .header-left {
+            flex: 1;
+        }
+        
+        .header-right {
+            flex: 1;
+            text-align: right;
+        }
+        
+        .company-name {
+            font-size: 16pt;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .employee-name {
+            font-size: 14pt;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .address {
+            font-size: 10pt;
+            line-height: 1.6;
+        }
+        
+        .title {
+            text-align: center;
+            font-size: 18pt;
+            font-weight: bold;
+            margin: 30px 0 20px 0;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-size: 10pt;
+        }
+        
+        .info-label {
+            font-weight: bold;
+        }
+        
+        .section {
+            margin-bottom: 25px;
+        }
+        
+        .section-title {
+            font-size: 12pt;
+            font-weight: bold;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #000;
+            padding-bottom: 5px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        
+        table th {
+            background-color: #f0f0f0;
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 10pt;
+        }
+        
+        table td {
+            border: 1px solid #000;
+            padding: 8px;
+            font-size: 10pt;
+        }
+        
+        table td.right {
+            text-align: right;
+        }
+        
+        table td.center {
+            text-align: center;
+        }
+        
+        .total-row {
+            font-weight: bold;
+            background-color: #f9f9f9;
+        }
+        
+        .calculation-section {
+            margin-top: 20px;
+        }
+        
+        .calculation-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            font-size: 10pt;
+        }
+        
+        .calculation-row.total {
+            font-weight: bold;
+            font-size: 12pt;
+            border-top: 2px solid #000;
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+        
+        .calculation-label {
+            flex: 1;
+        }
+        
+        .calculation-value {
+            text-align: right;
+            min-width: 120px;
+        }
+        
+        .negative {
+            color: #d32f2f;
+        }
+        
+        .positive {
+            color: #388e3c;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ccc;
+            font-size: 9pt;
+            color: #666;
+        }
+        
+        .print-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            z-index: 1000;
+        }
+        
+        .print-button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <button class="print-button no-print" onclick="window.print()">🖨️ Drucken</button>
+    
+    <div class="header">
+        <div class="header-left">
+            <div class="company-name">{{ record.employee.client.name }}</div>
+            {% if record.employee.client.street %}
+            <div class="address">
+                {{ record.employee.client.street }}{% if record.employee.client.house_number %} {{ record.employee.client.house_number }}{% endif %}<br>
+                {% if record.employee.client.zipcode %}{{ record.employee.client.zipcode }} {% endif %}{{ record.employee.client.city }}
+            </div>
+            {% endif %}
+        </div>
+        <div class="header-right">
+            <div class="employee-name">{{ record.employee.first_name }} {{ record.employee.last_name }}</div>
+            {% if record.employee.street %}
+            <div class="address">
+                {{ record.employee.street }}<br>
+                {% if record.employee.zipcode %}{{ record.employee.zipcode }} {% endif %}{{ record.employee.city }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="title">Lohnabrechnung {{ month_name_de }}</div>
+    
+    <div class="info-row">
+        <div>
+            <span class="info-label">Abrechnungsperiode:</span> {{ abrechnungsperiode_start }} - {{ abrechnungsperiode_ende }}
+        </div>
+        <div>
+            <span class="info-label">Abrechnungsdatum:</span> {{ abrechnungsdatum }}
+        </div>
+    </div>
+    
+    <div class="info-row">
+        {% if record.employee.personalnummer %}
+        <div>
+            <span class="info-label">Personal-Nr.:</span> {{ record.employee.personalnummer }}
+        </div>
+        {% endif %}
+        <div>
+            <span class="info-label">Arbeitspensum:</span> {{ pensum_display }}
+        </div>
+    </div>
+    
+    {% if iban %}
+    <div class="info-row">
+        <div>
+            <span class="info-label">IBAN:</span> {{ iban }}
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="section">
+        <div class="section-title">Bruttolohn</div>
+        <table>
+            <tr>
+                <th>Art</th>
+                <th class="right">Betrag</th>
+            </tr>
+            {% if monatslohn > 0 %}
+            <tr>
+                <td>{{ monatslohn_mit_pensum }}</td>
+                <td class="right">{{ monatslohn|floatformat:2 }} CHF</td>
+            </tr>
+            {% endif %}
+            {% if privatanteile_total > 0 %}
+            <tr>
+                <td>Privatanteile</td>
+                <td class="right">{{ privatanteile_total|floatformat:2 }} CHF</td>
+            </tr>
+            {% endif %}
+            <tr class="total-row">
+                <td><strong>Bruttolohn</strong></td>
+                <td class="right"><strong>{{ record.bruttolohn|floatformat:2 }} CHF</strong></td>
+            </tr>
+            {% if privatanteile_total > 0 %}
+            <tr style="font-size: 0.85em; color: #666; font-style: italic;">
+                <td colspan="2" style="padding-top: 4px; padding-bottom: 0;">
+                    <em>Hinweis: Privatanteile sind im Bruttolohn enthalten und werden später als Abzug berücksichtigt.</em>
+                </td>
+            </tr>
+            {% endif %}
+        </table>
+    </div>
+    
+    <div class="section">
+        <div class="section-title">Abzüge Sozialversicherungen</div>
+        <table>
+            <tr>
+                <th>Versicherung</th>
+                <th class="center">%</th>
+                <th class="right">Basis</th>
+                <th class="right">Betrag</th>
+            </tr>
+            <tr>
+                <td>AHV</td>
+                <td class="center">5.300%</td>
+                <td class="right">{{ record.bruttolohn|floatformat:2 }} CHF</td>
+                <td class="right negative">-{{ record.ahv_employee|floatformat:2 }} CHF</td>
+            </tr>
+            {% if not record.employee.is_rentner %}
+            <tr>
+                <td>ALV</td>
+                <td class="center">1.100%</td>
+                <td class="right">{{ record.bruttolohn|floatformat:2 }} CHF</td>
+                <td class="right negative">-{{ record.alv_employee|floatformat:2 }} CHF</td>
+            </tr>
+            {% endif %}
+            {% if record.nbu_employee > 0 %}
+            <tr>
+                <td>NBUV</td>
+                <td class="center">2.300%</td>
+                <td class="right">{{ record.bruttolohn|floatformat:2 }} CHF</td>
+                <td class="right negative">-{{ record.nbu_employee|floatformat:2 }} CHF</td>
+            </tr>
+            {% endif %}
+            {% if record.bvg_employee > 0 %}
+            <tr>
+                <td>BVG</td>
+                <td class="center">{% if bvg_employee_rate_percent %}{{ bvg_employee_rate_percent|floatformat:2 }}%{% else %}–{% endif %}</td>
+                <td class="right">
+                    {% if bvg_is_manual %}
+                        <em style="color:#666;">Manuell</em>
+                    {% elif bvg_insured_month is not None %}
+                        {{ bvg_insured_month|floatformat:2 }} CHF
+                    {% else %}
+                        0,00 CHF
+                    {% endif %}
+                </td>
+                <td class="right negative">-{{ record.bvg_employee|floatformat:2 }} CHF</td>
+            </tr>
+            {% endif %}
+            <tr class="total-row">
+                <td colspan="3"><strong>Total Abzüge Sozialversicherungen</strong></td>
+                <td class="right negative"><strong>-{{ abzuege_sozialversicherungen|floatformat:2 }} CHF</strong></td>
+            </tr>
+        </table>
+    </div>
+    
+    {% if privatanteile_total > 0 %}
+    <div class="section">
+        <div class="section-title">Privatanteile Abzüge</div>
+        <table>
+            <tr>
+                <td>Privatanteile</td>
+                <td class="right negative">-{{ privatanteile_total|floatformat:2 }} CHF</td>
+            </tr>
+        </table>
+    </div>
+    {% endif %}
+    
+    {% if zulagen_total > 0 %}
+    <div class="section">
+        <div class="section-title">Zulagen (FamZG)</div>
+        <table>
+            <tr>
+                <th>Art</th>
+                <th class="right">Betrag</th>
+            </tr>
+            {% for item in family_allowance_items %}
+            <tr>
+                <td>{{ item.wage_type.name }}</td>
+                <td class="right positive">+{{ item.total|floatformat:2 }} CHF</td>
+            </tr>
+            {% endfor %}
+            <tr class="total-row">
+                <td><strong>Total Zulagen</strong></td>
+                <td class="right positive"><strong>+{{ zulagen_total|floatformat:2 }} CHF</strong></td>
+            </tr>
+        </table>
+    </div>
+    {% endif %}
+    
+    {% if spesen_items %}
+    <div class="section">
+        <div class="section-title">Spesen</div>
+        <table>
+            <tr>
+                <th>Art</th>
+                <th class="right">Betrag</th>
+            </tr>
+            {% for item in spesen_items %}
+            <tr>
+                <td>{{ item.wage_type.name }}</td>
+                <td class="right positive">+{{ item.total|floatformat:2 }} CHF</td>
+            </tr>
+            {% endfor %}
+            <tr class="total-row">
+                <td><strong>Total Spesen</strong></td>
+                <td class="right positive"><strong>+{{ summe_spesen|floatformat:2 }} CHF</strong></td>
+            </tr>
+        </table>
+    </div>
+    {% endif %}
+    
+    <div class="section calculation-section">
+        <div class="section-title">Auszahlung</div>
+        <div class="calculation-row">
+            <div class="calculation-label">Bruttolohn:</div>
+            <div class="calculation-value">{{ record.bruttolohn|floatformat:2 }} CHF</div>
+        </div>
+        <div class="calculation-row">
+            <div class="calculation-label">Abzüge Sozialversicherungen:</div>
+            <div class="calculation-value negative">-{{ abzuege_sozialversicherungen|floatformat:2 }} CHF</div>
+        </div>
+        {% if privatanteile_total > 0 %}
+        <div class="calculation-row">
+            <div class="calculation-label">Privatanteile Abzüge:</div>
+            <div class="calculation-value negative">-{{ privatanteile_total|floatformat:2 }} CHF</div>
+        </div>
+        {% endif %}
+        {% if qst_abzug > 0 %}
+        <div class="calculation-row">
+            <div class="calculation-label">QST Abzug:</div>
+            <div class="calculation-value negative">-{{ qst_abzug|floatformat:2 }} CHF</div>
+        </div>
+        {% endif %}
+        {% if zulagen_total > 0 %}
+        <div class="calculation-row">
+            <div class="calculation-label">Zulagen (FamZG):</div>
+            <div class="calculation-value positive">
+                +{{ zulagen_total|floatformat:2 }} CHF
+            </div>
+        </div>
+        {% endif %}
+        {% if summe_spesen > 0 %}
+        <div class="calculation-row">
+            <div class="calculation-label">Spesen:</div>
+            <div class="calculation-value positive">
+                +{{ summe_spesen|floatformat:2 }} CHF
+            </div>
+        </div>
+        {% endif %}
+        {% if rundung != 0 %}
+        <div class="calculation-row">
+            <div class="calculation-label">Rundung:</div>
+            <div class="calculation-value {% if rundung > 0 %}positive{% else %}negative{% endif %}">
+                {% if rundung > 0 %}+{% endif %}{{ rundung|floatformat:2 }} CHF
+            </div>
+        </div>
+        {% endif %}
+        <div class="calculation-row total">
+            <div class="calculation-label">Auszahlung:</div>
+            <div class="calculation-value"><strong>{{ auszahlung|floatformat:2 }} CHF</strong></div>
+        </div>
+    </div>
+    
+    {% if iban %}
+    <div class="section">
+        <div class="section-title">Auszahlung an Bankverbindung</div>
+        <div class="info-row">
+            <div>
+                <span class="info-label">IBAN:</span> {{ iban }}
+            </div>
+        </div>
+    </div>
+    {% elif record.employee.client.iban %}
+    <div class="section">
+        <div class="section-title">Auszahlung an Bankverbindung</div>
+        <div class="info-row">
+            <div>
+                <span class="info-label">IBAN:</span> {{ record.employee.client.iban }}
+            </div>
+            {% if record.employee.client.bank_name %}
+            <div>
+                <span class="info-label">Bankinstitut:</span> {{ record.employee.client.bank_name }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="footer">
+        <p><em>Diese Lohnabrechnung wurde automatisch generiert.</em></p>
+    </div>
+    
+    <script>
+        // Automatisch Druck-Dialog öffnen beim Laden (optional)
+        // window.onload = function() { window.print(); }
+    </script>
+</body>
+</html>

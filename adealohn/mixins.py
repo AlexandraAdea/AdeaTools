@@ -33,15 +33,80 @@ class LockedPayrollGuardMixin:
         return super().dispatch(request, *args, **kwargs)
 
 
-class LockedPayrollFormGuardMixin(LockedPayrollGuardMixin):
+class LockedPayrollFormGuardMixin:
     """
     Variante für (Update)Forms: zeigt Fehlermeldung im Formular statt nur 403.
+    Unterstützt auch CreateViews, die ein PayrollRecord über kwargs['pk'] haben.
+    
+    WICHTIG: Erbt NICHT von LockedPayrollGuardMixin, um dispatch()-Konflikte zu vermeiden.
     """
+    
+    #: Textfragment nach "kann nicht ..." (z.B. "mehr bearbeitet werden", "gelöscht werden")
+    locked_reason: str = "mehr bearbeitet werden"
+
+    def get_locked_forbidden_message(self, obj) -> str:
+        return (
+            f"Dieser Lohnlauf ist gesperrt (Status: {obj.get_status_display()}) "
+            f"und kann nicht {self.locked_reason}."
+        )
+
+    def get_payroll_record_for_guard(self):
+        """
+        Lädt das PayrollRecord für die Guard-Prüfung.
+        Funktioniert für UpdateViews (über get_object) und CreateViews (über kwargs['pk']).
+        """
+        # Versuche zuerst über get_object() (für UpdateViews)
+        try:
+            obj = getattr(self, "object", None)
+            if obj is None and hasattr(self, 'get_object'):
+                try:
+                    obj = self.get_object()
+                except (AttributeError, NotImplementedError, TypeError):
+                    # get_object() existiert nicht oder kann nicht aufgerufen werden
+                    pass
+            
+            if obj:
+                # Wenn es ein PayrollRecord ist, direkt zurückgeben
+                if hasattr(obj, 'is_locked'):
+                    return obj
+                # Wenn es ein PayrollItem ist, hole das PayrollRecord
+                if hasattr(obj, 'payroll'):
+                    return obj.payroll
+        except Exception:
+            # Ignoriere alle Fehler und versuche kwargs-Methode
+            pass
+        
+        # Für CreateViews: Lade PayrollRecord über kwargs['pk']
+        from adeacore.models import PayrollRecord
+        payroll_id = self.kwargs.get('pk')
+        if payroll_id:
+            try:
+                return PayrollRecord.objects.get(pk=payroll_id)
+            except PayrollRecord.DoesNotExist:
+                raise Http404("PayrollRecord nicht gefunden.")
+        
+        return None
+
+    def dispatch(self, request, *args, **kwargs):
+        """Prüfe ob PayrollRecord gesperrt ist (für CreateViews)."""
+        try:
+            payroll_record = self.get_payroll_record_for_guard()
+            if payroll_record and payroll_record.is_locked():
+                return HttpResponseForbidden(self.get_locked_forbidden_message(payroll_record))
+        except Http404:
+            # Wenn PayrollRecord nicht gefunden wird, weiterleiten zu 404
+            raise
+        except Exception:
+            # Bei anderen Fehlern (z.B. wenn kein pk vorhanden), einfach weiterleiten
+            # Das wird später von der View selbst behandelt
+            pass
+        
+        return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
-        obj = getattr(self, "object", None) or self.get_object()
-        if obj and obj.is_locked():
-            form.add_error(None, self.get_locked_forbidden_message(obj))
+        payroll_record = self.get_payroll_record_for_guard()
+        if payroll_record and payroll_record.is_locked():
+            form.add_error(None, self.get_locked_forbidden_message(payroll_record))
             return self.form_invalid(form)
         return super().form_valid(form)
 

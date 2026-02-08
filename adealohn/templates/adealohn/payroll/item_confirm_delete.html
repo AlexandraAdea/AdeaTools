@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}Lohnart löschen – AdeaLohn{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <h1>Lohnart löschen</h1>
+    
+    <div style="padding: 16px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px; margin-bottom: 24px;">
+        <strong>⚠️ Achtung:</strong> Diese Aktion kann nicht rückgängig gemacht werden!
+    </div>
+    
+    <p class="lead">Soll die Lohnart <strong>{{ item.wage_type.name }}</strong> aus dem Lohnlauf von <strong>{{ payroll_record.employee.first_name }} {{ payroll_record.employee.last_name }}</strong> für <strong>{{ payroll_record.month }}/{{ payroll_record.year }}</strong> endgültig gelöscht werden?</p>
+    
+    <div style="margin-top: 24px; padding: 16px; background: #f5f5f5; border-radius: 4px;">
+        <h3 style="margin-top: 0; font-size: 1em;">Details:</h3>
+        <ul style="margin: 8px 0; padding-left: 20px;">
+            <li><strong>Lohnart:</strong> {{ item.wage_type.name }}</li>
+            <li><strong>Menge:</strong> {{ item.quantity|floatformat:2 }}</li>
+            <li><strong>Betrag:</strong> {{ item.amount|floatformat:2 }} CHF</li>
+            <li><strong>Total:</strong> <strong>{{ item.total|floatformat:2 }} CHF</strong></li>
+            {% if item.description %}
+            <li><strong>Beschreibung:</strong> {{ item.description }}</li>
+            {% endif %}
+            <li><strong>Mitarbeiter:</strong> {{ payroll_record.employee.first_name }} {{ payroll_record.employee.last_name }}</li>
+            <li><strong>Zeitraum:</strong> {{ payroll_record.month }}/{{ payroll_record.year }}</li>
+        </ul>
+    </div>
+
+    <form method="post" style="margin-top:28px;">
+        {% csrf_token %}
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+            <button type="submit" class="adea-button-primary" style="background:#ff5f57;" onclick="return confirm('Sind Sie wirklich sicher, dass Sie diese Lohnart löschen möchten? Diese Aktion kann NICHT rückgängig gemacht werden.');">
+                Ja, endgültig löschen
+            </button>
+            <a href="{% url 'adealohn:payroll-detail' payroll_record.pk %}" class="adea-button-secondary">
+                Nein, abbrechen
+            </a>
+        </div>
+    </form>
+</section>
+{% endblock %}

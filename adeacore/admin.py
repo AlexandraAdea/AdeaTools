@@ -245,9 +245,9 @@ class PayrollRecordAdmin(admin.ModelAdmin):
         "month",
         "year",
         "status",
-        "gross_salary",
-        "net_salary",
-        "qst_amount",
+        "bruttolohn",
+        "nettolohn",
+        "qst_abzug",
         "created_at",
     )
     search_fields = ("employee__first_name", "employee__last_name")
@@ -273,8 +273,8 @@ class PayrollRecordAdmin(admin.ModelAdmin):
             "Berechnete Werte",
             {
                 "fields": (
-                    "gross_salary",
-                    "net_salary",
+                    "bruttolohn",
+                    "nettolohn",
                     "ahv_basis",
                     "ahv_effective_basis",
                     "ahv_employee",
@@ -296,7 +296,7 @@ class PayrollRecordAdmin(admin.ModelAdmin):
                     "bvg_employee",
                     "bvg_employer",
                     "qst_basis",
-                    "qst_amount",
+                    "qst_abzug",
                 ),
             },
         ),
@@ -338,8 +338,8 @@ class PayrollRecordAdmin(admin.ModelAdmin):
         "bvg_employee",
         "bvg_employer",
         "qst_basis",
-        "qst_amount",
-        "net_salary",
+        "qst_abzug",
+        "nettolohn",
     )
 
 

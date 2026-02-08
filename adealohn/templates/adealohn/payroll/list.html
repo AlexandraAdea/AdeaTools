@@ -98,8 +98,8 @@
                         </span>
                         {% endif %}
                     </td>
-                    <td>{{ record.gross_salary|floatformat:2 }} CHF</td>
-                    <td>{{ record.net_salary|floatformat:2 }} CHF</td>
+                    <td>{{ record.bruttolohn|floatformat:2 }} CHF</td>
+                    <td>{{ record.nettolohn|floatformat:2 }} CHF</td>
                     <td class="adea-table-actions">
                         <a href="{% url 'adealohn:payroll-detail' record.pk %}">Details</a>
                     </td>

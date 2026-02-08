@@ -1,6 +1,8 @@
 from decimal import Decimal
 
 from adeacore.money import round_to_5_rappen
+from .helpers import get_parameter_for_year, safe_decimal, get_ytd_basis
+from adealohn.models import UVGParameter
 
 
 class UVGCalculator:
@@ -12,10 +14,8 @@ class UVGCalculator:
     """
 
     def calculate_for_payroll(self, payroll):
-        from decimal import Decimal
-        from adealohn.models import UVGParameter
-
-        params = UVGParameter.objects.filter(year=payroll.year).first()
+        # Parameter mit Fallback laden (mit Caching)
+        params = get_parameter_for_year(UVGParameter, payroll.year)
 
         if not params:
             return {
@@ -25,12 +25,11 @@ class UVGCalculator:
                 "nbu_employee": Decimal("0.00"),
             }
 
-        basis = payroll.uv_basis or Decimal("0.00")
+        basis = safe_decimal(payroll.uv_basis)
         employee = getattr(payroll, "employee", None)
 
         # YTD-Logik: Berechne YTD-Basis + aktuelle Basis
-        ytd_basis = getattr(employee, "uvg_ytd_basis", Decimal("0.00")) or Decimal("0.00")
-        ytd_basis = Decimal(str(ytd_basis))
+        ytd_basis = get_ytd_basis(employee, "uvg_ytd_basis")
         max_year = params.max_annual_insured_salary
         
         # Prüfe ob YTD-Basis bereits über Maximum liegt

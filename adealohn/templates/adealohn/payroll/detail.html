@@ -35,6 +35,7 @@
             {% endif %}
         </div>
         <div style="display:flex; gap:12px; flex-wrap:wrap;">
+            <a class="adea-button-secondary" href="{% url 'adealohn:payroll-print' record.pk %}" target="_blank">📄 Lohnabrechnung drucken</a>
             {% if not record.is_locked %}
                 <a class="adea-button-primary" href="{% url 'adealohn:payroll-update' record.pk %}">Bearbeiten</a>
                 <a class="adea-button-primary" style="background:#ff5f57;" href="{% url 'adealohn:payroll-delete' record.pk %}">Löschen</a>
@@ -46,18 +47,125 @@
 
     <div class="feature-grid" style="margin-top:24px;">
         <div class="feature-item">
-            <h2>Übersicht</h2>
-            <ul>
-                <li><strong>Stundensatz:</strong> {{ record.employee.hourly_rate|floatformat:2 }} CHF</li>
-                <li><strong>Monat:</strong> {{ month_name }} / {{ record.month }}</li>
-                <li><strong>Jahr:</strong> {{ record.year }}</li>
-            </ul>
+            <h2>Lohnabrechnung</h2>
+            {% if lohnwirksame_items %}
+                <div class="adea-table-wrapper" style="box-shadow:none; margin-bottom: 16px;">
+                    <table class="adea-table">
+                        <thead>
+                            <tr>
+                                <th>Lohnart</th>
+                                <th>Menge</th>
+                                <th>Betrag</th>
+                                <th>Total</th>
+                                <th>Beschreibung</th>
+                                {% if not record.is_locked %}
+                                <th style="width: 80px;">Aktionen</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in lohnwirksame_items %}
+                            <tr>
+                                <td>{{ item.wage_type.name }}</td>
+                                <td>{{ item.quantity|floatformat:2 }}</td>
+                                <td>{{ item.amount|floatformat:2 }} CHF</td>
+                                <td><strong>{{ item.total|floatformat:2 }} CHF</strong></td>
+                                <td>{{ item.description|default:"–" }}</td>
+                                {% if not record.is_locked %}
+                                <td>
+                                    <a href="{% url 'adealohn:payroll_item_delete' item.pk %}" 
+                                       class="adea-button-secondary" 
+                                       style="padding: 4px 8px; font-size: 0.85em; background: #ff5f57; color: white; border: none;"
+                                       onclick="return confirm('Sind Sie sicher, dass Sie diese Lohnart löschen möchten?');">
+                                        Löschen
+                                    </a>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr style="border-top: 2px solid rgba(0,0,0,0.2);">
+                                <td colspan="3" style="text-align: right; padding-top: 8px; font-weight: bold;">
+                                    <strong>Bruttolohn gesamt:</strong>
+                                </td>
+                                <td style="padding-top: 8px; font-weight: bold;">
+                                    <strong>{{ record.bruttolohn|floatformat:2 }} CHF</strong>
+                                </td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            {% else %}
+                <p style="color:#8e8e93;">Keine Lohnbestandteile erfasst.</p>
+            {% endif %}
+            
+            {% if nicht_lohnwirksame_items %}
+                <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid rgba(0,0,0,0.1);">
+                    <h3 style="font-size: 1em; margin-bottom: 12px; color: #666;">Manuelle Abzüge/Korrekturen</h3>
+                    <div class="adea-table-wrapper" style="box-shadow:none;">
+                        <table class="adea-table">
+                            <thead>
+                                <tr>
+                                    <th>Art</th>
+                                    <th>Menge</th>
+                                    <th>Betrag</th>
+                                    <th>Total</th>
+                                    <th>Beschreibung</th>
+                                    {% if not record.is_locked %}
+                                    <th style="width: 80px;">Aktionen</th>
+                                    {% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in nicht_lohnwirksame_items %}
+                                <tr>
+                                    <td>{{ item.wage_type.name }}</td>
+                                    <td>{{ item.quantity|floatformat:2 }}</td>
+                                    <td>{{ item.amount|floatformat:2 }} CHF</td>
+                                    <td><strong>{{ item.total|floatformat:2 }} CHF</strong></td>
+                                    <td>{{ item.description|default:"–" }}</td>
+                                    {% if not record.is_locked %}
+                                    <td>
+                                        <a href="{% url 'adealohn:payroll_item_delete' item.pk %}" 
+                                           class="adea-button-secondary" 
+                                           style="padding: 4px 8px; font-size: 0.85em; background: #ff5f57; color: white; border: none;"
+                                           onclick="return confirm('Sind Sie sicher, dass Sie diese Lohnart löschen möchten?');">
+                                            Löschen
+                                        </a>
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endif %}
+            
+            {% if not record.is_locked %}
+            <div style="margin-top: 16px;">
+                <a class="adea-button-primary" href="{% url 'adealohn:payroll_item_create' record.pk %}">
+                    + Lohnart hinzufügen
+                </a>
+            </div>
+            {% endif %}
         </div>
         <div class="feature-item">
-            <h2>Ergebnisse</h2>
+            <h2>Übersicht</h2>
             <ul>
+                {% if record.employee.hourly_rate > 0 %}
+                <li><strong>Stundensatz:</strong> {{ record.employee.hourly_rate|floatformat:2 }} CHF</li>
+                {% endif %}
+                {% if record.employee.monthly_salary > 0 %}
+                <li><strong>Monatslohn:</strong> {{ record.employee.monthly_salary|floatformat:2 }} CHF</li>
+                {% endif %}
+                <li><strong>Monat:</strong> {{ month_name }} / {{ record.month }}</li>
+                <li><strong>Jahr:</strong> {{ record.year }}</li>
+                {% if hours_total > 0 %}
                 <li><strong>Stunden gesamt:</strong> {{ hours_total|floatformat:2 }} h</li>
-                <li><strong>Bruttolohn:</strong> {{ record.gross_salary|floatformat:2 }} CHF</li>
+                {% endif %}
             </ul>
         </div>
         <div class="feature-item">
@@ -116,11 +224,11 @@
             </ul>
         </div>
         <div class="feature-item">
-            <h2>BVG-Berechnung (berufliche Vorsorge, 2. Säule)</h2>
+            <h2>BVG-Beiträge (berufliche Vorsorge, 2. Säule)</h2>
             <ul>
-                <li><strong>BVG-Basis (monatlich):</strong> {{ record.bvg_basis|floatformat:2 }} CHF</li>
-                <li><strong>BVG YTD-Basis:</strong> {{ record.employee.bvg_ytd_basis|floatformat:2 }} CHF</li>
                 {% if bvg_params %}
+                    <li><strong>BVG-Basis (monatlich):</strong> {{ record.bvg_basis|floatformat:2 }} CHF</li>
+                    <li><strong>BVG YTD-Basis:</strong> {{ record.employee.bvg_ytd_basis|floatformat:2 }} CHF</li>
                     <li><strong>Jahreslohn (YTD + aktuell):</strong> {{ annual_salary|floatformat:2 }} CHF</li>
                     <li><strong>Eintrittsschwelle:</strong> {{ bvg_params.entry_threshold|floatformat:2 }} CHF</li>
                     {% if record.bvg_insured_salary == 0 %}
@@ -132,12 +240,43 @@
                     <li><em style="color:#8e8e93; font-size:0.9em;">Korridor: {{ bvg_params.min_insured_salary|floatformat:2 }} – {{ bvg_params.max_insured_salary|floatformat:2 }} CHF</em></li>
                     <li><strong>BVG-Satz AN:</strong> {{ bvg_employee_rate_percent|floatformat:2 }}%</li>
                     <li><strong>BVG-Satz AG:</strong> {{ bvg_employer_rate_percent|floatformat:2 }}%</li>
+                    {% if record.manual_bvg_employee > 0 or record.manual_bvg_employer > 0 %}
+                    <li style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.1);">
+                        <strong style="color:#007aff;">Berechnet + Manuell:</strong>
+                        <br>AN: {{ record.bvg_employee|floatformat:2 }} CHF (davon manuell: {{ record.manual_bvg_employee|floatformat:2 }} CHF)
+                        <br>AG: {{ record.bvg_employer|floatformat:2 }} CHF (davon manuell: {{ record.manual_bvg_employer|floatformat:2 }} CHF)
+                    </li>
+                    {% else %}
                     <li><strong>BVG Arbeitnehmer:</strong> {{ record.bvg_employee|floatformat:2 }} CHF</li>
                     <li><strong>BVG Arbeitgeber:</strong> {{ record.bvg_employer|floatformat:2 }} CHF</li>
-                    <li><em style="color:#8e8e93; font-size:0.9em;">Beträge gemäss Vorsorgeplan</em></li>
+                    {% endif %}
                     {% endif %}
                 {% else %}
-                <li><em style="color:#8e8e93;">Keine BVG-Parameter für {{ record.year }} konfiguriert</em></li>
+                    <li><em style="color:#8e8e93;">Keine BVG-Parameter für {{ record.year }} konfiguriert – nur manuelle Beiträge</em></li>
+                {% endif %}
+                
+                {% if record.manual_bvg_employee > 0 or record.manual_bvg_employer > 0 %}
+                <li style="margin-top: 12px; padding-top: 12px; border-top: 2px solid rgba(0,0,0,0.2);">
+                    <strong style="color:#007aff; font-size:1.1em;">Manuelle BVG-Beiträge:</strong>
+                    {% if record.manual_bvg_employee > 0 %}
+                    <br><strong>BVG Arbeitnehmer:</strong> {{ record.manual_bvg_employee|floatformat:2 }} CHF
+                    {% endif %}
+                    {% if record.manual_bvg_employer > 0 %}
+                    <br><strong>BVG Arbeitgeber:</strong> {{ record.manual_bvg_employer|floatformat:2 }} CHF
+                    {% endif %}
+                </li>
+                {% elif not bvg_params %}
+                <li style="margin-top: 12px; padding: 12px; background: #e8f4f8; border-left: 4px solid #007aff; border-radius: 4px;">
+                    <strong>ℹ️ Hinweis:</strong> Bitte BVG-Beiträge im Bearbeitungsformular erfassen.
+                </li>
+                {% endif %}
+                
+                {% if not record.is_locked %}
+                <li style="margin-top: 16px; padding-top: 16px; border-top: 2px solid rgba(0,0,0,0.2);">
+                    <a class="adea-button-primary" href="{% url 'adealohn:payroll-update' record.pk %}" style="text-decoration: none; display: inline-block;">
+                        ✏️ BVG-Beiträge bearbeiten
+                    </a>
+                </li>
                 {% endif %}
             </ul>
         </div>
@@ -151,7 +290,7 @@
                     <li><strong>Kirchensteuer:</strong> {{ record.employee.qst_kirchensteuer|yesno:"Ja,Nein" }} 
                         <em style="color:#8e8e93; font-size:0.9em;">(im Tarif kodiert: {{ record.employee.qst_kirchensteuer|yesno:"Y,N" }})</em></li>
                     <li><strong>QST-Basis:</strong> {{ record.qst_basis|floatformat:2 }} CHF</li>
-                    <li><strong>QST-Betrag:</strong> <strong>{{ record.qst_amount|floatformat:2 }} CHF</strong></li>
+                    <li><strong>QST-Betrag:</strong> <strong>{{ record.qst_abzug|floatformat:2 }} CHF</strong></li>
                     {% if record.employee.qst_fixbetrag %}
                         <li><em style="color:#8e8e93; font-size:0.9em;">Fixbetrag verwendet</em></li>
                     {% elif record.qst_prozent %}
@@ -178,6 +317,9 @@
                                     <th>Betrag</th>
                                     <th>Total</th>
                                     <th>Beschreibung</th>
+                                    {% if not record.is_locked %}
+                                    <th style="width: 80px;">Aktionen</th>
+                                    {% endif %}
                                 </tr>
                             </thead>
                             <tbody>
@@ -188,6 +330,16 @@
                                     <td>{{ item.amount|floatformat:2 }} CHF</td>
                                     <td><strong>{{ item.total|floatformat:2 }} CHF</strong></td>
                                     <td>{{ item.description|default:"–" }}</td>
+                                    {% if not record.is_locked %}
+                                    <td>
+                                        <a href="{% url 'adealohn:payroll_item_delete' item.pk %}" 
+                                           class="adea-button-secondary" 
+                                           style="padding: 4px 8px; font-size: 0.85em; background: #ff5f57; color: white; border: none;"
+                                           onclick="return confirm('Sind Sie sicher, dass Sie diese Familienzulage löschen möchten?');">
+                                            Löschen
+                                        </a>
+                                    </td>
+                                    {% endif %}
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -206,6 +358,9 @@
                                     <th>Monatsbetrag</th>
                                     <th>Total</th>
                                     <th>Beschreibung</th>
+                                    {% if not record.is_locked %}
+                                    <th style="width: 80px;">Aktionen</th>
+                                    {% endif %}
                                 </tr>
                             </thead>
                             <tbody>
@@ -216,6 +371,16 @@
                                     <td>{{ item.amount|floatformat:2 }} CHF</td>
                                     <td><strong>{{ item.total|floatformat:2 }} CHF</strong></td>
                                     <td>{{ item.description|default:"–" }}</td>
+                                    {% if not record.is_locked %}
+                                    <td>
+                                        <a href="{% url 'adealohn:payroll_item_delete' item.pk %}" 
+                                           class="adea-button-secondary" 
+                                           style="padding: 4px 8px; font-size: 0.85em; background: #ff5f57; color: white; border: none;"
+                                           onclick="return confirm('Sind Sie sicher, dass Sie diese Nachzahlung löschen möchten?');">
+                                            Löschen
+                                        </a>
+                                    </td>
+                                    {% endif %}
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -224,15 +389,18 @@
                 {% endif %}
                 
                 <div style="border-top: 1px solid rgba(0,0,0,0.1); padding-top: 8px; margin-top: 8px;">
-                    <strong>Summe Familienzulagen: {{ summe_familienzulagen|floatformat:2 }} CHF</strong>
+                    <strong>Summe Familienzulagen: {{ zulagen_total|floatformat:2 }} CHF</strong>
                 </div>
             {% else %}
                 <p style="color:#8e8e93;">Keine Familienzulagen erfasst.</p>
             {% endif %}
             
             {% if not record.is_locked %}
-            <div style="margin-top: 16px;">
-                <a class="adea-button-primary" href="{% url 'adealohn:payroll-family-allowance-nachzahlung' record.pk %}">
+            <div style="margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap;">
+                <a class="adea-button-primary" href="{% url 'adealohn:payroll-family-allowance-laufend' record.pk %}">
+                    + Laufende Zulage hinzufügen
+                </a>
+                <a class="adea-button-secondary" href="{% url 'adealohn:payroll-family-allowance-nachzahlung' record.pk %}">
                     + Nachzahlung hinzufügen
                 </a>
             </div>
@@ -242,20 +410,32 @@
             </p>
         </div>
         <div class="feature-item">
-            <h2>Netto-Lohn</h2>
+            <h2>Auszahlung (Herleitung)</h2>
             <ul>
-                <li><strong>Bruttolohn:</strong> {{ record.gross_salary|floatformat:2 }} CHF</li>
-                {% if summe_familienzulagen > 0 %}
-                <li><strong>Familienzulagen:</strong> +{{ summe_familienzulagen|floatformat:2 }} CHF</li>
-                <li><strong>Bruttolohn gesamt:</strong> {{ record.gross_salary|add:summe_familienzulagen|floatformat:2 }} CHF</li>
-                {% endif %}
+                <li><strong>Bruttolohn:</strong> {{ record.bruttolohn|floatformat:2 }} CHF</li>
                 <li><strong>AHV Abzug:</strong> -{{ record.ahv_employee|floatformat:2 }} CHF</li>
                 <li><strong>ALV Abzug:</strong> -{{ record.alv_employee|floatformat:2 }} CHF</li>
                 <li><strong>NBU Abzug:</strong> -{{ record.nbu_employee|floatformat:2 }} CHF</li>
                 <li><strong>KTG Abzug:</strong> -{{ record.ktg_employee|floatformat:2 }} CHF</li>
                 <li><strong>BVG Abzug:</strong> -{{ record.bvg_employee|floatformat:2 }} CHF</li>
-                <li><strong>QST Abzug:</strong> -{{ record.qst_amount|floatformat:2 }} CHF</li>
-                <li style="border-top:1px solid rgba(0,0,0,0.1); padding-top:8px; margin-top:8px;"><strong>Netto-Lohn:</strong> {{ record.net_salary|floatformat:2 }} CHF</li>
+                {% if record.qst_abzug > 0 %}
+                <li><strong>QST Abzug:</strong> -{{ record.qst_abzug|floatformat:2 }} CHF</li>
+                {% elif record.qst_abzug == 0 and record.employee.qst_pflichtig %}
+                <li><strong>QST Abzug:</strong> 0.00 CHF</li>
+                {% endif %}
+                <li style="border-top:1px solid rgba(0,0,0,0.1); padding-top:8px; margin-top:8px;"><strong>Nettolohn:</strong> {{ record.nettolohn|floatformat:2 }} CHF</li>
+                {% if privatanteile_total > 0 %}
+                <li><strong>Privatanteile Abzug:</strong> -{{ privatanteile_total|floatformat:2 }} CHF</li>
+                {% endif %}
+                {% if zulagen_total > 0 %}
+                <li><strong>Zulagen (FamZG):</strong> +{{ zulagen_total|floatformat:2 }} CHF</li>
+                {% endif %}
+                {% if summe_spesen > 0 %}
+                <li><strong>Spesen:</strong> +{{ summe_spesen|floatformat:2 }} CHF</li>
+                {% endif %}
+                <li style="border-top:2px solid rgba(0,0,0,0.2); padding-top:8px; margin-top:8px; font-size:1.1em;">
+                    <strong>Auszahlung:</strong> {{ auszahlung|floatformat:2 }} CHF
+                </li>
             </ul>
         </div>
     </div>
@@ -271,6 +451,9 @@
                             <th>Betrag</th>
                             <th>Beschreibung</th>
                             <th>Status</th>
+                            {% if not record.is_locked %}
+                            <th style="width: 80px;">Aktionen</th>
+                            {% endif %}
                         </tr>
                     </thead>
                     <tbody>
@@ -286,12 +469,22 @@
                                     <span style="color: green;">AHV-frei</span>
                                 {% endif %}
                             </td>
+                            {% if not record.is_locked %}
+                            <td>
+                                <a href="{% url 'adealohn:payroll_item_delete' item.pk %}" 
+                                   class="adea-button-secondary" 
+                                   style="padding: 4px 8px; font-size: 0.85em; background: #ff5f57; color: white; border: none;"
+                                   onclick="return confirm('Sind Sie sicher, dass Sie diese Spesen löschen möchten?');">
+                                    Löschen
+                                </a>
+                            </td>
+                            {% endif %}
                         </tr>
                         {% endfor %}
                     </tbody>
                     <tfoot>
                         <tr style="border-top: 1px solid rgba(0,0,0,0.1);">
-                            <td colspan="4" style="text-align: right; padding-top: 8px;">
+                            <td colspan="{% if not record.is_locked %}5{% else %}4{% endif %}" style="text-align: right; padding-top: 8px;">
                                 <strong>Summe Spesen: {{ summe_spesen|floatformat:2 }} CHF</strong>
                             </td>
                         </tr>
@@ -321,6 +514,9 @@
                             <th>Art</th>
                             <th>Betrag</th>
                             <th>Beschreibung</th>
+                            {% if not record.is_locked %}
+                            <th style="width: 80px;">Aktionen</th>
+                            {% endif %}
                         </tr>
                     </thead>
                     <tbody>
@@ -329,13 +525,23 @@
                             <td>{{ item.wage_type.name }}</td>
                             <td><strong>{{ item.amount|floatformat:2 }} CHF</strong></td>
                             <td>{{ item.description|default:"–" }}</td>
+                            {% if not record.is_locked %}
+                            <td>
+                                <a href="{% url 'adealohn:payroll_item_delete' item.pk %}" 
+                                   class="adea-button-secondary" 
+                                   style="padding: 4px 8px; font-size: 0.85em; background: #ff5f57; color: white; border: none;"
+                                   onclick="return confirm('Sind Sie sicher, dass Sie diesen Privatanteil löschen möchten?');">
+                                    Löschen
+                                </a>
+                            </td>
+                            {% endif %}
                         </tr>
                         {% endfor %}
                     </tbody>
                     <tfoot>
                         <tr style="border-top: 1px solid rgba(0,0,0,0.1);">
-                            <td colspan="3" style="text-align: right; padding-top: 8px;">
-                                <strong>Summe Privatanteile: {{ summe_privatanteile|floatformat:2 }} CHF</strong>
+                            <td colspan="{% if not record.is_locked %}4{% else %}3{% endif %}" style="text-align: right; padding-top: 8px;">
+                                <strong>Summe Privatanteile: {{ privatanteile_total|floatformat:2 }} CHF</strong>
                             </td>
                         </tr>
                     </tfoot>
@@ -380,6 +586,23 @@
                 </tbody>
             </table>
         </div>
+    </div>
+
+    <div class="feature-item" style="margin-top:24px;">
+        <h2>Weitere Lohnarten</h2>
+        <p style="color:#8e8e93; margin-bottom: 16px;">
+            Hier können Sie weitere Lohnarten hinzufügen: Prämien, Trinkgeld, BVG-Zusatzbeiträge, 
+            Zulagen, etc. Diese werden automatisch in die Berechnung einbezogen.
+        </p>
+        {% if not record.is_locked %}
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+            <a class="adea-button-primary" href="{% url 'adealohn:payroll_item_create' record.pk %}">
+                + Lohnart hinzufügen
+            </a>
+        </div>
+        {% else %}
+        <p style="color:#8e8e93;">Bearbeitung gesperrt</p>
+        {% endif %}
     </div>
 
     <div style="margin-top:24px;">
