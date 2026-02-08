@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='employee',
             name='country',
-            field=adeacore.fields.EncryptedCharField(blank=True, default='CH', help_text='ISO-Code (CH, DE, FR, AT) für Grenzgänger', max_length=10, verbose_name='Land'),
+            field=adeacore.fields.EncryptedCharField(blank=True, default='CH', help_text='ISO-Code (CH, DE, FR, AT) für Grenzgänger', max_length=500, verbose_name='Land'),
         ),
         migrations.AddField(
             model_name='employee',

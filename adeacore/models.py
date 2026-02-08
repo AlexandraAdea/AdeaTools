@@ -244,7 +244,7 @@ class Employee(models.Model):
     city = EncryptedCharField("Ort", max_length=1000, blank=True)
     country = EncryptedCharField(
         "Land",
-        max_length=10,
+        max_length=500,
         blank=True,
         default="CH",
         help_text="ISO-Code (CH, DE, FR, AT) für Grenzgänger",
