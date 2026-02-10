@@ -1,6 +1,6 @@
 # Generated migration for Spesen WageTypes
 
-from django.db import migrations
+from django.db import migrations, models
 
 
 def create_spesen_wage_types(apps, schema_editor):
@@ -79,6 +79,12 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        # Feld zuerst vergrössern, damit lange Codes (bis 30 Zeichen) reinpassen
+        migrations.AlterField(
+            model_name='wagetype',
+            name='code',
+            field=models.CharField(max_length=50, unique=True),
+        ),
         migrations.RunPython(create_spesen_wage_types, remove_spesen_wage_types),
     ]
 
