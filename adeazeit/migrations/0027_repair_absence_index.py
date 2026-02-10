@@ -1,4 +1,4 @@
-from django.db import migrations
+from django.db import migrations, transaction
 
 INDEX_NAME = "adeazeit_ab_mitarbe_ada11c_idx"
 
@@ -9,9 +9,10 @@ def drop_index_if_exists(apps, schema_editor):
         if vendor in ("postgresql", "sqlite"):
             cursor.execute(f'DROP INDEX IF EXISTS "{INDEX_NAME}";')
         else:
-            # Fallback: versuchen und Fehler ignorieren
+            # Fallback mit Savepoint, damit Transaktion sauber bleibt
             try:
-                cursor.execute(f'DROP INDEX {INDEX_NAME};')
+                with transaction.atomic(using=schema_editor.connection.alias):
+                    cursor.execute(f'DROP INDEX {INDEX_NAME};')
             except Exception:
                 pass
 
