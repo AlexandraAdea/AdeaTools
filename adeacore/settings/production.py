@@ -1,16 +1,18 @@
 """
-Production Settings für AdeaTools (Render Deployment).
+Production Settings für AdeaTools.
+Funktioniert sowohl auf Render als auch auf Hetzner (Docker).
 """
 
 from .base import *
 import os
 from django.core.exceptions import ImproperlyConfigured
 
-# SECRET_KEY ist in Production Pflicht (Render). Wir akzeptieren KEINEN Dev-Fallback.
+# SECRET_KEY ist in Production Pflicht. Wir akzeptieren KEINEN Dev-Fallback.
 _env_secret = os.environ.get("DJANGO_SECRET_KEY")
 if not _env_secret:
     raise ImproperlyConfigured(
-        "DJANGO_SECRET_KEY muss in Production gesetzt sein! Bitte setze die Environment Variable auf Render."
+        "DJANGO_SECRET_KEY muss in Production gesetzt sein! "
+        "Bitte setze die Environment Variable."
     )
 SECRET_KEY = _env_secret
 
@@ -18,26 +20,30 @@ SECRET_KEY = _env_secret
 DEBUG = False
 
 # ALLOWED_HOSTS - aus Environment-Variable (MUSS gesetzt sein)
+# Beispiel: DJANGO_ALLOWED_HOSTS=app.adea-treuhand.ch,46.225.123.33
 ALLOWED_HOSTS_ENV = os.environ.get('DJANGO_ALLOWED_HOSTS', '')
 if ALLOWED_HOSTS_ENV:
     ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV.split(',') if host.strip()]
+    # localhost immer erlauben (für Health-Checks und interne Zugriffe)
+    for local in ['localhost', '127.0.0.1']:
+        if local not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(local)
 else:
-    # Fallback nur für bekannte Domains (sollte durch Environment Variable ersetzt werden)
-    # WARNUNG: Wildcard (.adea-treuhand.ch) ist weniger sicher als explizite Liste
     import warnings
     warnings.warn(
         "DJANGO_ALLOWED_HOSTS nicht gesetzt - verwende Fallback-Liste. "
-        "Bitte setze die Environment Variable auf Render für bessere Sicherheit!",
+        "Bitte setze die Environment Variable für bessere Sicherheit!",
         UserWarning
     )
     ALLOWED_HOSTS = [
         'adeacore-web.onrender.com',
         'app.adea-treuhand.ch',
         'www.app.adea-treuhand.ch',
-        # Wildcard entfernt - explizite Liste ist sicherer
+        'localhost',
+        '127.0.0.1',
     ]
 
-# Database - PostgreSQL für Render
+# Database - PostgreSQL
 try:
     import dj_database_url
     DATABASE_URL = os.environ.get('DATABASE_URL')
@@ -59,9 +65,10 @@ except ImportError:
     raise ImproperlyConfigured("WhiteNoise benötigt für Production!")
 
 # Production Security Settings
-SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+# SSL-Redirect per Environment steuerbar (deaktivieren wenn Nginx/Caddy SSL terminiert)
+SECURE_SSL_REDIRECT = os.environ.get('DJANGO_SECURE_SSL_REDIRECT', 'true').lower() == 'true'
+SESSION_COOKIE_SECURE = os.environ.get('DJANGO_SESSION_COOKIE_SECURE', 'true').lower() == 'true'
+CSRF_COOKIE_SECURE = os.environ.get('DJANGO_CSRF_COOKIE_SECURE', 'true').lower() == 'true'
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
