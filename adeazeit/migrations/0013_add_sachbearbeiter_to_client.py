@@ -10,17 +10,20 @@ IDX_NEW = "adeazeit_ab_employe_c4ea6a_idx"
 def _rename_index_forward(apps, schema_editor):
     """
     Macht den Rename DB-sicher:
-    - Postgres: ALTER INDEX (try/except)
+    - Postgres: ALTER INDEX mit Existenzprüfung (kein try/except, sonst aborted transaction)
     - SQLite: kein ALTER INDEX -> CREATE neuen Index anhand sqlite_master.sql + DROP alten Index
     """
     vendor = schema_editor.connection.vendor
     with schema_editor.connection.cursor() as cursor:
         if vendor == "postgresql":
-            try:
+            cursor.execute(f"SELECT to_regclass('{IDX_OLD}');")
+            old_exists = cursor.fetchone()[0] is not None
+
+            cursor.execute(f"SELECT to_regclass('{IDX_NEW}');")
+            new_exists = cursor.fetchone()[0] is not None
+
+            if old_exists and not new_exists:
                 cursor.execute(f'ALTER INDEX "{IDX_OLD}" RENAME TO "{IDX_NEW}";')
-            except Exception:
-                # Wenn der alte Index nicht existiert oder schon umbenannt wurde: ignorieren
-                pass
 
         elif vendor == "sqlite":
             # SQLite kann i.d.R. kein ALTER INDEX. Wir rekonstruieren CREATE INDEX aus sqlite_master.
@@ -71,10 +74,14 @@ def _rename_index_backward(apps, schema_editor):
     vendor = schema_editor.connection.vendor
     with schema_editor.connection.cursor() as cursor:
         if vendor == "postgresql":
-            try:
+            cursor.execute(f"SELECT to_regclass('{IDX_NEW}');")
+            new_exists = cursor.fetchone()[0] is not None
+
+            cursor.execute(f"SELECT to_regclass('{IDX_OLD}');")
+            old_exists = cursor.fetchone()[0] is not None
+
+            if new_exists and not old_exists:
                 cursor.execute(f'ALTER INDEX "{IDX_NEW}" RENAME TO "{IDX_OLD}";')
-            except Exception:
-                pass
 
         elif vendor == "sqlite":
             try:
