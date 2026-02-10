@@ -1,25 +1,27 @@
 """
 Geld-/Rundungs-Helfer für AdeaTools.
 
-Bewusst klein gehalten: nur wiederverwendbare, deterministische Rundungsfunktionen.
+Delegiert an adea_payroll.rounding.rappen() — Single Source of Truth.
 """
 
 from __future__ import annotations
 
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
+
+from adea_payroll.rounding import rappen  # noqa: E402
 
 
-FIVE_RAPPEN = Decimal("0.05")
+FIVE_RAPPEN = Decimal("0.05")  # Beibehalten für Abwärtskompatibilität
 
 
 def round_to_5_rappen(amount: Decimal) -> Decimal:
     """
     Rundet einen Betrag auf 0.05 CHF (5 Rappen) mit ROUND_HALF_UP.
 
-    Entspricht exakt dem bisherigen Pattern:
-    (amount / 0.05).quantize(1, ROUND_HALF_UP) * 0.05
+    Delegiert an adea_payroll.rounding.rappen() für konsistente Rundung.
     """
     if not isinstance(amount, Decimal):
         amount = Decimal(str(amount))
-    return (amount / FIVE_RAPPEN).quantize(Decimal("1"), rounding=ROUND_HALF_UP) * FIVE_RAPPEN
+    return rappen(amount)
+
 

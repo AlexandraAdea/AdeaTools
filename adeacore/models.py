@@ -429,7 +429,14 @@ class Employee(models.Model):
                 })
     
     def save(self, *args, **kwargs):
-        """Validiert vor dem Speichern."""
+        """Validiert vor dem Speichern und setzt automatische Felder."""
+        from decimal import Decimal
+        
+        # Automatische NBU-Pflicht bei >8h/Woche (Schweizer Recht)
+        NBU_THRESHOLD_HOURS = Decimal("8")
+        if self.weekly_hours > NBU_THRESHOLD_HOURS:
+            self.nbu_pflichtig = True
+        
         self.full_clean()
         super().save(*args, **kwargs)
 
@@ -453,13 +460,6 @@ class Employee(models.Model):
         familienstand = self.qst_tarif[0] if self.qst_tarif else 'A'
         kirchensteuer_code = 'Y' if self.qst_kirchensteuer else 'N'
         return f"{familienstand}{self.qst_kinder}{kirchensteuer_code}"
-
-    def save(self, *args, **kwargs):
-        from decimal import Decimal
-        # Automatische NBU-Pflicht bei >8h/Woche
-        if self.weekly_hours > Decimal("8"):
-            self.nbu_pflichtig = True
-        super().save(*args, **kwargs)
 
 
 class Project(models.Model):

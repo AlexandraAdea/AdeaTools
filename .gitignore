@@ -1,4 +1,9 @@
-﻿# Python
+# Umgebungsvariablen & Secrets (KRITISCH: Nie committen!)
+.env
+*.env
+.env.*
+
+# Python
 __pycache__/
 *.py[cod]
 
@@ -14,3 +19,14 @@ logs/
 # venv
 venv/
 .venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
