@@ -64,11 +64,21 @@ try:
 except ImportError:
     raise ImproperlyConfigured("WhiteNoise benötigt für Production!")
 
+# CSRF Trusted Origins - nötig wenn Nginx SSL terminiert und an Django weiterleitet
+CSRF_TRUSTED_ORIGINS_ENV = os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS', '')
+if CSRF_TRUSTED_ORIGINS_ENV:
+    CSRF_TRUSTED_ORIGINS = [o.strip() for o in CSRF_TRUSTED_ORIGINS_ENV.split(',') if o.strip()]
+else:
+    # Automatisch aus ALLOWED_HOSTS ableiten
+    CSRF_TRUSTED_ORIGINS = [f'https://{host}' for host in ALLOWED_HOSTS if host not in ('localhost', '127.0.0.1')]
+    CSRF_TRUSTED_ORIGINS += ['http://localhost', 'http://127.0.0.1']
+
 # Production Security Settings
 # SSL-Redirect per Environment steuerbar (deaktivieren wenn Nginx/Caddy SSL terminiert)
 SECURE_SSL_REDIRECT = os.environ.get('DJANGO_SECURE_SSL_REDIRECT', 'true').lower() == 'true'
 SESSION_COOKIE_SECURE = os.environ.get('DJANGO_SESSION_COOKIE_SECURE', 'true').lower() == 'true'
 CSRF_COOKIE_SECURE = os.environ.get('DJANGO_CSRF_COOKIE_SECURE', 'true').lower() == 'true'
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
