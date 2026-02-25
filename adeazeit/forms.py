@@ -220,6 +220,7 @@ class TaskForm(forms.ModelForm):
             "beschreibung",
             "status",
             "prioritaet",
+            "eingangsdatum",
             "fälligkeitsdatum",
             "tagesplan",
             "notizen",
@@ -231,6 +232,7 @@ class TaskForm(forms.ModelForm):
             "beschreibung": forms.Textarea(attrs={"class": "adea-textarea", "rows": 4}),
             "status": forms.Select(attrs={"class": "adea-select"}),
             "prioritaet": forms.Select(attrs={"class": "adea-select"}),
+            "eingangsdatum": forms.DateInput(attrs={"class": "adea-input", "type": "date"}, format="%Y-%m-%d"),
             "fälligkeitsdatum": forms.DateInput(attrs={"class": "adea-input", "type": "date"}, format="%Y-%m-%d"),
             "tagesplan": forms.CheckboxInput(attrs={"class": "adea-checkbox"}),
             "notizen": forms.Textarea(attrs={"class": "adea-textarea", "rows": 3}),
@@ -251,3 +253,5 @@ class TaskForm(forms.ModelForm):
         self.fields["client"].queryset = Client.objects.all().order_by("name")
         # Client ist optional
         self.fields["client"].required = False
+        self.fields["eingangsdatum"].required = False
+        self.fields["eingangsdatum"].label = "Unterlagen eingegangen"

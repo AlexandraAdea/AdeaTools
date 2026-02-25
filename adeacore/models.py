@@ -18,10 +18,10 @@ class Client(models.Model):
     ]
 
     ZAHLUNGSVERHALTEN_CHOICES = [
-        ("GUT", "Gut"),
-        ("NORMAL", "Normal"),
-        ("LANGSAM", "Langsam"),
-        ("SCHLECHT", "Schlecht"),
+        ("SCHNELL", "⭐⭐⭐⭐ Schnell zahlt"),
+        ("NORMAL", "⭐⭐⭐ Normal / Neukunde"),
+        ("LANGSAM", "⭐⭐ Langsam zahlt"),
+        ("SCHLECHT", "⭐ Schlecht zahlt"),
     ]
     
     # Grunddaten

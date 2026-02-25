@@ -231,6 +231,7 @@ class Task(models.Model):
     STATUS_CHOICES = [
         ('OFFEN', 'Offen'),
         ('IN_ARBEIT', 'In Arbeit'),
+        ('WARTET', 'Wartet auf Kunde'),
         ('ERLEDIGT', 'Erledigt'),
     ]
     
@@ -261,6 +262,12 @@ class Task(models.Model):
         max_length=20,
         choices=PRIORITAET_CHOICES,
         default='MITTEL'
+    )
+    eingangsdatum = models.DateField(
+        "Unterlagen eingegangen",
+        null=True,
+        blank=True,
+        help_text="Wann hat der Kunde seine Unterlagen vollständig eingereicht?",
     )
     fälligkeitsdatum = models.DateField(
         "Fälligkeitsdatum",

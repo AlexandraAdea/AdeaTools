@@ -29,6 +29,7 @@
                 <option value="">Alle</option>
                 <option value="OFFEN" {% if status_filter == "OFFEN" %}selected{% endif %}>Offen</option>
                 <option value="IN_ARBEIT" {% if status_filter == "IN_ARBEIT" %}selected{% endif %}>In Arbeit</option>
+                <option value="WARTET" {% if status_filter == "WARTET" %}selected{% endif %}>Wartet auf Kunde</option>
                 <option value="ERLEDIGT" {% if status_filter == "ERLEDIGT" %}selected{% endif %}>Erledigt</option>
             </select>
         </div>
@@ -57,44 +58,64 @@
     </form>
 
     <!-- Tagesplan Widget -->
-    <div class="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
-        <div class="mb-3 flex items-center justify-between">
-            <h2 class="text-base font-semibold text-slate-800">Heute zu erledigen</h2>
-            <span class="text-xs text-slate-500">{{ today_date|date:"d.m.Y" }}</span>
+    <div style="margin-bottom: 24px; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); padding: 16px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+            <h2 style="display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; color: #1f2937; margin: 0;">
+                <span aria-hidden="true">📅</span>
+                Heute zu erledigen
+            </h2>
+            <span style="font-size: 12px; color: #6b7280;">{{ today_date|date:"d.m.Y" }}</span>
         </div>
+
         {% if today_plan_tasks %}
-        <div class="grid gap-2 md:grid-cols-2">
+        <div style="max-height: 300px; overflow-y: auto; padding-right: 4px;">
             {% for task in today_plan_tasks %}
-            <div class="rounded-lg border p-3 {% if task.tagesplan %}border-blue-300 bg-blue-50{% else %}border-slate-200 bg-white{% endif %}">
-                <div class="flex items-center justify-between gap-2">
-                    <div class="min-w-0">
-                        <p class="truncate text-sm font-semibold text-slate-900">{{ task.titel }}</p>
-                        <p class="mt-1 text-xs text-slate-600">
-                            {% if task.client %}
-                            <span
-                                class="mr-1 inline-block h-2.5 w-2.5 rounded-full {% if task.client.zahlungsverhalten == 'GUT' %}bg-green-500{% elif task.client.zahlungsverhalten == 'LANGSAM' %}bg-orange-500{% elif task.client.zahlungsverhalten == 'SCHLECHT' %}bg-red-500{% else %}bg-slate-400{% endif %}"
-                                title="{{ task.client.get_zahlungsverhalten_display }}"
-                            ></span>
-                            {{ task.client.name }}
-                            {% else %}
-                            Ohne Mandant
-                            {% endif %}
-                        </p>
+            <div style="display: flex; flex-direction: row; align-items: center; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9f9f9; margin-bottom: 8px; padding: 12px;">
+                <div
+                    style="width: 4px; height: 40px; border-radius: 4px; margin-right: 12px; {% if task.prioritaet == 'HOCH' %}background: #ef4444;{% elif task.prioritaet == 'MITTEL' %}background: #f97316;{% else %}background: #9ca3af;{% endif %}"
+                ></div>
+
+                <div style="min-width: 0; flex: 1;">
+                    <div style="font-weight: 600; font-size: 14px; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        {{ task.titel }}
                     </div>
+                    <div style="font-size: 12px; color: #6b7280; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        {% if task.client %}
+                        <span
+                            style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; {% if task.client.zahlungsverhalten == 'SCHNELL' %}background: #22c55e;{% elif task.client.zahlungsverhalten == 'LANGSAM' %}background: #f97316;{% elif task.client.zahlungsverhalten == 'SCHLECHT' %}background: #ef4444;{% else %}background: #9ca3af;{% endif %}"
+                            title="{{ task.client.get_zahlungsverhalten_display }}"
+                        ></span>
+                        {{ task.client.name }}
+                        <span style="margin-left: 6px; {% if task.client.zahlungsverhalten == 'SCHNELL' %}color: #f59e0b;{% elif task.client.zahlungsverhalten == 'LANGSAM' %}color: #f97316;{% elif task.client.zahlungsverhalten == 'SCHLECHT' %}color: #ef4444;{% else %}color: #9ca3af;{% endif %};">
+                            {% if task.client.zahlungsverhalten == 'SCHNELL' %}★★★★{% elif task.client.zahlungsverhalten == 'LANGSAM' %}★★{% elif task.client.zahlungsverhalten == 'SCHLECHT' %}★{% else %}★★★{% endif %}
+                        </span>
+                        {% else %}
+                        <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #9ca3af; margin-right: 6px;"></span>
+                        Ohne Mandant
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div style="font-size: 12px; margin-right: 16px; {% if task.is_overdue %}color: #ef4444; font-weight: 600;{% else %}color: #374151;{% endif %}">
                     {% if task.fälligkeitsdatum %}
-                    <span class="rounded px-2 py-1 text-xs {% if task.is_overdue %}bg-red-100 text-red-700{% else %}bg-slate-100 text-slate-700{% endif %}">
-                        {{ task.fälligkeitsdatum|date:"d.m." }}
-                    </span>
+                    {{ task.fälligkeitsdatum|date:"d.m.Y" }}
+                    {% else %}
+                    –
                     {% endif %}
                 </div>
-                {% if task.tagesplan %}
-                <p class="mt-2 text-xs font-medium text-blue-700">Heute eingeplant</p>
-                {% endif %}
+
             </div>
             {% endfor %}
         </div>
+
+        <div style="display: flex; flex-direction: row; flex-wrap: wrap; gap: 12px; font-size: 11px; color: #6b7280; margin-top: 10px;">
+            <span><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #22c55e; margin-right: 4px;"></span>Schnell</span>
+            <span><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #9ca3af; margin-right: 4px;"></span>Normal</span>
+            <span><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #f97316; margin-right: 4px;"></span>Langsam</span>
+            <span><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ef4444; margin-right: 4px;"></span>Schlecht</span>
+        </div>
         {% else %}
-        <p class="text-sm text-slate-500">Keine offenen Aufgaben für den Tagesplan.</p>
+        <p style="font-size: 14px; color: #6b7280; margin: 0;">Keine offenen Aufgaben für den Tagesplan.</p>
         {% endif %}
     </div>
 
@@ -106,6 +127,7 @@
                     <th style="width: 50px;"></th>
                     <th style="width: 90px;">Heute</th>
                     <th>Titel</th>
+                    <th>Eingegangen</th>
                     <th>Mitarbeiterin</th>
                     <th>Mandant</th>
                     <th>Status</th>
@@ -142,20 +164,30 @@
                         <br><small style="color: #8e8e93; {% if task.status == 'ERLEDIGT' %}text-decoration: line-through;{% endif %}">{{ task.beschreibung|truncatewords:10 }}</small>
                         {% endif %}
                     </td>
+                    <td {% if task.status == 'ERLEDIGT' %}style="text-decoration: line-through;"{% endif %}>
+                        {% if task.eingangsdatum %}
+                        {{ task.eingangsdatum|date:"d.m.Y" }}
+                        {% else %}
+                        –
+                        {% endif %}
+                    </td>
                     <td {% if task.status == 'ERLEDIGT' %}style="text-decoration: line-through;"{% endif %}>{{ task.mitarbeiter.name }}</td>
                     <td {% if task.status == 'ERLEDIGT' %}style="text-decoration: line-through;"{% endif %}>
                         {% if task.client %}
                         <span
-                            style="display:inline-block; width:10px; height:10px; border-radius:9999px; margin-right:6px; vertical-align:middle; {% if task.client.zahlungsverhalten == 'GUT' %}background:#16a34a;{% elif task.client.zahlungsverhalten == 'LANGSAM' %}background:#f97316;{% elif task.client.zahlungsverhalten == 'SCHLECHT' %}background:#dc2626;{% else %}background:#9ca3af;{% endif %}"
+                            style="display:inline-block; width:10px; height:10px; border-radius:9999px; margin-right:6px; vertical-align:middle; {% if task.client.zahlungsverhalten == 'SCHNELL' %}background:#16a34a;{% elif task.client.zahlungsverhalten == 'LANGSAM' %}background:#f97316;{% elif task.client.zahlungsverhalten == 'SCHLECHT' %}background:#dc2626;{% else %}background:#9ca3af;{% endif %}"
                             title="{{ task.client.get_zahlungsverhalten_display }}"
                         ></span>
                         {{ task.client.name }}
+                        <span style="margin-left: 6px; {% if task.client.zahlungsverhalten == 'SCHNELL' %}color: #f59e0b;{% elif task.client.zahlungsverhalten == 'LANGSAM' %}color: #f97316;{% elif task.client.zahlungsverhalten == 'SCHLECHT' %}color: #ef4444;{% else %}color: #9ca3af;{% endif %};">
+                            {% if task.client.zahlungsverhalten == 'SCHNELL' %}★★★★{% elif task.client.zahlungsverhalten == 'LANGSAM' %}★★{% elif task.client.zahlungsverhalten == 'SCHLECHT' %}★{% else %}★★★{% endif %}
+                        </span>
                         {% else %}
                         –
                         {% endif %}
                     </td>
                     <td>
-                        <span style="{% if task.status == 'ERLEDIGT' %}background: #e8f5e9; color: #388e3c;{% elif task.status == 'IN_ARBEIT' %}background: #fff3e0; color: #f57c00;{% else %}background: #e3f2fd; color: #1976d2;{% endif %} padding: 2px 8px; border-radius: 4px; font-size: 0.85em;">
+                        <span style="{% if task.status == 'ERLEDIGT' %}background: #e8f5e9; color: #388e3c;{% elif task.status == 'IN_ARBEIT' %}background: #fff3e0; color: #f57c00;{% elif task.status == 'WARTET' %}background:#fef3c7; color:#92400e;{% else %}background: #e3f2fd; color: #1976d2;{% endif %} padding: 2px 8px; border-radius: 4px; font-size: 0.85em;">
                             {{ task.get_status_display }}
                         </span>
                     </td>
@@ -182,7 +214,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="9" style="text-align: center; padding: 40px; color: #8e8e93;">
+                    <td colspan="10" style="text-align: center; padding: 40px; color: #8e8e93;">
                         Keine Aufgaben gefunden.
                     </td>
                 </tr>

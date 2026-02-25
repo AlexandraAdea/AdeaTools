@@ -1,7 +1,7 @@
 from decimal import Decimal
 from calendar import month_name
 from datetime import datetime, timedelta, date
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, Case, When, IntegerField, Value, F
 from django.db import transaction
 from django.shortcuts import redirect, get_object_or_404, render
 from django.urls import reverse, reverse_lazy
@@ -935,72 +935,63 @@ class TaskListView(LoginRequiredMixin, ListView):
         return priority_map.get(task.prioritaet, 0)
 
     def _today_plan_widget_tasks(self):
-        today = timezone.localdate()
-        tomorrow = today + timedelta(days=1)
-
-        candidates = list(
+        tasks = (
             self._get_user_tasks_scope()
             .filter(archiviert=False)
-            .exclude(status="ERLEDIGT")
+            .exclude(status__in=["ERLEDIGT", "WARTET"])
+            .annotate(
+                kundenprio=Case(
+                    When(client__zahlungsverhalten="SCHNELL", then=Value(4)),
+                    When(client__zahlungsverhalten="NORMAL", then=Value(3)),
+                    When(client__zahlungsverhalten="LANGSAM", then=Value(2)),
+                    When(client__zahlungsverhalten="SCHLECHT", then=Value(1)),
+                    default=Value(3),
+                    output_field=IntegerField(),
+                )
+            )
+            .order_by("-kundenprio", "fälligkeitsdatum")
         )
-
-        def category_rank(task):
-            due = task.fälligkeitsdatum
-            if due and due < today and task.prioritaet == "HOCH":
-                return 0
-            if due and due in (today, tomorrow):
-                return 1
-            if task.prioritaet == "HOCH" and not due:
-                return 2
-            if task.status == "IN_ARBEIT":
-                return 3
-            return 4
-
-        def sort_key(task):
-            due = task.fälligkeitsdatum or date.max
-            client_is_schlecht = (
-                1
-                if task.client and getattr(task.client, "zahlungsverhalten", "NORMAL") == "SCHLECHT"
-                else 0
-            )
-            return (
-                client_is_schlecht,
-                category_rank(task),
-                -self._task_priority_score(task),
-                due,
-                task.pk,
-            )
-
-        ranked_tasks = sorted(candidates, key=sort_key)
-        planned_tasks = [task for task in ranked_tasks if task.tagesplan]
-        unplanned_tasks = [task for task in ranked_tasks if not task.tagesplan]
-        # Geplante Aufgaben oben priorisieren und auf 5 Einträge begrenzen.
-        return (planned_tasks + unplanned_tasks)[:5]
+        return list(tasks[:5])
 
     def get_queryset(self):
-        queryset = self._get_user_tasks_scope()
+        tasks = self._get_user_tasks_scope()
 
         # Archivierte Aufgaben standardmäßig ausblenden
         show_archived = self.request.GET.get('show_archived', '').lower() == 'true'
         if not show_archived:
-            queryset = queryset.filter(archiviert=False)
+            tasks = tasks.filter(archiviert=False)
         
         # Erledigte Aufgaben standardmäßig ausblenden (außer wenn explizit angefordert)
         show_completed = self.request.GET.get('show_completed', '').lower() == 'true'
         if not show_completed:
-            queryset = queryset.exclude(status='ERLEDIGT')
+            tasks = tasks.exclude(status='ERLEDIGT')
         
         # Filter nach Status
         status_filter = self.request.GET.get('status')
         if status_filter:
-            queryset = queryset.filter(status=status_filter)
+            tasks = tasks.filter(status=status_filter)
         
         # Filter nach Priorität
         prioritaet_filter = self.request.GET.get('prioritaet')
         if prioritaet_filter:
-            queryset = queryset.filter(prioritaet=prioritaet_filter)
-        
-        return queryset.order_by('prioritaet', 'fälligkeitsdatum', '-erstellt_am')
+            tasks = tasks.filter(prioritaet=prioritaet_filter)
+
+        tasks = tasks.annotate(
+            kundenprio=Case(
+                When(client__zahlungsverhalten='SCHNELL', then=Value(4)),
+                When(client__zahlungsverhalten='NORMAL', then=Value(3)),
+                When(client__zahlungsverhalten='LANGSAM', then=Value(2)),
+                When(client__zahlungsverhalten='SCHLECHT', then=Value(1)),
+                default=Value(3),
+                output_field=IntegerField(),
+            )
+        ).order_by(
+            F('eingangsdatum').asc(nulls_last=True),
+            '-kundenprio',
+            F('fälligkeitsdatum').asc(nulls_last=True),
+        )
+
+        return tasks
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

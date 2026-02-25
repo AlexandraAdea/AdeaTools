@@ -150,8 +150,8 @@ class HolidayAdmin(admin.ModelAdmin):
 
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
-    list_display = ("titel", "mitarbeiter", "client", "status", "prioritaet", "tagesplan", "fälligkeitsdatum", "erstellt_am")
-    list_filter = ("status", "prioritaet", "tagesplan", "fälligkeitsdatum", "mitarbeiter")
+    list_display = ("titel", "mitarbeiter", "client", "status", "prioritaet", "tagesplan", "eingangsdatum", "fälligkeitsdatum", "erstellt_am")
+    list_filter = ("status", "prioritaet", "tagesplan", "eingangsdatum", "fälligkeitsdatum", "mitarbeiter")
     search_fields = ("titel", "beschreibung", "notizen", "mitarbeiter__name", "client__name")
     date_hierarchy = "fälligkeitsdatum"
     fieldsets = (
@@ -162,7 +162,7 @@ class TaskAdmin(admin.ModelAdmin):
             "fields": ("mitarbeiter", "client")
         }),
         ("Fälligkeit", {
-            "fields": ("fälligkeitsdatum", "tagesplan")
+            "fields": ("eingangsdatum", "fälligkeitsdatum", "tagesplan")
         }),
         ("Notizen", {
             "fields": ("notizen",)
