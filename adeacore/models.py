@@ -16,6 +16,13 @@ class Client(models.Model):
         ("POTENZIELL", "Potenziell"),
         ("GESPERRT", "Gesperrt"),
     ]
+
+    ZAHLUNGSVERHALTEN_CHOICES = [
+        ("GUT", "Gut"),
+        ("NORMAL", "Normal"),
+        ("LANGSAM", "Langsam"),
+        ("SCHLECHT", "Schlecht"),
+    ]
     
     # Grunddaten
     name = models.CharField("Name", max_length=255)
@@ -84,6 +91,13 @@ class Client(models.Model):
         "Zahlungsziel (Tage)",
         default=30,
         help_text="Zahlungsziel in Tagen (nur FIRMA)",
+    )
+    zahlungsverhalten = models.CharField(
+        "Zahlungsverhalten",
+        max_length=20,
+        choices=ZAHLUNGSVERHALTEN_CHOICES,
+        default="NORMAL",
+        help_text="Einschätzung des Zahlungsverhaltens für Priorisierung in Aufgabenlisten.",
     )
     
     # Steuerdaten (nur PRIVAT) - verschlüsselt

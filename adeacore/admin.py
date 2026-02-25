@@ -27,9 +27,9 @@ class SVAEntscheidInline(admin.TabularInline):
 
 @admin.register(models.Client)
 class ClientAdmin(admin.ModelAdmin):
-    list_display = ("name", "client_type", "city", "email", "mwst_nr", "created_at")
+    list_display = ("name", "client_type", "zahlungsverhalten", "city", "email", "mwst_nr", "created_at")
     search_fields = ("name", "city", "email", "mwst_nr")
-    list_filter = ("client_type", "city")
+    list_filter = ("client_type", "zahlungsverhalten", "city")
     fieldsets = (
         (
             "Grunddaten",
@@ -53,7 +53,7 @@ class ClientAdmin(admin.ModelAdmin):
         (
             "MWST & Rechnungsdaten (nur FIRMA)",
             {
-                "fields": ("mwst_pflichtig", "mwst_nr", "rechnungs_email", "zahlungsziel_tage"),
+                "fields": ("mwst_pflichtig", "mwst_nr", "rechnungs_email", "zahlungsziel_tage", "zahlungsverhalten"),
                 "classes": ("collapse",),
             },
         ),

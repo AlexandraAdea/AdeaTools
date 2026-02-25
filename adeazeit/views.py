@@ -902,8 +902,8 @@ class TaskListView(LoginRequiredMixin, ListView):
     template_name = "adeazeit/task_list.html"
     context_object_name = "tasks"
     paginate_by = 20
-    
-    def get_queryset(self):
+
+    def _get_user_tasks_scope(self):
         # Performance: Templates nutzen task.mitarbeiter.name und task.client.name -> N+1 vermeiden
         queryset = super().get_queryset().select_related("mitarbeiter", "client")
         # Admin/Manager sehen alle Tasks
@@ -923,7 +923,63 @@ class TaskListView(LoginRequiredMixin, ListView):
             except UserProfile.DoesNotExist:
                 # User ohne UserProfile sehen keine Tasks
                 queryset = queryset.none()
-        
+        return queryset
+
+    @staticmethod
+    def _task_priority_score(task):
+        priority_map = {
+            "HOCH": 3,
+            "MITTEL": 2,
+            "NIEDRIG": 1,
+        }
+        return priority_map.get(task.prioritaet, 0)
+
+    def _today_plan_widget_tasks(self):
+        today = timezone.localdate()
+        tomorrow = today + timedelta(days=1)
+
+        candidates = list(
+            self._get_user_tasks_scope()
+            .filter(archiviert=False)
+            .exclude(status="ERLEDIGT")
+        )
+
+        def category_rank(task):
+            due = task.fälligkeitsdatum
+            if due and due < today and task.prioritaet == "HOCH":
+                return 0
+            if due and due in (today, tomorrow):
+                return 1
+            if task.prioritaet == "HOCH" and not due:
+                return 2
+            if task.status == "IN_ARBEIT":
+                return 3
+            return 4
+
+        def sort_key(task):
+            due = task.fälligkeitsdatum or date.max
+            client_is_schlecht = (
+                1
+                if task.client and getattr(task.client, "zahlungsverhalten", "NORMAL") == "SCHLECHT"
+                else 0
+            )
+            return (
+                client_is_schlecht,
+                category_rank(task),
+                -self._task_priority_score(task),
+                due,
+                task.pk,
+            )
+
+        ranked_tasks = sorted(candidates, key=sort_key)
+        planned_tasks = [task for task in ranked_tasks if task.tagesplan]
+        unplanned_tasks = [task for task in ranked_tasks if not task.tagesplan]
+        # Geplante Aufgaben oben priorisieren und auf 5 Einträge begrenzen.
+        return (planned_tasks + unplanned_tasks)[:5]
+
+    def get_queryset(self):
+        queryset = self._get_user_tasks_scope()
+
         # Archivierte Aufgaben standardmäßig ausblenden
         show_archived = self.request.GET.get('show_archived', '').lower() == 'true'
         if not show_archived:
@@ -952,6 +1008,8 @@ class TaskListView(LoginRequiredMixin, ListView):
         context['prioritaet_filter'] = self.request.GET.get('prioritaet', '')
         context['show_completed'] = self.request.GET.get('show_completed', '').lower() == 'true'
         context['show_archived'] = self.request.GET.get('show_archived', '').lower() == 'true'
+        context["today_plan_tasks"] = self._today_plan_widget_tasks()
+        context["today_date"] = timezone.localdate()
         return context
 
 
@@ -1129,6 +1187,56 @@ def mark_task_completed(request, task_id):
             "message": "Aufgabe als erledigt markiert",
             "task_id": task.id
         })
+    except Exception as e:
+        from adeacore.http import json_error
+
+        return json_error(str(e))
+
+
+@login_required
+@require_http_methods(["POST"])
+def toggle_task_tagesplan(request, task_id):
+    """Schaltet 'Heute einplanen' für eine Aufgabe um (AJAX)."""
+    try:
+        task = get_object_or_404(Task, pk=task_id)
+
+        # Berechtigung prüfen
+        if not can_view_all_entries(request.user):
+            try:
+                from .models import UserProfile
+                user_profile = UserProfile.objects.get(user=request.user)
+                if user_profile.employee and task.mitarbeiter != user_profile.employee:
+                    from adeacore.http import json_error
+
+                    return json_error("Keine Berechtigung")
+            except UserProfile.DoesNotExist:
+                from adeacore.http import json_error
+
+                return json_error("Keine Berechtigung")
+
+        # Optional kann der Client den Zielzustand senden, sonst wird getoggelt.
+        payload = {}
+        if request.body:
+            try:
+                payload = json.loads(request.body)
+            except json.JSONDecodeError:
+                payload = {}
+
+        requested_value = payload.get("tagesplan")
+        if requested_value is None:
+            task.tagesplan = not task.tagesplan
+        else:
+            task.tagesplan = bool(requested_value)
+        task.save()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "task_id": task.id,
+                "tagesplan": task.tagesplan,
+                "message": "Tagesplan aktualisiert",
+            }
+        )
     except Exception as e:
         from adeacore.http import json_error
 

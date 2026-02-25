@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from .views import start_timer, stop_timer, mark_as_invoiced, mark_task_completed
+from .views import start_timer, stop_timer, mark_as_invoiced, mark_task_completed, toggle_task_tagesplan
 
 app_name = "adeazeit"
 
@@ -61,4 +61,5 @@ urlpatterns = [
     path("aufgaben/<int:pk>/bearbeiten/", views.TaskUpdateView.as_view(), name="task-update"),
     path("aufgaben/<int:pk>/loeschen/", views.TaskDeleteView.as_view(), name="task-delete"),
     path("aufgaben/<int:task_id>/erledigt/", mark_task_completed, name="task-mark-completed"),
+    path("aufgaben/<int:task_id>/toggle-tagesplan/", toggle_task_tagesplan, name="task-toggle-tagesplan"),
 ]

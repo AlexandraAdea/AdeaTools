@@ -291,6 +291,11 @@ class Task(models.Model):
     erstellt_am = models.DateTimeField("Erstellt am", auto_now_add=True)
     erledigt_am = models.DateTimeField("Erledigt am", null=True, blank=True)
     archiviert = models.BooleanField("Archiviert", default=False, help_text="Erledigte Aufgaben werden nach 7 Tagen automatisch archiviert")
+    tagesplan = models.BooleanField(
+        "Heute einplanen",
+        default=False,
+        help_text="Markiert die Aufgabe für den Tagesplan (Widget 'Heute zu erledigen').",
+    )
     updated_at = models.DateTimeField("Aktualisiert am", auto_now=True)
     
     class Meta:
