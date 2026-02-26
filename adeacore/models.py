@@ -1660,7 +1660,7 @@ class CompanyData(models.Model):
     )
     iban = EncryptedCharField(
         "IBAN",
-        max_length=100,
+        max_length=500,
         blank=True,
         help_text="IBAN für QR-Rechnung"
     )
