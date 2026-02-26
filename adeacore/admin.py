@@ -346,7 +346,7 @@ class PayrollRecordAdmin(admin.ModelAdmin):
 @admin.register(models.CompanyData)
 class CompanyDataAdmin(admin.ModelAdmin):
     """Admin für Firmendaten (Singleton)."""
-    list_display = ("company_name", "city", "mwst_nr", "email")
+    list_display = ("company_name", "city", "mwst_pflichtig", "mwst_satz", "mwst_nr", "email")
     fieldsets = (
         (
             "Firmendaten",
@@ -370,8 +370,8 @@ class CompanyDataAdmin(admin.ModelAdmin):
         (
             "Rechnungsdaten",
             {
-                "fields": ("mwst_nr", "iban"),
-                "description": "MWST-Nummer im Format 'CHE-XXX.XXX.XXX MWST' und IBAN für QR-Rechnungen.",
+                "fields": ("mwst_pflichtig", "mwst_satz", "mwst_nr", "iban"),
+                "description": "MWST-Konfiguration des Rechnungsstellers sowie IBAN für QR-Rechnungen.",
             },
         ),
     )
@@ -392,6 +392,16 @@ class CompanyDataAdmin(admin.ModelAdmin):
         if instance:
             return self.change_view(request, str(instance.pk), extra_context)
         return super().changelist_view(request, extra_context)
+
+
+class CompanyLocationInline(admin.TabularInline):
+    model = models.CompanyLocation
+    extra = 1
+    fields = ("name", "street", "house_number", "zipcode", "city", "country", "is_active", "sort_order")
+    ordering = ("sort_order", "id")
+
+
+CompanyDataAdmin.inlines = [CompanyLocationInline]
 
 
 class InvoiceItemInline(admin.TabularInline):

@@ -8,15 +8,18 @@ from django.views.generic import TemplateView, ListView, DetailView
 from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse, HttpResponse
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
+from django.contrib import messages
+from django.db import transaction
 from adeazeit.mixins import ManagerOrAdminRequiredMixin
 from adeazeit.views import mark_as_invoiced
 from adeacore.models import Invoice, Client
 from adearechnung.services import InvoiceService
+from adeazeit.models import TimeEntry
 from datetime import datetime, date
 from decimal import Decimal
-from django.db.models import Sum, Q
+from django.db.models import Sum, Q, Min, Max
 import json
 
 
@@ -214,11 +217,13 @@ class CreateInvoiceView(ManagerOrAdminRequiredMixin, View):
                 data = json.loads(request.body)
                 time_entry_ids = data.get('entry_ids', [])
                 client_id = data.get('client_id')
+                custom_invoice_number = (data.get('invoice_number') or '').strip()
             else:
                 # Form-Daten
                 selected_entries_str = request.POST.get('selected_entries', '')
                 time_entry_ids = [int(eid) for eid in selected_entries_str.split(',') if eid.isdigit()]
                 client_id = request.POST.get('client_id')
+                custom_invoice_number = (request.POST.get('invoice_number') or '').strip()
             
             if not time_entry_ids:
                 if request.content_type == 'application/json':
@@ -244,7 +249,8 @@ class CreateInvoiceView(ManagerOrAdminRequiredMixin, View):
             invoice = InvoiceService.create_invoice_from_time_entries(
                 time_entry_ids=time_entry_ids,
                 client=client,
-                created_by=request.user
+                created_by=request.user,
+                custom_invoice_number=custom_invoice_number,
             )
             
             if request.content_type == 'application/json':
@@ -316,7 +322,27 @@ class InvoiceDetailView(ManagerOrAdminRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         from adeacore.models import CompanyData
-        context['company_data'] = CompanyData.get_instance()
+        invoice = self.object
+        company_data = CompanyData.get_instance()
+
+        grouped_items = (
+            invoice.items.values(
+                "time_entry__service_type__name",
+                "service_type_code",
+                "unit_price",
+            )
+            .annotate(
+                stunden_total=Sum("quantity"),
+                betrag_total=Sum("net_amount"),
+                datum_von=Min("service_date"),
+                datum_bis=Max("service_date"),
+            )
+            .order_by("time_entry__service_type__name")
+        )
+
+        context["grouped_items"] = grouped_items
+        context["company_data"] = company_data
+        context["warn_qr_iban_missing"] = not bool((company_data.iban or "").strip())
         return context
 
 
@@ -330,6 +356,42 @@ class InvoicePDFView(ManagerOrAdminRequiredMixin, DetailView):
         
         pdf_generator = InvoicePDFGenerator()
         pdf_response = pdf_generator.generate_pdf(invoice)
+        pdf_response["Content-Disposition"] = f'inline; filename="RE-{invoice.invoice_number}.pdf"'
         
         return pdf_response
+
+
+class InvoiceResetBillingView(ManagerOrAdminRequiredMixin, View):
+    """
+    Nimmt eine Verrechnung zurück:
+    - setzt zugeordnete Zeiteinträge auf verrechnet=False
+    - entfernt die fehlerhafte Rechnung inkl. Positionen
+    """
+
+    def post(self, request, pk):
+        invoice = get_object_or_404(Invoice.objects.prefetch_related("items"), pk=pk)
+
+        if invoice.payment_status in ("BEZAHLT", "TEILWEISE"):
+            messages.error(
+                request,
+                f"Rechnung {invoice.invoice_number} ist bereits (teilweise) bezahlt und kann nicht zurückgenommen werden.",
+            )
+            return redirect("adearechnung:invoice-detail", pk=invoice.pk)
+
+        invoice_number = invoice.invoice_number
+        with transaction.atomic():
+            time_entry_ids = list(
+                invoice.items.exclude(time_entry__isnull=True).values_list("time_entry_id", flat=True)
+            )
+            if time_entry_ids:
+                TimeEntry.objects.filter(pk__in=time_entry_ids).update(verrechnet=False)
+
+            # InvoiceItems werden via CASCADE mitgelöscht.
+            invoice.delete()
+
+        messages.success(
+            request,
+            f"Verrechnung {invoice_number} wurde zurückgenommen. Die Zeiteinträge sind wieder offen und können neu verrechnet werden.",
+        )
+        return redirect("adearechnung:client-summary")
 

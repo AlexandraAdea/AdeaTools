@@ -1357,8 +1357,8 @@ class Invoice(models.Model):
         "MWST-Satz (%)",
         max_digits=5,
         decimal_places=2,
-        default=7.7,
-        help_text="MWST-Satz (z.B. 7.7)",
+        default=8.1,
+        help_text="MWST-Satz (z.B. 8.1)",
     )
     paid_amount = models.DecimalField(
         "Bezahlter Betrag",
@@ -1640,6 +1640,18 @@ class CompanyData(models.Model):
     website = models.URLField("Website", blank=True)
     
     # MWST & Bankdaten
+    mwst_pflichtig = models.BooleanField(
+        "MWST-pflichtig",
+        default=True,
+        help_text="Gilt für den Rechnungssteller (Adea Treuhand). Wenn aktiv, wird MWST auf Rechnungen berechnet.",
+    )
+    mwst_satz = models.DecimalField(
+        "MWST-Satz (%)",
+        max_digits=5,
+        decimal_places=2,
+        default=8.1,
+        help_text="Standard-MWST-Satz für Rechnungen (z.B. 8.1).",
+    )
     mwst_nr = EncryptedCharField(
         "MWST-Nummer (UID MWST)",
         max_length=500,
@@ -1691,6 +1703,39 @@ class CompanyData(models.Model):
         if self.country:
             parts.append(self.country)
         return ", ".join(parts) if parts else ""
+
+
+class CompanyLocation(models.Model):
+    """
+    Zusätzliche Standorte für den Rechnungs-Briefkopf.
+    Werden im PDF in mehreren Spalten dargestellt.
+    """
+
+    company = models.ForeignKey(
+        CompanyData,
+        on_delete=models.CASCADE,
+        related_name="locations",
+        verbose_name="Firma",
+    )
+    name = models.CharField("Bezeichnung", max_length=100, blank=True)
+    street = models.CharField("Strasse", max_length=255)
+    house_number = models.CharField("Hausnummer", max_length=50, blank=True)
+    zipcode = models.CharField("PLZ", max_length=20)
+    city = models.CharField("Ort", max_length=255)
+    country = models.CharField("Land", max_length=100, default="Schweiz")
+    is_active = models.BooleanField("Aktiv", default=True)
+    sort_order = models.PositiveIntegerField("Sortierung", default=10)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["sort_order", "id"]
+        verbose_name = "Standort"
+        verbose_name_plural = "Standorte"
+
+    def __str__(self):
+        label = self.name or "Standort"
+        return f"{label}: {self.street} {self.house_number}, {self.zipcode} {self.city}".strip()
 
 
 class InvoiceItem(models.Model):
@@ -1759,7 +1804,7 @@ class InvoiceItem(models.Model):
         max_digits=5,
         decimal_places=2,
         default=0,
-        help_text="MWST-Satz (z.B. 7.7)"
+        help_text="MWST-Satz (z.B. 8.1)"
     )
     vat_amount = models.DecimalField(
         "MWST-Betrag",

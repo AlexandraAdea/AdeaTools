@@ -227,6 +227,14 @@ function createInvoice(clientId) {
     if (!confirm(`Möchten Sie eine Rechnung für ${entryIds.length} Zeiteinträge erstellen?`)) {
         return;
     }
+
+    const manualInvoiceNumber = prompt(
+        'Optionale Rechnungsnummer eingeben (leer lassen = automatische Nummer):',
+        ''
+    );
+    if (manualInvoiceNumber === null) {
+        return; // Benutzer hat Abbrechen geklickt
+    }
     
     // Erstelle ein Formular und sende es
     const form = document.createElement('form');
@@ -250,6 +258,12 @@ function createInvoice(clientId) {
     entriesInput.name = 'selected_entries';
     entriesInput.value = entryIds.join(',');
     form.appendChild(entriesInput);
+
+    const invoiceNumberInput = document.createElement('input');
+    invoiceNumberInput.type = 'hidden';
+    invoiceNumberInput.name = 'invoice_number';
+    invoiceNumberInput.value = manualInvoiceNumber.trim();
+    form.appendChild(invoiceNumberInput);
     
     document.body.appendChild(form);
     form.submit();

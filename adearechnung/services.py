@@ -40,7 +40,7 @@ class InvoiceService:
         return f"{prefix}{next_number:04d}"
     
     @staticmethod
-    def calculate_vat(net_amount: Decimal, vat_rate: Decimal = Decimal('7.7')) -> Decimal:
+    def calculate_vat(net_amount: Decimal, vat_rate: Decimal = Decimal('8.1')) -> Decimal:
         """Berechnet MWST-Betrag."""
         return (net_amount * vat_rate / Decimal('100')).quantize(Decimal('0.01'))
     
@@ -50,7 +50,8 @@ class InvoiceService:
         time_entry_ids: list,
         client: Client,
         invoice_date: date = None,
-        created_by=None
+        created_by=None,
+        custom_invoice_number: str = "",
     ) -> Invoice:
         """
         Erstellt eine Rechnung aus ausgewählten Zeiteinträgen.
@@ -60,6 +61,7 @@ class InvoiceService:
             client: Client für die Rechnung
             invoice_date: Rechnungsdatum (default: heute)
             created_by: User, der die Rechnung erstellt
+            custom_invoice_number: Optional manuell gesetzte Rechnungsnummer
         
         Returns:
             Erstellte Invoice
@@ -78,8 +80,11 @@ class InvoiceService:
         if not time_entries:
             raise ValueError("Keine verrechenbaren Zeiteinträge gefunden.")
         
-        # Prüfe ob Client MWST-pflichtig ist
-        vat_rate = Decimal('7.7') if client.mwst_pflichtig else Decimal('0.00')
+        # MWST-Logik basiert auf Rechnungssteller (Firmendaten), nicht auf Mandant.
+        company_data = CompanyData.get_instance()
+        vat_rate = Decimal("0.00")
+        if company_data.mwst_pflichtig:
+            vat_rate = Decimal(str(company_data.mwst_satz or Decimal("8.1")))
         
         # Berechne Gesamtbeträge
         total_net = Decimal('0.00')
@@ -116,14 +121,21 @@ class InvoiceService:
         total_vat = InvoiceService.calculate_vat(total_net, vat_rate)
         total_gross = total_net + total_vat
         
-        # Berechne Fälligkeitsdatum
-        payment_days = client.zahlungsziel_tage or 30
+        # Berechne Fälligkeitsdatum: standardisiert 15 Tage
+        payment_days = 15
         due_date = invoice_date + timedelta(days=payment_days)
+
+        invoice_number = (custom_invoice_number or "").strip()
+        if invoice_number:
+            if Invoice.objects.filter(invoice_number=invoice_number).exists():
+                raise ValueError(f"Rechnungsnummer '{invoice_number}' existiert bereits.")
+        else:
+            invoice_number = InvoiceService.generate_invoice_number()
         
         # Erstelle Rechnung
         invoice = Invoice.objects.create(
             client=client,
-            invoice_number=InvoiceService.generate_invoice_number(),
+            invoice_number=invoice_number,
             invoice_date=invoice_date,
             due_date=due_date,
             amount=total_gross,
