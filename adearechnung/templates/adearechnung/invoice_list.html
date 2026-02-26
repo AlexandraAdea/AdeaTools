@@ -23,6 +23,7 @@
                     <option value="TEILWEISE" {% if request.GET.status == "TEILWEISE" %}selected{% endif %}>Teilweise bezahlt</option>
                     <option value="BEZAHLT" {% if request.GET.status == "BEZAHLT" %}selected{% endif %}>Bezahlt</option>
                     <option value="UEBERFAELLIG" {% if request.GET.status == "UEBERFAELLIG" %}selected{% endif %}>Überfällig</option>
+                    <option value="STORNIERT" {% if request.GET.status == "STORNIERT" %}selected{% endif %}>Storniert</option>
                 </select>
             </div>
             <button type="submit" class="adea-button-primary">Anzeigen</button>
@@ -62,7 +63,21 @@
                     </td>
                     <td>
                         <a href="{% url 'adearechnung:invoice-detail' invoice.pk %}" class="adea-button-secondary" style="text-decoration: none; padding: 6px 12px; font-size: 0.9em;">Details</a>
-                        <a href="{% url 'adearechnung:invoice-pdf' invoice.pk %}" class="adea-button-primary" style="text-decoration: none; padding: 6px 12px; font-size: 0.9em; margin-left: 8px;">PDF</a>
+                        <a href="{% url 'adearechnung:invoice-pdf' invoice.pk %}" target="_blank" rel="noopener noreferrer" class="adea-button-primary" style="text-decoration: none; padding: 6px 12px; font-size: 0.9em; margin-left: 8px;">PDF</a>
+                        {% if invoice.payment_status != 'BEZAHLT' and invoice.payment_status != 'TEILWEISE' %}
+                        <form method="post" action="{% url 'adearechnung:invoice-reset-billing' invoice.pk %}" style="display:inline-block; margin-left: 8px;" onsubmit="return confirm('Verrechnung zurückholen? Rechnung wird gelöscht und Zeiteinträge werden wieder offen.');">
+                            {% csrf_token %}
+                            <button type="submit" class="adea-button-secondary" style="padding: 6px 12px; font-size: 0.9em; border: 1px solid #0a84ff; color: #0a84ff; background: transparent;">
+                                Zurückholen
+                            </button>
+                        </form>
+                        <form method="post" action="{% url 'adearechnung:invoice-delete' invoice.pk %}" style="display:inline-block; margin-left: 8px;" onsubmit="return confirm('Rechnung wirklich löschen?');">
+                            {% csrf_token %}
+                            <button type="submit" class="adea-button-secondary" style="padding: 6px 12px; font-size: 0.9em; border: 1px solid #ff5f57; color: #ff5f57; background: transparent;">
+                                Löschen
+                            </button>
+                        </form>
+                        {% endif %}
                     </td>
                 </tr>
                 {% empty %}

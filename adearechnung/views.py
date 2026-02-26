@@ -395,3 +395,80 @@ class InvoiceResetBillingView(ManagerOrAdminRequiredMixin, View):
         )
         return redirect("adearechnung:client-summary")
 
+
+class InvoiceDeleteView(ManagerOrAdminRequiredMixin, View):
+    """
+    Löscht eine Rechnung ohne Rücksetzung der Zeiteinträge.
+    Schutz: Bereits (teilweise) bezahlte Rechnungen können nicht gelöscht werden.
+    """
+
+    def post(self, request, pk):
+        invoice = get_object_or_404(Invoice, pk=pk)
+
+        if invoice.payment_status in ("BEZAHLT", "TEILWEISE"):
+            messages.error(
+                request,
+                f"Rechnung {invoice.invoice_number} ist bereits (teilweise) bezahlt und kann nicht gelöscht werden.",
+            )
+            return redirect("adearechnung:invoice-list")
+
+        invoice_number = invoice.invoice_number
+        invoice.delete()
+        messages.success(request, f"Rechnung {invoice_number} wurde gelöscht.")
+        return redirect("adearechnung:invoice-list")
+
+
+class InvoiceUpdatePaymentView(ManagerOrAdminRequiredMixin, View):
+    """
+    Aktualisiert Zahlungsdaten einer Rechnung direkt in AdeaRechnung.
+    Status wird über Invoice.save() automatisch aus paid_amount/due_date berechnet.
+    """
+
+    def post(self, request, pk):
+        invoice = get_object_or_404(Invoice, pk=pk)
+
+        paid_amount_raw = (request.POST.get("paid_amount") or "0").strip().replace(",", ".")
+        payment_date_raw = (request.POST.get("payment_date") or "").strip()
+
+        try:
+            paid_amount = Decimal(paid_amount_raw)
+        except Exception:
+            messages.error(request, "Ungültiger bezahlter Betrag.")
+            return redirect("adearechnung:invoice-detail", pk=invoice.pk)
+
+        if paid_amount < Decimal("0"):
+            messages.error(request, "Bezahlter Betrag darf nicht negativ sein.")
+            return redirect("adearechnung:invoice-detail", pk=invoice.pk)
+
+        if paid_amount > invoice.amount:
+            messages.error(
+                request,
+                f"Bezahlter Betrag darf den Rechnungsbetrag ({invoice.amount:.2f} CHF) nicht überschreiten.",
+            )
+            return redirect("adearechnung:invoice-detail", pk=invoice.pk)
+
+        parsed_payment_date = None
+        if payment_date_raw:
+            try:
+                parsed_payment_date = datetime.strptime(payment_date_raw, "%Y-%m-%d").date()
+            except ValueError:
+                messages.error(request, "Ungültiges Zahlungsdatum.")
+                return redirect("adearechnung:invoice-detail", pk=invoice.pk)
+
+        # Komfort: bei Zahlung ohne Datum automatisch auf heute setzen.
+        if paid_amount > Decimal("0") and not parsed_payment_date:
+            parsed_payment_date = date.today()
+
+        if paid_amount == Decimal("0"):
+            parsed_payment_date = None
+
+        invoice.paid_amount = paid_amount
+        invoice.payment_date = parsed_payment_date
+        invoice.save()
+
+        messages.success(
+            request,
+            f"Zahlung aktualisiert. Neuer Status: {invoice.get_payment_status_display()}.",
+        )
+        return redirect("adearechnung:invoice-detail", pk=invoice.pk)
+

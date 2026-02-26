@@ -144,6 +144,37 @@
         </div>
     </div>
 
+    <div style="margin-bottom: 24px;">
+        <h2 style="margin-bottom: 12px; font-size: 1.1em; color: #1d1d1f; border-bottom: 1px solid #e5e5ea; padding-bottom: 8px;">Zahlungsstatus bearbeiten</h2>
+        <form method="post" action="{% url 'adearechnung:invoice-update-payment' invoice.pk %}" style="padding: 16px; background: #fafafa; border-radius: 8px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; align-items: end;">
+            {% csrf_token %}
+            <div>
+                <label for="paid_amount" style="display:block; margin-bottom: 6px; font-weight: 600;">Bezahlter Betrag (CHF)</label>
+                <input
+                    type="number"
+                    id="paid_amount"
+                    name="paid_amount"
+                    min="0"
+                    max="{{ invoice.amount|floatformat:2 }}"
+                    step="0.01"
+                    value="{{ invoice.paid_amount|floatformat:2 }}"
+                    class="adea-input"
+                >
+                <small style="color:#6e6e73;">Rechnungsbetrag: {{ invoice.amount|floatformat:2 }} CHF</small>
+            </div>
+            <div>
+                <label for="payment_date" style="display:block; margin-bottom: 6px; font-weight: 600;">Zahlungsdatum</label>
+                <input type="date" id="payment_date" name="payment_date" value="{{ invoice.payment_date|date:'Y-m-d' }}" class="adea-input">
+            </div>
+            <div>
+                <button type="submit" class="adea-button-primary" style="padding: 10px 18px;">Speichern</button>
+            </div>
+        </form>
+        <small style="display:block; margin-top: 8px; color:#6e6e73;">
+            Hinweis: Status wird automatisch gesetzt (Offen/Teilweise/Bezahlt/Überfällig).
+        </small>
+    </div>
+
     {% if company_data.iban %}
     <div style="margin-bottom: 24px;">
         <h2 style="margin-bottom: 12px; font-size: 1.1em; color: #1d1d1f; border-bottom: 1px solid #e5e5ea; padding-bottom: 8px;">Zahlungsinformationen</h2>

@@ -22,7 +22,9 @@ urlpatterns = [
     
     # Rechnungsdetail
     path("invoices/<int:pk>/", views.InvoiceDetailView.as_view(), name="invoice-detail"),
+    path("invoices/<int:pk>/update-payment/", views.InvoiceUpdatePaymentView.as_view(), name="invoice-update-payment"),
     path("invoices/<int:pk>/reset-billing/", views.InvoiceResetBillingView.as_view(), name="invoice-reset-billing"),
+    path("invoices/<int:pk>/delete/", views.InvoiceDeleteView.as_view(), name="invoice-delete"),
     
     # PDF-Export
     path("invoices/<int:pk>/pdf/", views.InvoicePDFView.as_view(), name="invoice-pdf"),
