@@ -207,27 +207,20 @@ class InvoicePDFGenerator:
     def _create_client_info(self, client):
         """Erstellt Rechnungsempfänger-Informationen."""
         elements = []
-        elements.append(Paragraph("<b>Rechnungsempfänger:</b>", self.heading_style))
-        
-        # Name
-        elements.append(Paragraph(client.name, self.normal_style))
-        elements.append(Spacer(1, 2*mm))
-        
-        # Adresse
-        address_lines = []
+        # Label bewusst entfernt; vertikale Position von Name/Adresse beibehalten.
+        elements.append(Spacer(1, 13 * mm))
+
+        address_lines = [client.name]
         if client.street:
             address_lines.append(f"{client.street} {client.house_number}".strip())
         if client.zipcode or client.city:
             address_lines.append(f"{client.zipcode} {client.city}".strip())
-        
+
+        # Bewusst schlank: nur Name + Postadresse.
         for line in address_lines:
-            elements.append(Paragraph(line, self.normal_style))
-        
-        # MWST-Nummer (falls vorhanden)
-        if client.mwst_nr:
-            elements.append(Spacer(1, 2*mm))
-            elements.append(Paragraph(f"MWST-Nr.: {client.mwst_nr}", self.normal_style))
-        
+            if line:
+                elements.append(Paragraph(line, self.normal_style))
+
         return elements
     
     def _create_invoice_info(self, invoice):
@@ -239,8 +232,8 @@ class InvoicePDFGenerator:
             ['Rechnungsdatum:', invoice.invoice_date.strftime('%d.%m.%Y')],
             ['Fälligkeitsdatum:', invoice.due_date.strftime('%d.%m.%Y')],
         ]
-        
-        table = Table(data, colWidths=[50*mm, 100*mm])
+
+        table = Table(data, colWidths=[38*mm, 42*mm])
         table.setStyle(TableStyle([
             ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 0), (-1, -1), 10),
@@ -248,9 +241,32 @@ class InvoicePDFGenerator:
             ('TEXTCOLOR', (1, 0), (1, -1), colors.HexColor('#1d1d1f')),
             ('ALIGN', (1, 0), (1, -1), 'LEFT'),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
         ]))
-        
-        elements.append(table)
+
+        # Rechnungsmeta ebenfalls nach rechts schieben (oberer Bereich kompakt halten).
+        wrapper = Table(
+            [["", table]],
+            colWidths=[86 * mm, 80 * mm],
+        )
+        wrapper.setStyle(
+            TableStyle(
+                [
+                    ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                    ('TOPPADDING', (0, 0), (-1, -1), 0),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ]
+            )
+        )
+
+        elements.append(wrapper)
+        # Höhe stabil halten, damit der untere Bereich nicht nach oben rutscht.
+        elements.append(Spacer(1, 4 * mm))
         return elements
     
     def _create_invoice_items(self, invoice):
