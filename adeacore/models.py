@@ -1,5 +1,6 @@
 from django.db import models
 from django.db import transaction
+from django.db.models import Sum
 from adeacore.fields import EncryptedCharField, EncryptedEmailField, EncryptedTextField, EncryptedDateField
 from adeacore.audit import get_audit_logger
 
@@ -1360,6 +1361,13 @@ class Invoice(models.Model):
         default=8.1,
         help_text="MWST-Satz (z.B. 8.1)",
     )
+    discount_amount = models.DecimalField(
+        "Rabattbetrag",
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Rabatt in CHF (vor MWST).",
+    )
     paid_amount = models.DecimalField(
         "Bezahlter Betrag",
         max_digits=10,
@@ -1419,6 +1427,35 @@ class Invoice(models.Model):
             self.payment_status = "OFFEN"
         
         super().save(*args, **kwargs)
+
+    def recalculate_amounts_from_items(self):
+        """
+        Berechnet Netto/MWST/Gesamt anhand der Positionen neu
+        und berücksichtigt den Rechnungsrabatt (vor MWST).
+        """
+        from decimal import Decimal, ROUND_HALF_UP
+
+        base_net = self.items.aggregate(total=Sum("net_amount"))["total"] or Decimal("0.00")
+        base_net = base_net.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+        discount = (self.discount_amount or Decimal("0.00")).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+        if discount < Decimal("0.00"):
+            discount = Decimal("0.00")
+        if discount > base_net:
+            discount = base_net
+
+        self.discount_amount = discount
+        self.net_amount = (base_net - discount).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+        vat_rate = self.vat_rate or Decimal("0.00")
+        self.vat_amount = (self.net_amount * vat_rate / Decimal("100")).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+        self.amount = (self.net_amount + self.vat_amount).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
     
     @property
     def remaining_amount(self):

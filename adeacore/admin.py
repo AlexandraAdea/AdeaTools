@@ -432,7 +432,15 @@ class InvoiceAdmin(admin.ModelAdmin):
         (
             "Beträge",
             {
-                "fields": ("net_amount", "vat_rate", "vat_amount", "amount", "paid_amount", "remaining_amount"),
+                "fields": (
+                    "net_amount",
+                    "discount_amount",
+                    "vat_rate",
+                    "vat_amount",
+                    "amount",
+                    "paid_amount",
+                    "remaining_amount",
+                ),
             },
         ),
         (

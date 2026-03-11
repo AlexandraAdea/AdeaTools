@@ -341,6 +341,8 @@ class InvoiceDetailView(ManagerOrAdminRequiredMixin, DetailView):
         )
 
         context["grouped_items"] = grouped_items
+        base_net_amount = invoice.items.aggregate(total=Sum("net_amount"))["total"] or Decimal("0.00")
+        context["base_net_amount"] = base_net_amount
         context["company_data"] = company_data
         context["warn_qr_iban_missing"] = not bool((company_data.iban or "").strip())
         return context
@@ -469,6 +471,45 @@ class InvoiceUpdatePaymentView(ManagerOrAdminRequiredMixin, View):
         messages.success(
             request,
             f"Zahlung aktualisiert. Neuer Status: {invoice.get_payment_status_display()}.",
+        )
+        return redirect("adearechnung:invoice-detail", pk=invoice.pk)
+
+
+class InvoiceUpdateDiscountView(ManagerOrAdminRequiredMixin, View):
+    """
+    Aktualisiert den Rechnungsrabatt (CHF) und berechnet Summen neu.
+    Rabatt wirkt vor MWST auf den Nettobetrag.
+    """
+
+    def post(self, request, pk):
+        invoice = get_object_or_404(Invoice.objects.prefetch_related("items"), pk=pk)
+        discount_raw = (request.POST.get("discount_amount") or "0").strip().replace(",", ".")
+
+        try:
+            discount_amount = Decimal(discount_raw)
+        except Exception:
+            messages.error(request, "Ungültiger Rabattbetrag.")
+            return redirect("adearechnung:invoice-detail", pk=invoice.pk)
+
+        if discount_amount < Decimal("0"):
+            messages.error(request, "Rabatt darf nicht negativ sein.")
+            return redirect("adearechnung:invoice-detail", pk=invoice.pk)
+
+        base_net_amount = invoice.items.aggregate(total=Sum("net_amount"))["total"] or Decimal("0.00")
+        if discount_amount > base_net_amount:
+            messages.error(
+                request,
+                f"Rabatt darf den Nettobetrag ({base_net_amount:.2f} CHF) nicht überschreiten.",
+            )
+            return redirect("adearechnung:invoice-detail", pk=invoice.pk)
+
+        invoice.discount_amount = discount_amount
+        invoice.recalculate_amounts_from_items()
+        invoice.save()
+
+        messages.success(
+            request,
+            f"Rabatt gespeichert. Neuer Gesamtbetrag: {invoice.amount:.2f} CHF.",
         )
         return redirect("adearechnung:invoice-detail", pk=invoice.pk)
 
