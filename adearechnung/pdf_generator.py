@@ -333,14 +333,17 @@ class InvoicePDFGenerator:
         """Erstellt Zusammenfassung mit Beträgen."""
         elements = []
         
-        base_net_amount = invoice.net_amount + (invoice.discount_amount or 0)
-        data = [
-            ['Nettobetrag (vor Rabatt):', f"{base_net_amount:.2f} CHF"],
-        ]
-
         if invoice.discount_amount > 0:
+            base_net_amount = invoice.net_amount + (invoice.discount_amount or 0)
+            data = [
+                ['Nettobetrag (vor Rabatt):', f"{base_net_amount:.2f} CHF"],
+            ]
             data.append(["Rabatt:", f"-{invoice.discount_amount:.2f} CHF"])
             data.append(["Nettobetrag (nach Rabatt):", f"{invoice.net_amount:.2f} CHF"])
+        else:
+            data = [
+                ['Nettobetrag:', f"{invoice.net_amount:.2f} CHF"],
+            ]
 
         data.append([f"MWST ({invoice.vat_rate}%):", f"{invoice.vat_amount:.2f} CHF"])
         data.append(["Gesamtbetrag:", f"{invoice.amount:.2f} CHF"])
