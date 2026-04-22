@@ -92,13 +92,18 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for item in grouped_items %}
+                    {% for row in invoice_rows %}
                     <tr>
-                        <td>{{ item.time_entry__service_type__name|default:item.service_type_code }}</td>
-                        <td>{{ item.datum_von|date:"d.m.Y" }} - {{ item.datum_bis|date:"d.m.Y" }}</td>
-                        <td>{{ item.stunden_total|floatformat:2 }}</td>
-                        <td>{{ item.unit_price|floatformat:2 }} CHF</td>
-                        <td><strong>{{ item.betrag_total|floatformat:2 }} CHF</strong></td>
+                        <td>
+                            <strong>{{ row.label }}</strong>
+                            {% if row.kind == "manual" and row.description and row.description != row.label %}
+                            <div style="margin-top: 4px; font-size: 0.9em; color:#6e6e73;">{{ row.description }}</div>
+                            {% endif %}
+                        </td>
+                        <td>{{ row.period }}</td>
+                        <td>{{ row.quantity_display }}</td>
+                        <td>{{ row.unit_price_display }}</td>
+                        <td><strong>{{ row.amount_display }}</strong></td>
                     </tr>
                     {% empty %}
                     <tr>
@@ -109,6 +114,120 @@
             </table>
         </div>
     </div>
+
+    <div style="margin-bottom: 24px;">
+        <h2 style="margin-bottom: 12px; font-size: 1.1em; color: #1d1d1f; border-bottom: 1px solid #e5e5ea; padding-bottom: 8px;">Manuelle Position hinzufügen</h2>
+        {% if manual_item_locked %}
+        <div style="padding: 14px 16px; background: #fff3cd; color: #856404; border: 1px solid #ffe69c; border-radius: 8px;">
+            Bei bezahlten, teilweise bezahlten oder stornierten Rechnungen können manuelle Positionen nicht mehr verändert werden.
+        </div>
+        {% else %}
+        <form method="post" action="{% url 'adearechnung:invoice-manual-item-create' invoice.pk %}" style="padding: 16px; background: #fafafa; border-radius: 8px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+            {% csrf_token %}
+            <div style="grid-column: 1 / -1;">
+                <label for="manual-title" style="display:block; margin-bottom: 6px; font-weight: 600;">Titel</label>
+                <input type="text" id="manual-title" name="title" class="adea-input" placeholder="z.B. Handelsregisterspesen" required>
+            </div>
+            <div style="grid-column: 1 / -1;">
+                <label for="manual-description" style="display:block; margin-bottom: 6px; font-weight: 600;">Beschreibung</label>
+                <textarea id="manual-description" name="description" class="adea-input" rows="3" placeholder="Optionaler Detailtext für interne und externe Klarheit"></textarea>
+            </div>
+            <div>
+                <label for="manual-date" style="display:block; margin-bottom: 6px; font-weight: 600;">Leistungsdatum</label>
+                <input type="date" id="manual-date" name="service_date" class="adea-input" value="{{ invoice.invoice_date|date:'Y-m-d' }}" required>
+            </div>
+            <div>
+                <label for="manual-service-code" style="display:block; margin-bottom: 6px; font-weight: 600;">Service-Code</label>
+                <input type="text" id="manual-service-code" name="service_type_code" class="adea-input" placeholder="Optional">
+            </div>
+            <div>
+                <label for="manual-pricing-type" style="display:block; margin-bottom: 6px; font-weight: 600;">Preisart</label>
+                <select id="manual-pricing-type" name="pricing_type" class="adea-input" data-pricing-toggle>
+                    <option value="TIME">Stunden / Menge</option>
+                    <option value="FIXED">Fixbetrag</option>
+                </select>
+            </div>
+            <div data-pricing-time>
+                <label for="manual-quantity" style="display:block; margin-bottom: 6px; font-weight: 600;">Menge / Stunden</label>
+                <input type="number" id="manual-quantity" name="quantity" min="0.01" step="0.01" class="adea-input" value="1.00">
+            </div>
+            <div data-pricing-time>
+                <label for="manual-unit-price" style="display:block; margin-bottom: 6px; font-weight: 600;">Stundensatz (CHF)</label>
+                <input type="number" id="manual-unit-price" name="unit_price" min="0.01" step="0.01" class="adea-input" value="0.00">
+            </div>
+            <div data-pricing-fixed style="display:none;">
+                <label for="manual-fixed-amount" style="display:block; margin-bottom: 6px; font-weight: 600;">Fixbetrag (CHF)</label>
+                <input type="number" id="manual-fixed-amount" name="fixed_amount" min="0.01" step="0.01" class="adea-input" value="0.00">
+            </div>
+            <div style="grid-column: 1 / -1;">
+                <button type="submit" class="adea-button-primary" style="padding: 10px 18px;">Position hinzufügen</button>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+
+    {% if manual_items %}
+    <div style="margin-bottom: 24px;">
+        <h2 style="margin-bottom: 12px; font-size: 1.1em; color: #1d1d1f; border-bottom: 1px solid #e5e5ea; padding-bottom: 8px;">Manuelle Positionen bearbeiten</h2>
+        <div style="display: grid; gap: 16px;">
+            {% for item in manual_items %}
+            <form method="post" action="{% url 'adearechnung:invoice-manual-item-update' invoice.pk item.pk %}" style="padding: 16px; background: #fafafa; border-radius: 8px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+                {% csrf_token %}
+                <div style="grid-column: 1 / -1;">
+                    <label for="manual-item-title-{{ item.pk }}" style="display:block; margin-bottom: 6px; font-weight: 600;">Titel</label>
+                    <input type="text" id="manual-item-title-{{ item.pk }}" name="title" class="adea-input" value="{{ item.title }}" required {% if manual_item_locked %}disabled{% endif %}>
+                </div>
+                <div style="grid-column: 1 / -1;">
+                    <label for="manual-item-description-{{ item.pk }}" style="display:block; margin-bottom: 6px; font-weight: 600;">Beschreibung</label>
+                    <textarea id="manual-item-description-{{ item.pk }}" name="description" class="adea-input" rows="3" {% if manual_item_locked %}disabled{% endif %}>{{ item.description }}</textarea>
+                </div>
+                <div>
+                    <label for="manual-item-date-{{ item.pk }}" style="display:block; margin-bottom: 6px; font-weight: 600;">Leistungsdatum</label>
+                    <input type="date" id="manual-item-date-{{ item.pk }}" name="service_date" class="adea-input" value="{{ item.service_date|date:'Y-m-d' }}" required {% if manual_item_locked %}disabled{% endif %}>
+                </div>
+                <div>
+                    <label for="manual-item-code-{{ item.pk }}" style="display:block; margin-bottom: 6px; font-weight: 600;">Service-Code</label>
+                    <input type="text" id="manual-item-code-{{ item.pk }}" name="service_type_code" class="adea-input" value="{{ item.service_type_code }}" {% if manual_item_locked %}disabled{% endif %}>
+                </div>
+                <div>
+                    <label for="manual-item-pricing-type-{{ item.pk }}" style="display:block; margin-bottom: 6px; font-weight: 600;">Preisart</label>
+                    <select id="manual-item-pricing-type-{{ item.pk }}" name="pricing_type" class="adea-input" data-pricing-toggle {% if manual_item_locked %}disabled{% endif %}>
+                        <option value="TIME" {% if item.pricing_type == "TIME" %}selected{% endif %}>Stunden / Menge</option>
+                        <option value="FIXED" {% if item.pricing_type == "FIXED" %}selected{% endif %}>Fixbetrag</option>
+                    </select>
+                </div>
+                <div data-pricing-time>
+                    <label for="manual-item-quantity-{{ item.pk }}" style="display:block; margin-bottom: 6px; font-weight: 600;">Menge / Stunden</label>
+                    <input type="number" id="manual-item-quantity-{{ item.pk }}" name="quantity" min="0.01" step="0.01" class="adea-input" value="{{ item.quantity|floatformat:2 }}" {% if manual_item_locked %}disabled{% endif %}>
+                </div>
+                <div data-pricing-time>
+                    <label for="manual-item-unit-price-{{ item.pk }}" style="display:block; margin-bottom: 6px; font-weight: 600;">Stundensatz (CHF)</label>
+                    <input type="number" id="manual-item-unit-price-{{ item.pk }}" name="unit_price" min="0.01" step="0.01" class="adea-input" value="{{ item.unit_price|floatformat:2 }}" {% if manual_item_locked %}disabled{% endif %}>
+                </div>
+                <div data-pricing-fixed {% if item.pricing_type != "FIXED" %}style="display:none;"{% endif %}>
+                    <label for="manual-item-fixed-amount-{{ item.pk }}" style="display:block; margin-bottom: 6px; font-weight: 600;">Fixbetrag (CHF)</label>
+                    <input type="number" id="manual-item-fixed-amount-{{ item.pk }}" name="fixed_amount" min="0.01" step="0.01" class="adea-input" value="{% if item.pricing_type == 'FIXED' %}{{ item.net_amount|floatformat:2 }}{% else %}0.00{% endif %}" {% if manual_item_locked %}disabled{% endif %}>
+                </div>
+                {% if not manual_item_locked %}
+                <div style="grid-column: 1 / -1; display:flex; gap:10px; flex-wrap:wrap;">
+                    <button type="submit" class="adea-button-primary" style="padding: 10px 18px;">Änderungen speichern</button>
+                    <button
+                        type="submit"
+                        formaction="{% url 'adearechnung:invoice-manual-item-delete' invoice.pk item.pk %}"
+                        formmethod="post"
+                        onclick="return confirm('Manuelle Position wirklich löschen?');"
+                        class="adea-button-primary"
+                        style="background:#ff5f57; box-shadow:none; padding: 10px 18px;"
+                    >
+                        Position löschen
+                    </button>
+                </div>
+                {% endif %}
+            </form>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 
     <div style="margin-bottom: 24px;">
         <h2 style="margin-bottom: 12px; font-size: 1.1em; color: #1d1d1f; border-bottom: 1px solid #e5e5ea; padding-bottom: 8px;">Zusammenfassung</h2>
@@ -234,6 +353,29 @@
         gemäss Art.&nbsp;104 OR sowie eine Mahngebühr von CHF&nbsp;20.– pro Mahnstufe zu erheben.
     </div>
 </section>
+<script>
+    (function() {
+        function applyPricingVisibility(scope) {
+            const select = scope.querySelector('[data-pricing-toggle]');
+            if (!select) return;
+            const mode = select.value;
+            scope.querySelectorAll('[data-pricing-time]').forEach((el) => {
+                el.style.display = mode === 'TIME' ? '' : 'none';
+            });
+            scope.querySelectorAll('[data-pricing-fixed]').forEach((el) => {
+                el.style.display = mode === 'FIXED' ? '' : 'none';
+            });
+        }
+
+        document.querySelectorAll('form').forEach((form) => {
+            if (!form.querySelector('[data-pricing-toggle]')) return;
+            applyPricingVisibility(form);
+            form.querySelector('[data-pricing-toggle]').addEventListener('change', function() {
+                applyPricingVisibility(form);
+            });
+        });
+    })();
+</script>
 {% endblock %}
 
 

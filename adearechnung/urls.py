@@ -22,6 +22,9 @@ urlpatterns = [
     
     # Rechnungsdetail
     path("invoices/<int:pk>/", views.InvoiceDetailView.as_view(), name="invoice-detail"),
+    path("invoices/<int:pk>/manual-items/add/", views.InvoiceManualItemCreateView.as_view(), name="invoice-manual-item-create"),
+    path("invoices/<int:pk>/manual-items/<int:item_pk>/update/", views.InvoiceManualItemUpdateView.as_view(), name="invoice-manual-item-update"),
+    path("invoices/<int:pk>/manual-items/<int:item_pk>/delete/", views.InvoiceManualItemDeleteView.as_view(), name="invoice-manual-item-delete"),
     path("invoices/<int:pk>/update-payment/", views.InvoiceUpdatePaymentView.as_view(), name="invoice-update-payment"),
     path("invoices/<int:pk>/update-discount/", views.InvoiceUpdateDiscountView.as_view(), name="invoice-update-discount"),
     path("invoices/<int:pk>/reset-billing/", views.InvoiceResetBillingView.as_view(), name="invoice-reset-billing"),

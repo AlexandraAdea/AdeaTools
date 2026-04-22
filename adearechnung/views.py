@@ -14,13 +14,145 @@ from django.contrib import messages
 from django.db import transaction
 from adeazeit.mixins import ManagerOrAdminRequiredMixin
 from adeazeit.views import mark_as_invoiced
-from adeacore.models import Invoice, Client
+from adeacore.models import Invoice, Client, InvoiceItem
 from adearechnung.services import InvoiceService
 from adeazeit.models import TimeEntry
 from datetime import datetime, date
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from django.db.models import Sum, Q, Min, Max
 import json
+
+
+MANUAL_ITEM_LOCKED_STATUSES = {"BEZAHLT", "TEILWEISE", "STORNIERT"}
+
+
+def _quantize_amount(value: Decimal) -> Decimal:
+    return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def _parse_decimal_field(raw_value, label, *, allow_zero=True):
+    value_str = (raw_value or "").strip().replace(",", ".")
+    if not value_str:
+        raise ValueError(f"{label} ist erforderlich.")
+
+    try:
+        value = Decimal(value_str)
+    except Exception as exc:
+        raise ValueError(f"{label} ist ungültig.") from exc
+
+    if value < Decimal("0") or (not allow_zero and value <= Decimal("0")):
+        comparator = "größer als 0 sein" if not allow_zero else "nicht negativ sein"
+        raise ValueError(f"{label} muss {comparator}.")
+    return _quantize_amount(value)
+
+
+def _build_invoice_display_rows(invoice):
+    auto_groups = (
+        invoice.items.exclude(item_source="MANUAL")
+        .values(
+            "title",
+            "time_entry__service_type__name",
+            "service_type_code",
+            "unit_price",
+        )
+        .annotate(
+            stunden_total=Sum("quantity"),
+            betrag_total=Sum("net_amount"),
+            datum_von=Min("service_date"),
+            datum_bis=Max("service_date"),
+        )
+        .order_by("time_entry__service_type__name", "title", "service_type_code")
+    )
+
+    rows = []
+    for item in auto_groups:
+        label = (
+            item.get("title")
+            or item.get("time_entry__service_type__name")
+            or item.get("service_type_code")
+            or "Leistung"
+        )
+        if item.get("datum_von") and item.get("datum_bis"):
+            period = f"{item['datum_von'].strftime('%d.%m.%Y')} - {item['datum_bis'].strftime('%d.%m.%Y')}"
+        else:
+            period = "–"
+        rows.append(
+            {
+                "kind": "auto",
+                "label": label,
+                "period": period,
+                "quantity_display": f"{item['stunden_total']:.2f}",
+                "unit_price_display": f"{item['unit_price']:.2f} CHF",
+                "amount_display": f"{item['betrag_total']:.2f} CHF",
+            }
+        )
+
+    manual_items = list(invoice.items.filter(item_source="MANUAL").order_by("service_date", "id"))
+    for item in manual_items:
+        rows.append(
+            {
+                "kind": "manual",
+                "label": item.display_title,
+                "description": item.description,
+                "period": item.service_date.strftime("%d.%m.%Y") if item.service_date else "–",
+                "quantity_display": "–" if item.pricing_type == "FIXED" else f"{item.quantity:.2f}",
+                "unit_price_display": "Fixbetrag" if item.pricing_type == "FIXED" else f"{item.unit_price:.2f} CHF",
+                "amount_display": f"{item.net_amount:.2f} CHF",
+                "item": item,
+            }
+        )
+    return rows, manual_items
+
+
+def _extract_manual_item_data(request, invoice):
+    title = (request.POST.get("title") or "").strip()
+    description = (request.POST.get("description") or "").strip()
+    service_type_code = (request.POST.get("service_type_code") or "").strip()
+    service_date_raw = (request.POST.get("service_date") or "").strip()
+    pricing_type = (request.POST.get("pricing_type") or "TIME").strip().upper()
+
+    if not title:
+        raise ValueError("Titel ist erforderlich.")
+    if not service_date_raw:
+        raise ValueError("Leistungsdatum ist erforderlich.")
+    try:
+        service_date = datetime.strptime(service_date_raw, "%Y-%m-%d").date()
+    except ValueError as exc:
+        raise ValueError("Leistungsdatum ist ungültig.") from exc
+
+    if pricing_type not in {"TIME", "FIXED"}:
+        raise ValueError("Preisart ist ungültig.")
+
+    if pricing_type == "TIME":
+        quantity = _parse_decimal_field(request.POST.get("quantity"), "Menge / Stunden", allow_zero=False)
+        unit_price = _parse_decimal_field(request.POST.get("unit_price"), "Stundensatz", allow_zero=False)
+        net_amount = _quantize_amount(quantity * unit_price)
+    else:
+        fixed_amount = _parse_decimal_field(request.POST.get("fixed_amount"), "Fixbetrag", allow_zero=False)
+        quantity = Decimal("1.00")
+        unit_price = fixed_amount
+        net_amount = fixed_amount
+
+    vat_rate = _quantize_amount(Decimal(str(invoice.vat_rate or Decimal("0.00"))))
+    vat_amount = InvoiceService.calculate_vat(net_amount, vat_rate)
+    gross_amount = _quantize_amount(net_amount + vat_amount)
+
+    return {
+        "title": title,
+        "description": description or title,
+        "service_type_code": service_type_code,
+        "service_date": service_date,
+        "item_source": "MANUAL",
+        "pricing_type": pricing_type,
+        "quantity": quantity,
+        "unit_price": unit_price,
+        "net_amount": net_amount,
+        "vat_rate": vat_rate,
+        "vat_amount": vat_amount,
+        "gross_amount": gross_amount,
+        "employee_name": "",
+        "time_entry": None,
+    }
 
 
 class ClientTimeSummaryView(ManagerOrAdminRequiredMixin, TemplateView):
@@ -325,26 +457,14 @@ class InvoiceDetailView(ManagerOrAdminRequiredMixin, DetailView):
         invoice = self.object
         company_data = CompanyData.get_instance()
 
-        grouped_items = (
-            invoice.items.values(
-                "time_entry__service_type__name",
-                "service_type_code",
-                "unit_price",
-            )
-            .annotate(
-                stunden_total=Sum("quantity"),
-                betrag_total=Sum("net_amount"),
-                datum_von=Min("service_date"),
-                datum_bis=Max("service_date"),
-            )
-            .order_by("time_entry__service_type__name")
-        )
+        invoice_rows, manual_items = _build_invoice_display_rows(invoice)
 
-        context["grouped_items"] = grouped_items
-        base_net_amount = invoice.items.aggregate(total=Sum("net_amount"))["total"] or Decimal("0.00")
-        context["base_net_amount"] = base_net_amount
+        context["invoice_rows"] = invoice_rows
+        context["manual_items"] = manual_items
+        context["base_net_amount"] = invoice.base_net_amount
         context["company_data"] = company_data
         context["warn_qr_iban_missing"] = not bool((company_data.iban or "").strip())
+        context["manual_item_locked"] = invoice.payment_status in MANUAL_ITEM_LOCKED_STATUSES
         return context
 
 
@@ -495,7 +615,7 @@ class InvoiceUpdateDiscountView(ManagerOrAdminRequiredMixin, View):
             messages.error(request, "Rabatt darf nicht negativ sein.")
             return redirect("adearechnung:invoice-detail", pk=invoice.pk)
 
-        base_net_amount = invoice.items.aggregate(total=Sum("net_amount"))["total"] or Decimal("0.00")
+        base_net_amount = invoice.base_net_amount
         if discount_amount > base_net_amount:
             messages.error(
                 request,
@@ -511,5 +631,76 @@ class InvoiceUpdateDiscountView(ManagerOrAdminRequiredMixin, View):
             request,
             f"Rabatt gespeichert. Neuer Gesamtbetrag: {invoice.amount:.2f} CHF.",
         )
+        return redirect("adearechnung:invoice-detail", pk=invoice.pk)
+
+
+class InvoiceManualItemCreateView(ManagerOrAdminRequiredMixin, View):
+    """Fügt einer bestehenden Rechnung eine manuelle Position hinzu."""
+
+    def post(self, request, pk):
+        invoice = get_object_or_404(Invoice.objects.prefetch_related("items"), pk=pk)
+        if invoice.payment_status in MANUAL_ITEM_LOCKED_STATUSES:
+            messages.error(request, "Bei bezahlten oder stornierten Rechnungen können keine manuellen Positionen geändert werden.")
+            return redirect("adearechnung:invoice-detail", pk=invoice.pk)
+
+        try:
+            item_data = _extract_manual_item_data(request, invoice)
+        except ValueError as exc:
+            messages.error(request, str(exc))
+            return redirect("adearechnung:invoice-detail", pk=invoice.pk)
+
+        with transaction.atomic():
+            InvoiceItem.objects.create(invoice=invoice, **item_data)
+            invoice.recalculate_amounts_from_items()
+            invoice.save()
+
+        messages.success(request, "Manuelle Position wurde hinzugefügt.")
+        return redirect("adearechnung:invoice-detail", pk=invoice.pk)
+
+
+class InvoiceManualItemUpdateView(ManagerOrAdminRequiredMixin, View):
+    """Bearbeitet eine manuelle Rechnungsposition."""
+
+    def post(self, request, pk, item_pk):
+        invoice = get_object_or_404(Invoice.objects.prefetch_related("items"), pk=pk)
+        item = get_object_or_404(InvoiceItem, pk=item_pk, invoice=invoice, item_source="MANUAL")
+        if invoice.payment_status in MANUAL_ITEM_LOCKED_STATUSES:
+            messages.error(request, "Bei bezahlten oder stornierten Rechnungen können keine manuellen Positionen geändert werden.")
+            return redirect("adearechnung:invoice-detail", pk=invoice.pk)
+
+        try:
+            item_data = _extract_manual_item_data(request, invoice)
+        except ValueError as exc:
+            messages.error(request, str(exc))
+            return redirect("adearechnung:invoice-detail", pk=invoice.pk)
+
+        for field, value in item_data.items():
+            setattr(item, field, value)
+
+        with transaction.atomic():
+            item.save()
+            invoice.recalculate_amounts_from_items()
+            invoice.save()
+
+        messages.success(request, "Manuelle Position wurde aktualisiert.")
+        return redirect("adearechnung:invoice-detail", pk=invoice.pk)
+
+
+class InvoiceManualItemDeleteView(ManagerOrAdminRequiredMixin, View):
+    """Löscht eine manuelle Rechnungsposition."""
+
+    def post(self, request, pk, item_pk):
+        invoice = get_object_or_404(Invoice.objects.prefetch_related("items"), pk=pk)
+        item = get_object_or_404(InvoiceItem, pk=item_pk, invoice=invoice, item_source="MANUAL")
+        if invoice.payment_status in MANUAL_ITEM_LOCKED_STATUSES:
+            messages.error(request, "Bei bezahlten oder stornierten Rechnungen können keine manuellen Positionen geändert werden.")
+            return redirect("adearechnung:invoice-detail", pk=invoice.pk)
+
+        with transaction.atomic():
+            item.delete()
+            invoice.recalculate_amounts_from_items()
+            invoice.save()
+
+        messages.success(request, "Manuelle Position wurde gelöscht.")
         return redirect("adearechnung:invoice-detail", pk=invoice.pk)
 

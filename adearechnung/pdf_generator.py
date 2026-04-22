@@ -278,7 +278,9 @@ class InvoicePDFGenerator:
         data = [['Leistung', 'Zeitraum', 'Stunden', 'Stundensatz', 'Betrag']]
 
         grouped_items = (
-            invoice.items.values(
+            invoice.items.exclude(item_source="MANUAL")
+            .values(
+                "title",
                 "time_entry__service_type__name",
                 "service_type_code",
                 "unit_price",
@@ -289,11 +291,16 @@ class InvoicePDFGenerator:
                 datum_von=Min("service_date"),
                 datum_bis=Max("service_date"),
             )
-            .order_by("time_entry__service_type__name")
+            .order_by("time_entry__service_type__name", "title", "service_type_code")
         )
 
         for item in grouped_items:
-            leistung = item.get("time_entry__service_type__name") or item.get("service_type_code") or "Leistung"
+            leistung = (
+                item.get("title")
+                or item.get("time_entry__service_type__name")
+                or item.get("service_type_code")
+                or "Leistung"
+            )
 
             if item.get("datum_von") and item.get("datum_bis"):
                 zeitraum = f"{item['datum_von'].strftime('%d.%m.%Y')} - {item['datum_bis'].strftime('%d.%m.%Y')}"
@@ -306,6 +313,16 @@ class InvoicePDFGenerator:
                 f"{item['stunden_total']:.2f}",
                 f"{item['unit_price']:.2f} CHF",
                 f"{item['betrag_total']:.2f} CHF",
+            ])
+
+        manual_items = invoice.items.filter(item_source="MANUAL").order_by("service_date", "id")
+        for item in manual_items:
+            data.append([
+                item.display_title,
+                item.service_date.strftime("%d.%m.%Y") if item.service_date else "–",
+                "–" if item.pricing_type == "FIXED" else f"{item.quantity:.2f}",
+                "Fixbetrag" if item.pricing_type == "FIXED" else f"{item.unit_price:.2f} CHF",
+                f"{item.net_amount:.2f} CHF",
             ])
         
         table = Table(data, colWidths=[70*mm, 45*mm, 18*mm, 25*mm, 26*mm])

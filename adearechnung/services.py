@@ -102,10 +102,13 @@ class InvoiceService:
             
             invoice_items_data.append({
                 'time_entry': entry,
+                'title': entry.service_type.name if entry.service_type else entry.kommentar or "Leistung",
                 'description': entry.kommentar or f"{entry.service_type.code} - {entry.service_type.name}",
                 'service_type_code': entry.service_type.code,
                 'employee_name': entry.mitarbeiter.name if entry.mitarbeiter else '',
                 'service_date': entry.datum,
+                'item_source': 'AUTO',
+                'pricing_type': 'TIME',
                 'quantity': entry.dauer,
                 'unit_price': entry.rate or Decimal('0.00'),
                 'net_amount': net_amount,
@@ -151,10 +154,13 @@ class InvoiceService:
             InvoiceItem.objects.create(
                 invoice=invoice,
                 time_entry=item_data['time_entry'],
+                title=item_data['title'],
                 description=item_data['description'],
                 service_type_code=item_data['service_type_code'],
                 employee_name=item_data['employee_name'],
                 service_date=item_data['service_date'],
+                item_source=item_data['item_source'],
+                pricing_type=item_data['pricing_type'],
                 quantity=item_data['quantity'],
                 unit_price=item_data['unit_price'],
                 net_amount=item_data['net_amount'],

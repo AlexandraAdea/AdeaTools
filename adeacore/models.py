@@ -1463,6 +1463,13 @@ class Invoice(models.Model):
         from decimal import Decimal
         return self.amount - self.paid_amount
 
+    @property
+    def base_net_amount(self):
+        """Nettobetrag aller Positionen vor Rechnungsrabatt."""
+        from decimal import Decimal
+
+        return self.items.aggregate(total=Sum("net_amount"))["total"] or Decimal("0.00")
+
 
 class Document(models.Model):
     """
@@ -1779,6 +1786,16 @@ class InvoiceItem(models.Model):
     """
     Rechnungsposition (Zeiteintrag → Rechnungsposition).
     """
+    ITEM_SOURCE_CHOICES = [
+        ("AUTO", "Aus Zeiterfassung"),
+        ("MANUAL", "Manuell"),
+    ]
+
+    PRICING_TYPE_CHOICES = [
+        ("TIME", "Stunden / Menge"),
+        ("FIXED", "Fixbetrag"),
+    ]
+
     invoice = models.ForeignKey(
         Invoice,
         on_delete=models.CASCADE,
@@ -1796,6 +1813,13 @@ class InvoiceItem(models.Model):
     )
     
     # Leistungsbeschreibung
+    title = models.CharField(
+        "Titel",
+        max_length=255,
+        blank=True,
+        default="",
+        help_text="Kurzer Titel der Rechnungsposition",
+    )
     description = models.TextField(
         "Beschreibung",
         help_text="Leistungsbeschreibung (aus Kommentar)"
@@ -1803,16 +1827,34 @@ class InvoiceItem(models.Model):
     service_type_code = models.CharField(
         "Service-Typ",
         max_length=50,
+        blank=True,
+        default="",
         help_text="Service-Typ Code (z.B. STEU, BUCH)"
     )
     employee_name = models.CharField(
         "Mitarbeiterin",
         max_length=255,
+        blank=True,
+        default="",
         help_text="Name der Mitarbeiterin"
     )
     service_date = models.DateField(
         "Leistungsdatum",
         help_text="Datum der Leistungserbringung"
+    )
+    item_source = models.CharField(
+        "Positionsquelle",
+        max_length=10,
+        choices=ITEM_SOURCE_CHOICES,
+        default="AUTO",
+        help_text="Wurde die Position automatisch aus der Zeiterfassung erstellt oder manuell erfasst?",
+    )
+    pricing_type = models.CharField(
+        "Preisart",
+        max_length=10,
+        choices=PRICING_TYPE_CHOICES,
+        default="TIME",
+        help_text="Zeitbasierte Position oder fixer Betrag",
     )
     
     # Preise
@@ -1866,4 +1908,12 @@ class InvoiceItem(models.Model):
     
     def __str__(self):
         return f"{self.service_type_code} - {self.service_date} ({self.gross_amount} CHF)"
+
+    @property
+    def is_manual(self):
+        return self.item_source == "MANUAL"
+
+    @property
+    def display_title(self):
+        return self.title or self.service_type_code or self.description
 
