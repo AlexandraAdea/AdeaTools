@@ -361,9 +361,15 @@
             const mode = select.value;
             scope.querySelectorAll('[data-pricing-time]').forEach((el) => {
                 el.style.display = mode === 'TIME' ? '' : 'none';
+                el.querySelectorAll('input, select, textarea').forEach((field) => {
+                    field.disabled = mode !== 'TIME';
+                });
             });
             scope.querySelectorAll('[data-pricing-fixed]').forEach((el) => {
                 el.style.display = mode === 'FIXED' ? '' : 'none';
+                el.querySelectorAll('input, select, textarea').forEach((field) => {
+                    field.disabled = mode !== 'FIXED';
+                });
             });
         }
 
