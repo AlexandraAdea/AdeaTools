@@ -6,7 +6,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm, cm
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, PageBreak
 from reportlab.platypus.flowables import HRFlowable
 from decimal import Decimal
 from django.http import HttpResponse
@@ -54,13 +54,17 @@ class InvoicePDFGenerator:
             textColor=colors.HexColor('#1d1d1f'),
         )
     
-    def generate_pdf(self, invoice):
+    def generate_pdf(self, invoice, include_statement=False):
         """
         Generiert PDF für eine Rechnung.
-        
+
         Args:
             invoice: Invoice-Objekt
-        
+            include_statement: Wenn True, wird zusätzlich ein detaillierter
+                Leistungsnachweis (eine Zeile pro Zeiteintrag/Position) als
+                weitere Seite angehängt. Default False - bestehendes
+                PDF-Verhalten bleibt unverändert.
+
         Returns:
             HttpResponse mit PDF
         """
@@ -103,14 +107,20 @@ class InvoicePDFGenerator:
         # 6. Schweizer QR-Zahlteil (A6-ähnlicher Abschnitt unten)
         if company_data.iban:
             story.extend(self._create_qr_payment_slip(invoice, company_data))
-        
+
+        # 7. Optionaler Leistungsnachweis (zusätzliche Seite, manuell wählbar)
+        if include_statement:
+            story.append(PageBreak())
+            story.extend(self._create_leistungsnachweis(invoice))
+
         # PDF erstellen
         doc.build(story, onFirstPage=self._draw_footer_notice, onLaterPages=self._draw_footer_notice)
-        
+
         buffer.seek(0)
         response = HttpResponse(buffer.read(), content_type='application/pdf')
-        response['Content-Disposition'] = f'inline; filename="Rechnung_{invoice.invoice_number}.pdf"'
-        
+        suffix = "_Leistungsnachweis" if include_statement else ""
+        response['Content-Disposition'] = f'inline; filename="Rechnung_{invoice.invoice_number}{suffix}.pdf"'
+
         return response
     
     def _create_header(self, company_data, invoice):
@@ -346,6 +356,78 @@ class InvoicePDFGenerator:
         elements.append(table)
         return elements
     
+    def _create_leistungsnachweis(self, invoice):
+        """
+        Erstellt einen detaillierten Leistungsnachweis: eine Zeile pro
+        einzelner Rechnungsposition (Zeiteintrag oder manuelle Position),
+        chronologisch sortiert - im Gegensatz zu _create_invoice_items, wo
+        die Positionen pro Leistungstyp gruppiert/summiert werden.
+        """
+        elements = []
+        elements.append(Paragraph("<b>Leistungsnachweis</b>", self.title_style))
+        elements.append(Spacer(1, 2*mm))
+        elements.append(Paragraph(
+            f"Rechnung {invoice.invoice_number} - {invoice.client.name}",
+            self.normal_style,
+        ))
+        elements.append(Spacer(1, 5*mm))
+
+        data = [['Datum', 'Mitarbeiterin', 'Leistung', 'Kommentar', 'Stunden', 'Ansatz', 'Betrag']]
+
+        all_items = invoice.items.all().order_by("service_date", "id")
+        for item in all_items:
+            if item.pricing_type == "FIXED":
+                stunden_display = "–"
+                ansatz_display = "Fixbetrag"
+            else:
+                stunden_display = f"{item.quantity:.2f}"
+                ansatz_display = f"{item.unit_price:.2f} CHF"
+
+            data.append([
+                item.service_date.strftime("%d.%m.%Y") if item.service_date else "–",
+                item.employee_name or "–",
+                item.display_title,
+                item.description or "",
+                stunden_display,
+                ansatz_display,
+                f"{item.net_amount:.2f} CHF",
+            ])
+
+        table = Table(data, colWidths=[20*mm, 26*mm, 28*mm, 47*mm, 14*mm, 20*mm, 22*mm])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f5f5f7')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#1d1d1f')),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 8),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (4, 0), (6, -1), 'RIGHT'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('TEXTCOLOR', (0, 1), (-1, -1), colors.HexColor('#1d1d1f')),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e5e5ea')),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#fafafa')]),
+        ]))
+        elements.append(table)
+        elements.append(Spacer(1, 5*mm))
+
+        base_net_amount = invoice.base_net_amount
+        summary_data = [['Total Leistungen (netto):', f"{base_net_amount:.2f} CHF"]]
+        if invoice.discount_amount and invoice.discount_amount > 0:
+            summary_data.append(['Rabatt (siehe Rechnung):', f"-{invoice.discount_amount:.2f} CHF"])
+            summary_data.append(['Nettobetrag gemäss Rechnung:', f"{invoice.net_amount:.2f} CHF"])
+
+        summary_table = Table(summary_data, colWidths=[60*mm, 30*mm])
+        summary_table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#1d1d1f')),
+        ]))
+        elements.append(summary_table)
+
+        return elements
+
     def _create_summary(self, invoice):
         """Erstellt Zusammenfassung mit Beträgen."""
         elements = []

@@ -484,11 +484,17 @@ class InvoicePDFView(ManagerOrAdminRequiredMixin, DetailView):
     def get(self, request, *args, **kwargs):
         invoice = self.get_object()
         from adearechnung.pdf_generator import InvoicePDFGenerator
-        
+
+        # Manuell wählbarer Leistungsnachweis als zusätzliche PDF-Seite
+        # (?leistungsnachweis=1). Default-Verhalten (ohne Parameter) bleibt
+        # unverändert.
+        include_statement = request.GET.get("leistungsnachweis") == "1"
+
         pdf_generator = InvoicePDFGenerator()
-        pdf_response = pdf_generator.generate_pdf(invoice)
-        pdf_response["Content-Disposition"] = f'inline; filename="RE-{invoice.invoice_number}.pdf"'
-        
+        pdf_response = pdf_generator.generate_pdf(invoice, include_statement=include_statement)
+        suffix = "_Leistungsnachweis" if include_statement else ""
+        pdf_response["Content-Disposition"] = f'inline; filename="RE-{invoice.invoice_number}{suffix}.pdf"'
+
         return pdf_response
 
 

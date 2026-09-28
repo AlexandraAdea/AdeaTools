@@ -6,6 +6,7 @@ from django.test import TestCase
 from adeacore.models import Client, CompanyData, Invoice, InvoiceItem, AkontoPlan
 from adeazeit.models import EmployeeInternal, ServiceType, TimeEntry
 from adearechnung.services import InvoiceService
+from adearechnung.pdf_generator import InvoicePDFGenerator
 
 
 class InvoiceFromTimeEntriesRegressionTest(TestCase):
@@ -228,3 +229,87 @@ class AkontoDeductionTest(TestCase):
 
         with self.assertRaises(ValueError):
             InvoiceService.add_akonto_deduction(self.final_invoice, normal_invoice)
+
+
+class InvoicePDFLeistungsnachweisTest(TestCase):
+    """
+    Tests für den optionalen, manuell wählbaren Leistungsnachweis im
+    Rechnungs-PDF (zusätzliche Seite, Default weiterhin ohne).
+    """
+
+    def setUp(self):
+        self.client_obj = Client.objects.create(name="PDF Client", client_type="FIRMA")
+        self.employee = EmployeeInternal.objects.create(
+            code="EMP-PDF",
+            name="PDF Mitarbeiterin",
+            function_title="Consultant",
+            employment_percent=Decimal('100.00'),
+            weekly_soll_hours=Decimal('42.00'),
+            weekly_working_days=Decimal('5.0'),
+            work_canton="ZH",
+            eintrittsdatum=date(2020, 1, 1),
+            aktiv=True,
+        )
+        self.service_type = ServiceType.objects.create(
+            code="BUCH",
+            name="Buchhaltung",
+            standard_rate=Decimal('150.00'),
+            billable=True,
+        )
+        company_data = CompanyData.get_instance()
+        company_data.mwst_pflichtig = True
+        company_data.mwst_satz = Decimal('8.10')
+        company_data.save()
+
+        self.time_entry = TimeEntry.objects.create(
+            mitarbeiter=self.employee,
+            client=self.client_obj,
+            datum=date(2026, 1, 10),
+            dauer=Decimal('5.00'),
+            service_type=self.service_type,
+            rate=Decimal('150.00'),
+            betrag=Decimal('750.00'),
+            billable=True,
+        )
+        self.invoice = InvoiceService.create_invoice_from_time_entries(
+            time_entry_ids=[self.time_entry.id],
+            client=self.client_obj,
+        )
+
+    def test_pdf_without_statement_unchanged(self):
+        """Default-Aufruf (kein include_statement) erzeugt weiterhin ein gültiges PDF."""
+        generator = InvoicePDFGenerator()
+        response = generator.generate_pdf(self.invoice)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertTrue(response.content.startswith(b"%PDF"))
+
+    def test_pdf_with_statement_generates_valid_pdf(self):
+        """Mit include_statement=True wird zusätzlich ein gültiges, längeres PDF erzeugt."""
+        generator = InvoicePDFGenerator()
+        response_plain = generator.generate_pdf(self.invoice, include_statement=False)
+        response_with_statement = generator.generate_pdf(self.invoice, include_statement=True)
+
+        self.assertTrue(response_with_statement.content.startswith(b"%PDF"))
+        # Die Version mit Leistungsnachweis hat eine zusätzliche Seite und ist daher grösser.
+        self.assertGreater(len(response_with_statement.content), len(response_plain.content))
+
+    def test_pdf_view_query_param_toggles_statement(self):
+        """Die View reicht ?leistungsnachweis=1 korrekt an den Generator weiter."""
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        user = User.objects.create_user(username="pdftester", password="test12345")
+        user.is_staff = True
+        user.is_superuser = True
+        user.save()
+        self.client.force_login(user)
+
+        from django.urls import reverse
+        url = reverse("adearechnung:invoice-pdf", args=[self.invoice.pk])
+        response_plain = self.client.get(url)
+        response_with_statement = self.client.get(url, {"leistungsnachweis": "1"})
+
+        self.assertEqual(response_plain.status_code, 200)
+        self.assertEqual(response_with_statement.status_code, 200)
+        self.assertIn("Leistungsnachweis", response_with_statement["Content-Disposition"])
+        self.assertNotIn("Leistungsnachweis", response_plain["Content-Disposition"])
