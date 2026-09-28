@@ -53,6 +53,15 @@ class InvoicePDFGenerator:
             fontSize=10,
             textColor=colors.HexColor('#1d1d1f'),
         )
+
+        # Kleiner Text für Tabellenzellen, die umbrechen müssen (z.B. Leistungsnachweis)
+        self.table_cell_style = ParagraphStyle(
+            'CustomTableCell',
+            parent=self.styles['Normal'],
+            fontSize=8,
+            leading=10,
+            textColor=colors.HexColor('#1d1d1f'),
+        )
     
     def generate_pdf(self, invoice, include_statement=False):
         """
@@ -385,15 +394,18 @@ class InvoicePDFGenerator:
 
             data.append([
                 item.service_date.strftime("%d.%m.%Y") if item.service_date else "–",
-                item.employee_name or "–",
-                item.display_title,
-                item.description or "",
+                Paragraph(item.employee_name or "–", self.table_cell_style),
+                Paragraph(item.display_title, self.table_cell_style),
+                Paragraph(item.description or "", self.table_cell_style),
                 stunden_display,
                 ansatz_display,
                 f"{item.net_amount:.2f} CHF",
             ])
 
-        table = Table(data, colWidths=[20*mm, 26*mm, 28*mm, 47*mm, 14*mm, 20*mm, 22*mm])
+        # Spaltenbreiten summieren auf max. die nutzbare Seitenbreite (A4 minus
+        # linker/rechter Rand von je 20mm = 170mm), damit die Tabelle nicht
+        # über den Rand hinausläuft.
+        table = Table(data, colWidths=[18*mm, 22*mm, 26*mm, 41*mm, 15*mm, 18*mm, 20*mm])
         table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f5f5f7')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#1d1d1f')),
@@ -407,6 +419,10 @@ class InvoicePDFGenerator:
             ('TEXTCOLOR', (0, 1), (-1, -1), colors.HexColor('#1d1d1f')),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e5e5ea')),
             ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#fafafa')]),
+            ('LEFTPADDING', (0, 0), (-1, -1), 4),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
         ]))
         elements.append(table)
         elements.append(Spacer(1, 5*mm))
