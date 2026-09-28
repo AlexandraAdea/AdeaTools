@@ -18,6 +18,9 @@
         </div>
         <div>
             <a href="{% url 'adearechnung:invoice-pdf' invoice.pk %}" target="_blank" rel="noopener noreferrer" class="adea-button-primary" style="text-decoration: none; padding: 10px 20px;">PDF öffnen</a>
+            {% if invoice.invoice_type != 'AKONTO' %}
+            <a href="{% url 'adearechnung:invoice-pdf' invoice.pk %}?leistungsnachweis=1" target="_blank" rel="noopener noreferrer" class="adea-button-secondary" style="text-decoration: none; padding: 10px 20px; margin-left: 8px;">PDF mit Leistungsnachweis</a>
+            {% endif %}
             {% if invoice.payment_status != 'BEZAHLT' and invoice.payment_status != 'TEILWEISE' %}
             <form method="post" action="{% url 'adearechnung:invoice-reset-billing' invoice.pk %}" style="display:inline-block; margin-left: 10px;" onsubmit="return confirm('Verrechnung wirklich zurücknehmen? Die Rechnung wird gelöscht und die Zeiteinträge werden wieder offen.');">
                 {% csrf_token %}
