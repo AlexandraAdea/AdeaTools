@@ -1303,6 +1303,66 @@ class Event(models.Model):
         return self.start_date < timezone.now() and not self.end_date
 
 
+class AkontoPlan(models.Model):
+    """
+    Akonto-Plan pro Mandant: regelmässige Akontozahlung mit Fixbetrag.
+    Akonto-Rechnungen werden manuell per Klick aus einem aktiven Plan erzeugt
+    (siehe InvoiceService.create_akonto_invoice). Die Verrechnung mit der
+    Schlussrechnung erfolgt über InvoiceService.add_akonto_deduction.
+    """
+    INTERVAL_CHOICES = [
+        ("MONATLICH", "Monatlich"),
+        ("QUARTALSWEISE", "Quartalsweise"),
+        ("JAEHRLICH", "Jährlich"),
+    ]
+
+    client = models.ForeignKey(
+        Client,
+        on_delete=models.CASCADE,
+        related_name="akonto_plans",
+        verbose_name="Mandant",
+    )
+    amount = models.DecimalField(
+        "Akonto-Betrag (CHF)",
+        max_digits=10,
+        decimal_places=2,
+        help_text="Fixbetrag pro Periode, netto vor MWST.",
+    )
+    interval = models.CharField(
+        "Intervall",
+        max_length=20,
+        choices=INTERVAL_CHOICES,
+        default="QUARTALSWEISE",
+    )
+    start_date = models.DateField("Start")
+    end_date = models.DateField(
+        "Ende",
+        null=True,
+        blank=True,
+        help_text="Optional: Enddatum des Plans.",
+    )
+    active = models.BooleanField("Aktiv", default=True)
+    notes = models.TextField("Notizen", blank=True)
+    created_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="akonto_plans",
+        verbose_name="Erstellt von",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["client__name", "-active", "-created_at"]
+        verbose_name = "Akonto-Plan"
+        verbose_name_plural = "Akonto-Pläne"
+
+    def __str__(self):
+        return f"{self.client.name} – {self.amount} CHF ({self.get_interval_display()})"
+
+
 class Invoice(models.Model):
     """
     Rechnungen für Mandanten.
@@ -1314,12 +1374,33 @@ class Invoice(models.Model):
         ("UEBERFAELLIG", "Überfällig"),
         ("STORNIERT", "Storniert"),
     ]
-    
+
+    INVOICE_TYPE_CHOICES = [
+        ("NORMAL", "Normal"),
+        ("AKONTO", "Akonto"),
+    ]
+
     client = models.ForeignKey(
         Client,
         on_delete=models.CASCADE,
         related_name="invoices",
         verbose_name="Mandant",
+    )
+    invoice_type = models.CharField(
+        "Rechnungstyp",
+        max_length=10,
+        choices=INVOICE_TYPE_CHOICES,
+        default="NORMAL",
+        help_text="Akontorechnung oder normale Rechnung (inkl. Schlussrechnung).",
+    )
+    akonto_plan = models.ForeignKey(
+        "AkontoPlan",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="invoices",
+        verbose_name="Akonto-Plan",
+        help_text="Nur gesetzt bei Akontorechnungen: der zugrunde liegende Akonto-Plan.",
     )
     invoice_number = models.CharField(
         "Rechnungsnummer",

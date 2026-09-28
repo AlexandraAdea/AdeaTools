@@ -302,6 +302,28 @@
         </form>
     </div>
 
+    {% if invoice.invoice_type != 'AKONTO' and open_akonto_invoices %}
+    <div style="margin-bottom: 24px;">
+        <h2 style="margin-bottom: 12px; font-size: 1.1em; color: #1d1d1f; border-bottom: 1px solid #e5e5ea; padding-bottom: 8px;">Akonto-Abzug (Schlussrechnung)</h2>
+        <form method="post" action="{% url 'adearechnung:invoice-akonto-deduction' invoice.pk %}" style="padding: 16px; background: #fafafa; border-radius: 8px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; align-items: end;">
+            {% csrf_token %}
+            <div>
+                <label for="akonto_invoice_id" style="display:block; margin-bottom: 6px; font-weight: 600;">Bereits gestellte Akonto-Rechnung</label>
+                <select id="akonto_invoice_id" name="akonto_invoice_id" class="adea-input" required>
+                    <option value="">– auswählen –</option>
+                    {% for akonto_invoice in open_akonto_invoices %}
+                    <option value="{{ akonto_invoice.pk }}">{{ akonto_invoice.invoice_number }} – {{ akonto_invoice.invoice_date|date:"d.m.Y" }} – {{ akonto_invoice.net_amount|floatformat:2 }} CHF netto</option>
+                    {% endfor %}
+                </select>
+                <small style="color:#6e6e73;">Zieht den Nettobetrag der ausgewählten Akonto-Rechnung als negative Position ab.</small>
+            </div>
+            <div>
+                <button type="submit" class="adea-button-primary" style="padding: 10px 18px;">Akonto-Abzug hinzufügen</button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
     <div style="margin-bottom: 24px;">
         <h2 style="margin-bottom: 12px; font-size: 1.1em; color: #1d1d1f; border-bottom: 1px solid #e5e5ea; padding-bottom: 8px;">Zahlungsstatus bearbeiten</h2>
         <form method="post" action="{% url 'adearechnung:invoice-update-payment' invoice.pk %}" style="padding: 16px; background: #fafafa; border-radius: 8px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; align-items: end;">

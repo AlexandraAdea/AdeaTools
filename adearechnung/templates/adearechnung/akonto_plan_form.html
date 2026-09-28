@@ -1,0 +1,64 @@
+{% extends 'admin_base_no_sidebar.html' %}
+
+{% block title %}{% if object %}Akonto-Plan bearbeiten{% else %}Neuer Akonto-Plan{% endif %} – AdeaRechnung{% endblock %}
+
+{% block breadcrumbs %}
+<a href="{% url 'admin-dashboard' %}">Dashboard</a>
+<a href="{% url 'adearechnung:client-summary' %}">AdeaRechnung</a>
+<a href="{% url 'adearechnung:akonto-plan-list' %}">Akonto-Pläne</a>
+{% endblock %}
+
+{% block content %}
+<section class="content-card">
+    <h1 style="margin-bottom: 8px;">{% if object %}Akonto-Plan bearbeiten{% else %}Neuer Akonto-Plan{% endif %}</h1>
+    <p class="lead">Fixbetrag pro Periode für einen Mandanten. Die Akonto-Rechnung wird danach manuell per Klick erstellt.</p>
+
+    {% if form.non_field_errors %}
+    <div style="background: #f8d7da; color: #721c24; padding: 12px 16px; border-radius: 8px; margin-top: 16px;">
+        {% for error in form.non_field_errors %}
+        <div>{{ error }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" style="margin-top: 24px; padding: 16px; background: #fafafa; border-radius: 8px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+        {% csrf_token %}
+        <div>
+            <label for="{{ form.client.id_for_label }}" style="display:block; margin-bottom: 6px; font-weight: 600;">Mandant</label>
+            {{ form.client }}
+            {% for error in form.client.errors %}<small style="color:#c0392b;">{{ error }}</small>{% endfor %}
+        </div>
+        <div>
+            <label for="{{ form.amount.id_for_label }}" style="display:block; margin-bottom: 6px; font-weight: 600;">Akonto-Betrag (CHF, netto)</label>
+            {{ form.amount }}
+            {% for error in form.amount.errors %}<small style="color:#c0392b;">{{ error }}</small>{% endfor %}
+        </div>
+        <div>
+            <label for="{{ form.interval.id_for_label }}" style="display:block; margin-bottom: 6px; font-weight: 600;">Intervall</label>
+            {{ form.interval }}
+        </div>
+        <div>
+            <label for="{{ form.start_date.id_for_label }}" style="display:block; margin-bottom: 6px; font-weight: 600;">Start</label>
+            {{ form.start_date }}
+            {% for error in form.start_date.errors %}<small style="color:#c0392b;">{{ error }}</small>{% endfor %}
+        </div>
+        <div>
+            <label for="{{ form.end_date.id_for_label }}" style="display:block; margin-bottom: 6px; font-weight: 600;">Ende (optional)</label>
+            {{ form.end_date }}
+            {% for error in form.end_date.errors %}<small style="color:#c0392b;">{{ error }}</small>{% endfor %}
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-top: 24px;">
+            {{ form.active }}
+            <label for="{{ form.active.id_for_label }}" style="font-weight: 600;">Aktiv</label>
+        </div>
+        <div style="grid-column: 1 / -1;">
+            <label for="{{ form.notes.id_for_label }}" style="display:block; margin-bottom: 6px; font-weight: 600;">Notizen</label>
+            {{ form.notes }}
+        </div>
+        <div style="grid-column: 1 / -1; display: flex; gap: 12px;">
+            <button type="submit" class="adea-button-primary" style="padding: 10px 18px;">Speichern</button>
+            <a href="{% url 'adearechnung:akonto-plan-list' %}" class="adea-button-secondary" style="text-decoration: none; padding: 10px 18px;">Abbrechen</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

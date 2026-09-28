@@ -10,7 +10,10 @@
 
 {% block content %}
 <section class="content-card">
-    <h1 style="margin-bottom: 8px;">Rechnungen</h1>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1 style="margin-bottom: 8px;">Rechnungen</h1>
+        <a href="{% url 'adearechnung:akonto-plan-list' %}" class="adea-button-secondary" style="text-decoration: none; padding: 8px 16px;">Akonto-Pläne</a>
+    </div>
     <p class="lead">Übersicht aller erstellten Rechnungen.</p>
 
     <div style="margin-top: 24px;">
