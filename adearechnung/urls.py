@@ -32,6 +32,15 @@ urlpatterns = [
     
     # PDF-Export
     path("invoices/<int:pk>/pdf/", views.InvoicePDFView.as_view(), name="invoice-pdf"),
+
+    # Akonto-Abzug auf bestehender Rechnung (z.B. Schlussrechnung)
+    path("invoices/<int:pk>/akonto-abzug/", views.InvoiceAddAkontoDeductionView.as_view(), name="invoice-akonto-deduction"),
+
+    # Akonto-Pläne
+    path("akonto/", views.AkontoPlanListView.as_view(), name="akonto-plan-list"),
+    path("akonto/neu/", views.AkontoPlanCreateView.as_view(), name="akonto-plan-create"),
+    path("akonto/<int:pk>/bearbeiten/", views.AkontoPlanUpdateView.as_view(), name="akonto-plan-update"),
+    path("akonto/<int:pk>/rechnung-erstellen/", views.GenerateAkontoInvoiceView.as_view(), name="akonto-generate-invoice"),
 ]
 
 

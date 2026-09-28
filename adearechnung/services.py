@@ -172,8 +172,141 @@ class InvoiceService:
             # Markiere Zeiteintrag als verrechnet
             item_data['time_entry'].verrechnet = True
             item_data['time_entry'].save(update_fields=['verrechnet'])
-        
+
         return invoice
+
+    @staticmethod
+    @transaction.atomic
+    def create_akonto_invoice(
+        akonto_plan,
+        invoice_date: date = None,
+        created_by=None,
+        custom_invoice_number: str = "",
+    ) -> Invoice:
+        """
+        Erstellt eine Akonto-Rechnung (Fixbetrag) aus einem AkontoPlan.
+
+        Nutzt dieselbe Rechnungsnummern-Generierung und dieselbe MWST-Logik
+        (basierend auf CompanyData) wie create_invoice_from_time_entries.
+        Rührt an keiner bestehenden Rechnung oder Zeiterfassung.
+
+        Args:
+            akonto_plan: AkontoPlan, aus dem die Akonto-Rechnung erstellt wird
+            invoice_date: Rechnungsdatum (default: heute)
+            created_by: User, der die Rechnung erstellt
+            custom_invoice_number: Optional manuell gesetzte Rechnungsnummer
+
+        Returns:
+            Erstellte Invoice (invoice_type="AKONTO")
+        """
+        if invoice_date is None:
+            invoice_date = date.today()
+
+        company_data = CompanyData.get_instance()
+        vat_rate = Decimal("0.00")
+        if company_data.mwst_pflichtig:
+            vat_rate = Decimal(str(company_data.mwst_satz or Decimal("8.1")))
+
+        net_amount = Decimal(str(akonto_plan.amount)).quantize(Decimal('0.01'))
+        vat_amount = InvoiceService.calculate_vat(net_amount, vat_rate)
+        gross_amount = net_amount + vat_amount
+
+        payment_days = 15
+        due_date = invoice_date + timedelta(days=payment_days)
+
+        invoice_number = (custom_invoice_number or "").strip()
+        if invoice_number:
+            if Invoice.objects.filter(invoice_number=invoice_number).exists():
+                raise ValueError(f"Rechnungsnummer '{invoice_number}' existiert bereits.")
+        else:
+            invoice_number = InvoiceService.generate_invoice_number()
+
+        invoice = Invoice.objects.create(
+            client=akonto_plan.client,
+            invoice_number=invoice_number,
+            invoice_date=invoice_date,
+            due_date=due_date,
+            amount=gross_amount,
+            net_amount=net_amount,
+            vat_amount=vat_amount,
+            vat_rate=vat_rate,
+            invoice_type="AKONTO",
+            akonto_plan=akonto_plan,
+            description=f"Akontozahlung ({akonto_plan.get_interval_display()})",
+            created_by=created_by,
+        )
+
+        InvoiceItem.objects.create(
+            invoice=invoice,
+            title="Akontozahlung",
+            description=f"Akontozahlung {akonto_plan.get_interval_display()} – {invoice_date.strftime('%d.%m.%Y')}",
+            service_type_code="AKONTO",
+            service_date=invoice_date,
+            item_source="MANUAL",
+            pricing_type="FIXED",
+            quantity=Decimal("1.00"),
+            unit_price=net_amount,
+            net_amount=net_amount,
+            vat_rate=vat_rate,
+            vat_amount=vat_amount,
+            gross_amount=gross_amount,
+        )
+
+        return invoice
+
+    @staticmethod
+    @transaction.atomic
+    def add_akonto_deduction(invoice: Invoice, akonto_invoice: Invoice) -> InvoiceItem:
+        """
+        Fügt einer Rechnung (typischerweise der Schlussrechnung) eine negative
+        Position hinzu, welche eine bereits gestellte Akonto-Rechnung abzieht.
+
+        Verwendet die bestehende Invoice.recalculate_amounts_from_items(), die
+        dadurch nicht verändert werden muss. Betrifft ausschliesslich die
+        übergebene Ziel-Rechnung; bestehende Rechnungen/Positionen werden nicht
+        verändert.
+
+        Args:
+            invoice: Ziel-Rechnung (z.B. die Schlussrechnung), der der Abzug
+                hinzugefügt wird
+            akonto_invoice: Bereits gestellte Akonto-Rechnung (invoice_type="AKONTO"),
+                deren Nettobetrag abgezogen wird
+
+        Returns:
+            Erstellte InvoiceItem (negative Position)
+        """
+        if akonto_invoice.invoice_type != "AKONTO":
+            raise ValueError("Referenzierte Rechnung ist keine Akontorechnung.")
+        if akonto_invoice.client_id != invoice.client_id:
+            raise ValueError("Akontorechnung gehört nicht zum Mandanten dieser Rechnung.")
+
+        net_amount = -akonto_invoice.net_amount
+        vat_rate = invoice.vat_rate or Decimal("0.00")
+        vat_amount = -InvoiceService.calculate_vat(akonto_invoice.net_amount, vat_rate)
+        gross_amount = net_amount + vat_amount
+
+        item = InvoiceItem.objects.create(
+            invoice=invoice,
+            title="Akonto-Abzug",
+            description=(
+                f"Abzug Akontozahlung {akonto_invoice.invoice_number} "
+                f"vom {akonto_invoice.invoice_date.strftime('%d.%m.%Y')}"
+            ),
+            service_type_code="AKONTO_ABZUG",
+            service_date=akonto_invoice.invoice_date,
+            item_source="MANUAL",
+            pricing_type="FIXED",
+            quantity=Decimal("1.00"),
+            unit_price=net_amount,
+            net_amount=net_amount,
+            vat_rate=vat_rate,
+            vat_amount=vat_amount,
+            gross_amount=gross_amount,
+        )
+
+        invoice.recalculate_amounts_from_items()
+        invoice.save()
+        return item
 
 
 

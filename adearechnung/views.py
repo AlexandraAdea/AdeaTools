@@ -4,18 +4,19 @@ Views für AdeaRechnung - Fakturierung und Rechnungserstellung.
 Diese Views nutzen die Funktionalität aus AdeaZeit, um Code-Duplikation zu vermeiden.
 Die Kundenübersicht wird hier als eigenständiges Modul präsentiert (Vertec-Stil).
 """
-from django.views.generic import TemplateView, ListView, DetailView
+from django.views.generic import TemplateView, ListView, DetailView, CreateView, UpdateView
 from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.contrib import messages
 from django.db import transaction
 from adeazeit.mixins import ManagerOrAdminRequiredMixin
 from adeazeit.views import mark_as_invoiced
-from adeacore.models import Invoice, Client, InvoiceItem
+from adeacore.models import Invoice, Client, InvoiceItem, AkontoPlan
 from adearechnung.services import InvoiceService
+from adearechnung.forms import AkontoPlanForm
 from adeazeit.models import TimeEntry
 from datetime import datetime, date
 from decimal import Decimal, ROUND_HALF_UP
@@ -465,6 +466,14 @@ class InvoiceDetailView(ManagerOrAdminRequiredMixin, DetailView):
         context["company_data"] = company_data
         context["warn_qr_iban_missing"] = not bool((company_data.iban or "").strip())
         context["manual_item_locked"] = invoice.payment_status in MANUAL_ITEM_LOCKED_STATUSES
+
+        # Für den Akonto-Abzug auf der Schlussrechnung: bereits gestellte
+        # Akonto-Rechnungen desselben Mandanten, die noch nicht storniert sind.
+        if invoice.invoice_type != "AKONTO":
+            context["open_akonto_invoices"] = Invoice.objects.filter(
+                client=invoice.client,
+                invoice_type="AKONTO",
+            ).exclude(payment_status="STORNIERT").order_by("-invoice_date")
         return context
 
 
@@ -702,5 +711,96 @@ class InvoiceManualItemDeleteView(ManagerOrAdminRequiredMixin, View):
             invoice.save()
 
         messages.success(request, "Manuelle Position wurde gelöscht.")
+        return redirect("adearechnung:invoice-detail", pk=invoice.pk)
+
+
+class AkontoPlanListView(ManagerOrAdminRequiredMixin, ListView):
+    """Liste aller Akonto-Pläne."""
+    model = AkontoPlan
+    template_name = "adearechnung/akonto_plan_list.html"
+    context_object_name = "akonto_plans"
+
+    def get_queryset(self):
+        return AkontoPlan.objects.select_related("client").order_by("client__name", "-active", "-created_at")
+
+
+class AkontoPlanCreateView(ManagerOrAdminRequiredMixin, CreateView):
+    """Erstellt einen neuen Akonto-Plan für einen Mandanten."""
+    model = AkontoPlan
+    form_class = AkontoPlanForm
+    template_name = "adearechnung/akonto_plan_form.html"
+    success_url = reverse_lazy("adearechnung:akonto-plan-list")
+
+    def form_valid(self, form):
+        form.instance.created_by = self.request.user
+        messages.success(self.request, "Akonto-Plan wurde erstellt.")
+        return super().form_valid(form)
+
+
+class AkontoPlanUpdateView(ManagerOrAdminRequiredMixin, UpdateView):
+    """Bearbeitet einen bestehenden Akonto-Plan."""
+    model = AkontoPlan
+    form_class = AkontoPlanForm
+    template_name = "adearechnung/akonto_plan_form.html"
+    success_url = reverse_lazy("adearechnung:akonto-plan-list")
+
+    def form_valid(self, form):
+        messages.success(self.request, "Akonto-Plan wurde aktualisiert.")
+        return super().form_valid(form)
+
+
+class GenerateAkontoInvoiceView(ManagerOrAdminRequiredMixin, View):
+    """
+    Erstellt manuell (per Klick) eine Akonto-Rechnung aus einem Akonto-Plan.
+    Nutzt InvoiceService.create_akonto_invoice; bestehende Rechnungslogik
+    (create_invoice_from_time_entries) bleibt unverändert.
+    """
+
+    def post(self, request, pk):
+        akonto_plan = get_object_or_404(AkontoPlan, pk=pk)
+
+        custom_invoice_number = (request.POST.get("invoice_number") or "").strip()
+
+        try:
+            invoice = InvoiceService.create_akonto_invoice(
+                akonto_plan=akonto_plan,
+                created_by=request.user,
+                custom_invoice_number=custom_invoice_number,
+            )
+        except ValueError as exc:
+            messages.error(request, str(exc))
+            return redirect("adearechnung:akonto-plan-list")
+
+        messages.success(request, f"Akonto-Rechnung {invoice.invoice_number} wurde erstellt.")
+        return redirect("adearechnung:invoice-detail", pk=invoice.pk)
+
+
+class InvoiceAddAkontoDeductionView(ManagerOrAdminRequiredMixin, View):
+    """
+    Fügt der Schlussrechnung einen Abzug für eine bereits gestellte
+    Akonto-Rechnung hinzu. Nutzt InvoiceService.add_akonto_deduction, welche
+    ihrerseits die bestehende Invoice.recalculate_amounts_from_items() nutzt.
+    """
+
+    def post(self, request, pk):
+        invoice = get_object_or_404(Invoice.objects.prefetch_related("items"), pk=pk)
+        if invoice.payment_status in MANUAL_ITEM_LOCKED_STATUSES:
+            messages.error(request, "Bei bezahlten oder stornierten Rechnungen kann kein Akonto-Abzug mehr hinzugefügt werden.")
+            return redirect("adearechnung:invoice-detail", pk=invoice.pk)
+
+        akonto_invoice_id = request.POST.get("akonto_invoice_id")
+        if not akonto_invoice_id:
+            messages.error(request, "Bitte eine Akonto-Rechnung auswählen.")
+            return redirect("adearechnung:invoice-detail", pk=invoice.pk)
+
+        akonto_invoice = get_object_or_404(Invoice, pk=akonto_invoice_id)
+
+        try:
+            InvoiceService.add_akonto_deduction(invoice, akonto_invoice)
+        except ValueError as exc:
+            messages.error(request, str(exc))
+            return redirect("adearechnung:invoice-detail", pk=invoice.pk)
+
+        messages.success(request, f"Akonto-Abzug für {akonto_invoice.invoice_number} wurde hinzugefügt.")
         return redirect("adearechnung:invoice-detail", pk=invoice.pk)
 
