@@ -2,7 +2,7 @@
 URL-Konfiguration für AdeaRechnung - Fakturierung und Rechnungserstellung.
 """
 from django.urls import path
-from . import views
+from . import views, mahn_views
 from adeazeit.views import mark_as_invoiced
 
 app_name = "adearechnung"
@@ -41,6 +41,12 @@ urlpatterns = [
     path("akonto/neu/", views.AkontoPlanCreateView.as_view(), name="akonto-plan-create"),
     path("akonto/<int:pk>/bearbeiten/", views.AkontoPlanUpdateView.as_view(), name="akonto-plan-update"),
     path("akonto/<int:pk>/rechnung-erstellen/", views.GenerateAkontoInvoiceView.as_view(), name="akonto-generate-invoice"),
+
+    # Mahnwesen
+    path("mahnwesen/", mahn_views.MahnlaufView.as_view(), name="mahnlauf"),
+    path("mahnwesen/<int:pk>/pdf/", mahn_views.MahnungPDFView.as_view(), name="mahnung-pdf"),
+    path("mahnwesen/<int:pk>/versendet/", mahn_views.MahnungVersendetView.as_view(), name="mahnung-versendet"),
+    path("invoices/<int:pk>/mahnsperre/", mahn_views.InvoiceMahnsperreView.as_view(), name="invoice-mahnsperre"),
 ]
 
 

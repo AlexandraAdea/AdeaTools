@@ -135,7 +135,7 @@ class InvoicePDFGenerator:
     def _create_header(self, company_data, invoice):
         """Erstellt Kopfzeile mit Firmendaten."""
         elements = []
-        elements.append(Paragraph("Treuhanbüro Ivanova", self.title_style))
+        elements.append(Paragraph("Treuhandbüro Ivanova", self.title_style))
         elements.append(Spacer(1, 2 * mm))
 
         locations = list(company_data.locations.filter(is_active=True).order_by("sort_order", "id"))

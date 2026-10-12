@@ -1473,6 +1473,16 @@ class Invoice(models.Model):
         blank=True,
         help_text="Beschreibung der Leistungen",
     )
+    mahnsperre = models.BooleanField(
+        "Mahnsperre",
+        default=False,
+        help_text="Rechnung wird im Mahnlauf übersprungen (Streitfall, Stundung, Ratenzahlung).",
+    )
+    mahnsperre_grund = models.CharField(
+        "Grund der Mahnsperre",
+        max_length=200,
+        blank=True,
+    )
     created_by = models.ForeignKey(
         "auth.User",
         on_delete=models.SET_NULL,

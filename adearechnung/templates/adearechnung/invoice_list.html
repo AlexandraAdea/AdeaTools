@@ -12,7 +12,10 @@
 <section class="content-card">
     <div style="display: flex; justify-content: space-between; align-items: center;">
         <h1 style="margin-bottom: 8px;">Rechnungen</h1>
-        <a href="{% url 'adearechnung:akonto-plan-list' %}" class="adea-button-secondary" style="text-decoration: none; padding: 8px 16px;">Akonto-Pläne</a>
+        <div>
+            <a href="{% url 'adearechnung:mahnlauf' %}" class="adea-button-secondary" style="text-decoration: none; padding: 8px 16px;">Mahnwesen</a>
+            <a href="{% url 'adearechnung:akonto-plan-list' %}" class="adea-button-secondary" style="text-decoration: none; padding: 8px 16px;">Akonto-Pläne</a>
+        </div>
     </div>
     <p class="lead">Übersicht aller erstellten Rechnungen.</p>
 
